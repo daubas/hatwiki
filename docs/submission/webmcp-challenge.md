@@ -61,59 +61,110 @@ publisher. It can help maintain shared knowledge, while people retain the
 final publication decision and the repository preserves attribution and
 history.
 
-## Demo script — target length 2:40
+## Video plan — target length 2:40
 
-### 0:00–0:20 — The problem
+Record one continuous task in English. Keep the browser zoom high enough that
+tool names, page IDs, citations, and revision values are readable. Prepare a
+signed-in session before recording, but begin the video with the public read
+flow. Use a harmless, pre-approved one-line clarification for the edit step.
 
-Show the HatWiki home page and say:
+### 0:00–0:15 — Hook
+
+**Screen:** HatWiki home page. Hold long enough to show the product name and
+the knowledge graph.
+
+**Voiceover:**
 
 > Agent conversations are useful, but their context is temporary. HatWiki is a
-> shared memory layer where humans and agents can read the same knowledge and
-> preserve the decisions that matter.
+> shared memory layer where people and browser agents can maintain knowledge
+> together.
 
-### 0:20–0:55 — Human browsing
+**Proof to show:** The live HatWiki URL and the human-facing Wiki experience.
 
-Open the Wiki index, search for `agent`, open a GEO research page, and show its
-source link, citations, and related page links.
+### 0:15–0:35 — The human surface
 
-Say:
+**Screen:** Open the Wiki index, search for `agent`, and open the Agent2UCB
+page. Show the source link, citations, and table of contents without scrolling
+through the whole article.
 
-> The same knowledge is readable as a normal Wiki, with provenance and graph
-> relationships visible to a person.
+**Voiceover:**
 
-### 0:55–1:35 — Agent discovery and reading
+> A person can browse the same knowledge as a normal Wiki. Pages keep their
+> source links, citations, and relationships instead of becoming anonymous
+> chat text.
 
-In ChatGPT with WebMCP enabled, ask the agent:
+### 0:35–1:10 — Agent discovery through WebMCP
 
-> Find the HatWiki page about Agent2UCB, then read it and summarize the evidence
-> boundary in three bullets.
+**Screen:** In ChatGPT with WebMCP enabled, ask:
 
-Show the agent selecting `search_wiki`, then `read_page`, and point out that the
-page ID, citations, links, and revision come from the structured result.
+> Find the HatWiki page about Agent2UCB. Use HatWiki's tools, then return the
+> canonical page ID and its source.
 
-### 1:35–2:20 — Human-authorized publishing
+Show `search_wiki` being selected and the concise result with `pageId`, title,
+and snippet. Then ask:
 
-Ask the agent:
+> Read that page and summarize its evidence boundary in three bullets.
 
-> Propose a small clarification to the evidence-boundary paragraph. Do not
-> publish until I explicitly approve it.
+Show `read_page` and briefly highlight the returned citations, links, and
+revision. Do not leave the full raw result on screen for more than a few
+seconds.
 
-Show the proposed content, then explicitly approve it. Show the agent calling
-`edit_page`, followed by the resulting revision or commit link. Refresh the page
-and show the updated text and backlink/graph context.
+**Voiceover:**
 
-Say:
+> WebMCP makes the browser page's capabilities discoverable to the agent. The
+> agent searches first, then reads the canonical page instead of guessing from
+> temporary conversation context.
 
-> The agent can prepare the change, but publication is an explicit human action.
-> The result is a durable Git revision, not an untraceable chat mutation.
+### 1:10–1:45 — Prepare, but do not publish
+
+**Screen:** Ask:
+
+> Propose one sentence that clarifies the evidence boundary. Do not publish
+> anything until I explicitly approve the exact text.
+
+Show the proposed sentence and the agent stopping before the write tool.
+
+**Voiceover:**
+
+> HatWiki separates assistance from publication. The agent can prepare a
+> useful correction, but it cannot silently write to the shared knowledge base.
+
+### 1:45–2:20 — Explicit authorization and durable revision
+
+**Screen:** Say:
+
+> I approve this exact sentence. Publish it to HatWiki using edit_page.
+
+Show `edit_page`, the authorization field, the success receipt or revision, and
+then refresh the page. Briefly show the resulting GitHub revision or the updated
+revision on the page.
+
+**Voiceover:**
+
+> After explicit human approval, the authenticated write path validates the
+> change and records a durable Git-backed revision. This is a shared memory
+> update with attribution and history, not an invisible chat mutation.
 
 ### 2:20–2:40 — Close
 
-Say:
+**Screen:** End on the updated page, then return to the graph or home page.
+
+**Voiceover:**
 
 > HatWiki demonstrates a practical WebMCP pattern: agents help maintain shared
 > knowledge, people control publication, and every public result remains
 > inspectable.
+
+## Recording checklist
+
+- [ ] Use the deployed URL, not a localhost address.
+- [ ] Make `search_wiki`, `read_page`, and `edit_page` visibly readable in the
+      recording.
+- [ ] Keep the write example harmless and obtain explicit approval on camera.
+- [ ] Show one concrete revision or commit result after the edit.
+- [ ] Record clear audio and keep the final video below three minutes.
+- [ ] Upload the video publicly to YouTube and use the same title and pitch as
+      this document.
 
 ## Submission checklist
 
