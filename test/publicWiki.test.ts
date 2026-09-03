@@ -67,3 +67,17 @@ test('readPage normalizes internal Markdown paths and applies the WikiLink ambig
   assert.deepEqual(markdownLinks[2], { target: 'missing-page', status: 'unresolved' });
   assert.equal(markdownLinks.some((link) => link.target === 'https://example.test/source'), false);
 });
+
+test('readPage resolves root-relative Markdown paths but rejects traversal paths', async () => {
+  const wiki = createPublicWiki(publicProjection);
+
+  const page = await wiki.readPage('guides/overview');
+
+  assert.ok(page);
+  assert.deepEqual(page.links.find((link) => link.target === 'concepts/hatwiki'), {
+    target: 'concepts/hatwiki',
+    status: 'resolved',
+    pageId: 'concepts/hatwiki',
+  });
+  assert.equal(page.links.some((link) => link.target.includes('..')), false);
+});

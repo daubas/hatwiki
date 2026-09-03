@@ -1,0 +1,7 @@
+<script>
+  import { registerBrowserReadTools } from '../lib/browserWebMcp.ts';
+
+  const modelContext = (document as Document & { modelContext?: Parameters<typeof registerBrowserReadTools>[0] }).modelContext;
+  const registration = await registerBrowserReadTools(modelContext, fetch);
+  window.addEventListener('pagehide', registration.dispose, { once: true });
+</script>

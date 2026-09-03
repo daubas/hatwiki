@@ -1,0 +1,43 @@
+---
+import type { WikiGraph } from '../lib/wikiGraph.ts';
+
+const { graph } = Astro.props as { graph: WikiGraph };
+const graphJson = JSON.stringify(graph).replaceAll('<', '\\u003c');
+---
+
+<div class="graph-wrap card">
+  <svg id="wiki-graph" role="img" aria-label="Wiki page relationship graph"></svg>
+  <script type="application/json" id="wiki-graph-data" set:html={graphJson} />
+</div>
+
+<script>
+  import * as d3 from 'd3';
+
+  const element = document.querySelector<SVGSVGElement>('#wiki-graph');
+  const dataElement = document.querySelector<HTMLScriptElement>('#wiki-graph-data');
+  if (element && dataElement) {
+    const graph = JSON.parse(dataElement.textContent || '{"nodes":[],"edges":[]}');
+    const width = element.clientWidth || 760;
+    const height = element.clientHeight || 560;
+    const nodes = graph.nodes.map((node: any) => ({ ...node }));
+    const links = graph.edges.map((edge: any) => ({ ...edge }));
+    const svg = d3.select(element).attr('viewBox', [0, 0, width, height]);
+    const link = svg.append('g').selectAll('line').data(links).join('line').attr('stroke', 'currentColor').attr('stroke-opacity', .22);
+    const node = svg.append('g').selectAll('a').data(nodes).join('a').attr('href', (d: any) => `/wiki/${d.id}`);
+    node.append('circle').attr('r', 7).attr('fill', 'var(--accent)');
+    node.append('text').text((d: any) => d.title).attr('x', 11).attr('y', 4).attr('fill', 'currentColor').attr('font-size', 12);
+    d3.forceSimulation(nodes)
+      .force('link', d3.forceLink(links).id((d: any) => d.id).distance(110))
+      .force('charge', d3.forceManyBody().strength(-280))
+      .force('center', d3.forceCenter(width / 2, height / 2))
+      .on('tick', () => {
+        link.attr('x1', (d: any) => d.source.x).attr('y1', (d: any) => d.source.y).attr('x2', (d: any) => d.target.x).attr('y2', (d: any) => d.target.y);
+        node.attr('transform', (d: any) => `translate(${d.x},${d.y})`);
+      });
+  }
+</script>
+
+<style>
+  .graph-wrap { padding:0; overflow:hidden; }
+  svg { display:block; width:100%; height:560px; }
+</style>

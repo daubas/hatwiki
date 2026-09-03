@@ -1,4 +1,5 @@
 ---
+import WebMcpRegistration from './WebMcpRegistration.astro';
 const { title = 'HatWiki' } = Astro.props;
 ---
 
@@ -11,6 +12,7 @@ const { title = 'HatWiki' } = Astro.props;
     <title>{title} · HatWiki</title>
   </head>
   <body>
+    <WebMcpRegistration />
     <header>
       <a class="brand" href="/">HatWiki</a>
       <span>Humans and Agents Together</span>

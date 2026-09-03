@@ -1,12 +1,9 @@
 ---
-import { getCollection } from 'astro:content';
 import Layout from '../../components/Layout.astro';
-import { createCollectionProjection } from '../../lib/collectionProjection.ts';
-import { createPublicWiki } from '../../lib/publicWiki.ts';
 import { renderWiki } from '../../lib/renderWiki.ts';
+import { getSiteWiki } from '../../lib/siteWiki.ts';
 
-const entries = await getCollection('wiki');
-const wiki = createPublicWiki(createCollectionProjection('local-fixture', entries));
+const wiki = await getSiteWiki();
 const page = await wiki.readPage(Astro.params.slug ?? '');
 if (!page) return new Response('Not found', { status: 404 });
 const html = await renderWiki(page.markdown);

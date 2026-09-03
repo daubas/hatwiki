@@ -1,0 +1,15 @@
+---
+import GraphView from '../components/GraphView.astro';
+import Layout from '../components/Layout.astro';
+import { getSiteSnapshot } from '../lib/siteWiki.ts';
+import { buildWikiGraph } from '../lib/wikiGraph.ts';
+
+const graph = buildWikiGraph(await getSiteSnapshot());
+---
+
+<Layout title="Graph">
+  <p class="meta">Revision {graph.revision}</p>
+  <h1>Wiki Graph</h1>
+  <p>每個節點是一頁 Wiki；連線來自頁面中的 WikiLink 或標準 Markdown link。</p>
+  <GraphView {graph} />
+</Layout>

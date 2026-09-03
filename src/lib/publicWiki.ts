@@ -14,7 +14,8 @@ function resolveLink(target: string, pages: PublicPage[]): LinkResolution {
 function normalizeMarkdownTarget(target: string): string | null {
   const path = target.split(/[?#]/, 1)[0];
   if (!path || /^[a-z][a-z\d+.-]*:/i.test(path) || path.startsWith('//')) return null;
-  return path.replace(/\.md$/i, '');
+  if (path.split('/').includes('..')) return null;
+  return path.replace(/^\/+/, '').replace(/\.md$/i, '');
 }
 
 function linksFor(page: PublicPage, pages: PublicPage[]): LinkResolution[] {
