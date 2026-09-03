@@ -22,11 +22,28 @@ test('builds canonical page nodes and resolved link edges for a snapshot', () =>
   assert.deepEqual(graph, {
     revision: 'rev-1',
     nodes: [
-      { id: 'guides/one', title: 'One' },
-      { id: 'topics/two', title: 'Two' },
+      { id: 'guides/one', title: 'One', backlinks: 0, connections: 1 },
+      { id: 'topics/two', title: 'Two', backlinks: 1, connections: 1 },
     ],
     edges: [{ source: 'guides/one', target: 'topics/two' }],
   });
+});
+
+test('counts backlinks and unique connections for graph sizing', () => {
+  const graph = buildWikiGraph({
+    revision: 'rev-counts',
+    pages: [
+      { pageId: 'one', title: 'One', markdown: '[[two]] [[three]]' },
+      { pageId: 'two', title: 'Two', markdown: '[[one]]' },
+      { pageId: 'three', title: 'Three', markdown: '[[two]]' },
+    ],
+  });
+
+  assert.deepEqual(graph.nodes, [
+    { id: 'one', title: 'One', backlinks: 1, connections: 2 },
+    { id: 'two', title: 'Two', backlinks: 2, connections: 2 },
+    { id: 'three', title: 'Three', backlinks: 1, connections: 2 },
+  ]);
 });
 
 test('deduplicates edges and omits missing or ambiguous links', () => {

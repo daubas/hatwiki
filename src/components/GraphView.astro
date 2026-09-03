@@ -1,12 +1,19 @@
 ---
 import type { WikiGraph } from '../lib/wikiGraph.ts';
 
-const { graph } = Astro.props as { graph: WikiGraph };
+const { graph, variant = 'graph' } = Astro.props as { graph: WikiGraph; variant?: 'graph' | 'loom' };
 const graphJson = JSON.stringify(graph).replaceAll('<', '\\u003c');
 ---
 
-<div class="graph-wrap card">
-  <svg id="wiki-graph" role="img" aria-label="Wiki page relationship graph"></svg>
+<div class:list={['graph-wrap', 'card', `graph-wrap--${variant}`]}>
+  <div class="graph-tools">
+    <div>
+      <p>{variant === 'loom' ? 'Knowledge Loom' : 'WikiLink Graph'}</p>
+      <span>{graph.nodes.length} pages · {graph.edges.length} links · 節點越大，連線越多</span>
+    </div>
+    <button id="reset-graph" type="button">回到全圖</button>
+  </div>
+  <svg id="wiki-graph" role="group" aria-label={variant === 'loom' ? 'Knowledge Loom — Wiki page relationship graph' : 'Wiki page relationship graph'}></svg>
   <script type="application/json" id="wiki-graph-data" set:html={graphJson} />
 </div>
 
@@ -22,22 +29,105 @@ const graphJson = JSON.stringify(graph).replaceAll('<', '\\u003c');
     const nodes = graph.nodes.map((node: any) => ({ ...node }));
     const links = graph.edges.map((edge: any) => ({ ...edge }));
     const svg = d3.select(element).attr('viewBox', [0, 0, width, height]);
-    const link = svg.append('g').selectAll('line').data(links).join('line').attr('stroke', 'currentColor').attr('stroke-opacity', .22);
-    const node = svg.append('g').selectAll('a').data(nodes).join('a').attr('href', (d: any) => `/wiki/${d.id}`);
-    node.append('circle').attr('r', 7).attr('fill', 'var(--accent)');
-    node.append('text').text((d: any) => d.title).attr('x', 11).attr('y', 4).attr('fill', 'currentColor').attr('font-size', 12);
-    d3.forceSimulation(nodes)
+    const root = svg.append('g');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const maxConnections = d3.max(nodes, (node: any) => node.connections) || 1;
+    const radius = d3.scaleSqrt().domain([0, maxConnections]).range([7, 18]);
+
+    svg.append('defs').append('marker')
+      .attr('id', 'graph-arrow')
+      .attr('viewBox', '0 -5 10 10')
+      .attr('refX', 18)
+      .attr('markerWidth', 5)
+      .attr('markerHeight', 5)
+      .attr('orient', 'auto')
+      .append('path')
+      .attr('d', 'M0,-5L10,0L0,5')
+      .attr('fill', 'var(--cobalt)');
+
+    const link = root.append('g').attr('class', 'graph-links')
+      .selectAll('line').data(links).join('line')
+      .attr('marker-end', 'url(#graph-arrow)');
+    const node = root.append('g').attr('class', 'graph-nodes')
+      .selectAll('a').data(nodes).join('a')
+      .attr('href', (d: any) => `/wiki/${d.id}`)
+      .attr('aria-label', (d: any) => `${d.title}，${d.backlinks} 個反向連結`);
+    node.append('circle').attr('r', (d: any) => radius(d.connections)).attr('fill', 'var(--lime)');
+    node.append('text').text((d: any) => d.title).attr('x', (d: any) => radius(d.connections) + 5).attr('y', 4);
+    node.append('title').text((d: any) => `${d.title}\n${d.backlinks} 個反向連結 · ${d.connections} 個相鄰頁面`);
+
+    const render = () => {
+      link.attr('x1', (d: any) => d.source.x).attr('y1', (d: any) => d.source.y).attr('x2', (d: any) => d.target.x).attr('y2', (d: any) => d.target.y);
+      node.attr('transform', (d: any) => `translate(${d.x},${d.y})`);
+      node.select('text')
+        .attr('x', (d: any) => d.x > width - 110 ? -radius(d.connections) - 5 : radius(d.connections) + 5)
+        .attr('text-anchor', (d: any) => d.x > width - 110 ? 'end' : 'start');
+    };
+
+    const simulation = d3.forceSimulation(nodes)
       .force('link', d3.forceLink(links).id((d: any) => d.id).distance(110))
       .force('charge', d3.forceManyBody().strength(-280))
+      .force('collision', d3.forceCollide().radius((d: any) => radius(d.connections) + 20))
       .force('center', d3.forceCenter(width / 2, height / 2))
-      .on('tick', () => {
-        link.attr('x1', (d: any) => d.source.x).attr('y1', (d: any) => d.source.y).attr('x2', (d: any) => d.target.x).attr('y2', (d: any) => d.target.y);
-        node.attr('transform', (d: any) => `translate(${d.x},${d.y})`);
-      });
+      .on('tick', render);
+    if (reducedMotion) {
+      simulation.stop();
+      for (let tick = 0; tick < 180; tick += 1) simulation.tick();
+      render();
+    }
+
+    node.call(d3.drag<any, any>()
+      .on('start', (event, d) => {
+        if (!reducedMotion && !event.active) simulation.alphaTarget(0.25).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      })
+      .on('drag', (event, d) => {
+        d.fx = event.x;
+        d.fy = event.y;
+        if (reducedMotion) {
+          d.x = event.x;
+          d.y = event.y;
+          render();
+        }
+      })
+      .on('end', (event, d) => {
+        if (!reducedMotion && !event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+        if (reducedMotion) render();
+      }));
+
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.35, 4])
+      .on('zoom', (event) => root.attr('transform', event.transform));
+    svg.call(zoom);
+    document.querySelector<HTMLButtonElement>('#reset-graph')?.addEventListener('click', () => {
+      if (reducedMotion) svg.call(zoom.transform, d3.zoomIdentity);
+      else svg.transition().duration(250).call(zoom.transform, d3.zoomIdentity);
+    });
   }
 </script>
 
 <style>
-  .graph-wrap { padding:0; overflow:hidden; }
-  svg { display:block; width:100%; height:560px; }
+  .graph-wrap { position:relative; padding:0; overflow:hidden; }
+  .graph-tools { position:absolute; z-index:1; inset:14px 14px auto; display:flex; justify-content:space-between; align-items:start; gap:12px; pointer-events:none; }
+  .graph-tools > div { max-width:260px; padding:8px 10px; border:2px solid var(--line); background:var(--panel); box-shadow:3px 3px 0 var(--line); color:var(--muted); font-size:.75rem; line-height:1.35; }
+  .graph-tools p { margin:0 0 2px; color:var(--text); font-size:.82rem; font-weight:850; letter-spacing:.04em; }
+  .graph-tools button { min-height:36px; padding:7px 10px; border:2px solid var(--line); border-radius:0; background:var(--lime); box-shadow:3px 3px 0 var(--line); color:var(--text); font:inherit; font-size:.78rem; font-weight:800; cursor:pointer; pointer-events:auto; }
+  .graph-tools button:hover { background:var(--cobalt); color:var(--panel); }
+  svg { display:block; width:100%; height:clamp(540px,calc(100svh - 240px),760px); cursor:grab; background:radial-gradient(circle at 50% 50%, rgb(200 255 45 / .22), transparent 38%); }
+  .graph-wrap--loom svg { height:clamp(340px,36vw,480px); min-height:0; }
+  svg:active { cursor:grabbing; }
+  :global(.graph-links line) { stroke:var(--cobalt); stroke-opacity:.42; stroke-width:1.5px; }
+  :global(.graph-nodes a) { color:inherit; }
+  :global(.graph-nodes circle) { stroke:var(--line); stroke-width:2px; transition:fill .15s ease, stroke-width .15s ease; }
+  :global(.graph-nodes text) { fill:var(--text); font-size:12px; font-weight:700; paint-order:stroke; stroke:var(--panel); stroke-width:3px; stroke-linejoin:round; }
+  :global(.graph-nodes a:hover circle), :global(.graph-nodes a:focus circle) { fill:var(--cobalt); stroke-width:4px; }
+  @media (max-width: 640px) {
+    .graph-tools { inset:10px 10px auto; }
+    .graph-tools > div { max-width:12rem; }
+    .graph-wrap--graph svg { height:68svh; min-height:480px; }
+    .graph-wrap--loom svg { height:370px; min-height:0; }
+  }
 </style>

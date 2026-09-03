@@ -1,18 +1,94 @@
 ---
 import { getCollection } from 'astro:content';
+import GraphView from '../components/GraphView.astro';
 import Layout from '../components/Layout.astro';
+import { getSiteSnapshot } from '../lib/siteWiki.ts';
+import { buildWikiGraph } from '../lib/wikiGraph.ts';
 
 const pages = (await getCollection('wiki')).filter((entry) => entry.data.visibility !== 'private');
+const graph = buildWikiGraph(await getSiteSnapshot());
 ---
 
-<Layout title="Open collaborative Wiki">
-  <p class="meta">HUMANS AND AGENTS TOGETHER</p>
-  <h1>資料進來，Wiki 長出來。</h1>
-  <p>HatWiki 讓人與不同 Agent 共同維護一座可追查、可修正、能跨 session 使用的 Wiki。</p>
-  <section class="card">
-    <h2>Public Wiki</h2>
-    <ul>
-      {pages.map((page) => <li><a href={`/wiki/${page.id}`}>{page.data.title}</a> — {page.data.description}</li>)}
-    </ul>
+<Layout title="Humans and Agents Together">
+  <section class="home">
+    <div class="home-copy">
+      <p class="status-line"><span aria-hidden="true"></span>Public Wiki · Git-backed knowledge</p>
+      <p class="overline">HATWIKI</p>
+      <h1><span>Humans and</span> <em>Agents</em> <span>Together.</span></h1>
+      <p class="home-lede">把人留下的資料與人、Agent 整理出的脈絡，編成一座可追查、可修正、跨 session 繼續使用的 Wiki。</p>
+    </div>
+
+    <section class="loom" aria-labelledby="loom-title">
+      <div class="loom-heading">
+        <div>
+          <p class="overline">KNOWLEDGE LOOM</p>
+          <h2 id="loom-title">資料進來，關係長出來。</h2>
+        </div>
+        <p class="loom-count">{graph.nodes.length} pages · {graph.edges.length} WikiLinks</p>
+      </div>
+      <GraphView graph={graph} variant="loom" />
+    </section>
+
+    <nav class="home-actions" aria-label="Start exploring HatWiki">
+      <a class="home-action home-action--wiki" href="/wiki/concepts/hatwiki"><span>01</span><strong>Read the Wiki</strong><small>從共同記憶開始</small></a>
+      <a class="home-action home-action--graph" href="/graph"><span>02</span><strong>Explore Graph</strong><small>看見頁面如何連結</small></a>
+      <a class="home-action home-action--login" href="/auth/login"><span>03</span><strong>GitHub 登入</strong><small>登入後可參與編輯</small></a>
+    </nav>
+
+    <section class="public-pages" aria-labelledby="public-pages-title">
+      <div>
+        <p class="overline">IN THE LOOM</p>
+        <h2 id="public-pages-title">目前公開頁面</h2>
+      </div>
+      <ul>
+        {pages.map((page) => <li><a href={`/wiki/${page.id}`}><strong>{page.data.title}</strong><span>{page.data.description}</span></a></li>)}
+      </ul>
+    </section>
   </section>
 </Layout>
+
+<style>
+  .home { display:grid; min-width:0; gap:52px; }
+  .home-copy { max-width:850px; margin:auto; text-align:center; }
+  .status-line, .overline { margin:0; font-size:.76rem; font-weight:850; letter-spacing:.08em; }
+  .status-line { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border:2px solid var(--line); background:var(--panel); box-shadow:3px 3px 0 var(--line); color:var(--text); }
+  .status-line span { width:9px; height:9px; border-radius:50%; background:var(--lime); border:1px solid var(--line); }
+  .overline { color:var(--cobalt); }
+  .home-copy .overline { margin-top:28px; }
+  .home-copy h1 { max-width:780px; margin:13px auto 18px; font-size:clamp(3.25rem,8vw,7.5rem); letter-spacing:-.09em; line-height:.88; }
+  .home-copy h1 em { color:var(--cobalt); font-style:normal; }
+  .home-lede { max-width:670px; margin:0 auto; color:var(--muted); font-size:clamp(1rem,2vw,1.18rem); }
+  .loom { display:grid; gap:16px; }
+  .loom-heading { display:flex; align-items:end; justify-content:space-between; gap:24px; }
+  .loom-heading h2, .public-pages h2 { max-width:700px; margin:5px 0 0; font-size:clamp(1.45rem,3vw,2.3rem); letter-spacing:-.045em; line-height:1.15; }
+  .loom-count { margin:0; color:var(--muted); font-size:.85rem; white-space:nowrap; }
+  .home-actions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+  .home-action { display:grid; gap:4px; min-height:138px; padding:18px; border:2px solid var(--line); background:var(--panel); box-shadow:5px 5px 0 var(--line); color:var(--text); text-decoration:none; }
+  .home-action:hover { background:var(--lime); color:var(--text); }
+  .home-action--graph:hover { background:var(--cobalt); color:var(--panel); }
+  .home-action--login:hover { background:var(--cobalt); color:var(--panel); }
+  .home-action span { color:var(--cobalt); font-size:.76rem; font-weight:850; letter-spacing:.08em; }
+  .home-action--graph span, .home-action--login span { color:var(--lime); }
+  .home-action strong { align-self:end; font-size:1.12rem; letter-spacing:-.025em; }
+  .home-action small { color:var(--muted); font-size:.82rem; }
+  .home-action--graph:hover small, .home-action--login:hover small { color:var(--panel); }
+  .public-pages { display:grid; grid-template-columns:minmax(170px,.42fr) 1fr; gap:32px; border-top:2px solid var(--line); padding-top:28px; }
+  .public-pages ul { display:grid; gap:10px; margin:0; padding:0; list-style:none; }
+  .public-pages a { display:flex; justify-content:space-between; gap:18px; padding:12px 0; border-bottom:2px solid var(--line); color:var(--text); text-decoration:none; }
+  .public-pages a:hover strong { color:var(--cobalt); }
+  .public-pages strong { font-size:1rem; }
+  .public-pages span { max-width:350px; color:var(--muted); font-size:.88rem; line-height:1.45; }
+  @media (max-width:760px) {
+    .home { gap:36px; }
+    .home-copy { text-align:left; }
+    .home-copy, .loom, .loom-heading, .loom-heading > div, .public-pages { min-width:0; }
+    .home-copy h1 { margin-left:0; font-size:clamp(2.7rem,14vw,3.4rem); }
+    .home-copy h1 span, .home-copy h1 em { display:block; }
+    .loom-heading, .public-pages { display:grid; grid-template-columns:minmax(0,1fr); gap:9px; }
+    .loom-heading h2 { max-width:100%; overflow-wrap:anywhere; }
+    .loom-count { white-space:normal; }
+    .home-actions { grid-template-columns:1fr; gap:12px; }
+    .home-action { min-height:106px; }
+    .public-pages a { display:grid; gap:4px; }
+  }
+</style>

@@ -3,6 +3,8 @@ import type { PublicSnapshot } from './contracts.ts';
 export type WikiGraphNode = {
   id: string;
   title: string;
+  backlinks: number;
+  connections: number;
 };
 
 export type WikiGraphEdge = {
@@ -24,10 +26,10 @@ function normalizeMarkdownTarget(target: string): string | undefined {
 }
 
 export function buildWikiGraph(snapshot: PublicSnapshot): WikiGraph {
-  const nodes = snapshot.pages.map(({ pageId, title }) => ({ id: pageId, title }));
-  const pageIds = new Set(nodes.map((node) => node.id));
+  const pages = snapshot.pages.map(({ pageId, title }) => ({ id: pageId, title }));
+  const pageIds = new Set(pages.map((node) => node.id));
   const basenameMap = new Map<string, string[]>();
-  for (const node of nodes) {
+  for (const node of pages) {
     const basename = node.id.split('/').at(-1) || node.id;
     const candidates = basenameMap.get(basename) || [];
     candidates.push(node.id);
@@ -56,6 +58,19 @@ export function buildWikiGraph(snapshot: PublicSnapshot): WikiGraph {
       }
     }
   }
+
+  const backlinks = new Map(pages.map(({ id }) => [id, 0]));
+  const neighbors = new Map(pages.map(({ id }) => [id, new Set<string>()]));
+  for (const edge of edges) {
+    backlinks.set(edge.target, (backlinks.get(edge.target) || 0) + 1);
+    neighbors.get(edge.source)?.add(edge.target);
+    neighbors.get(edge.target)?.add(edge.source);
+  }
+  const nodes = pages.map((node) => ({
+    ...node,
+    backlinks: backlinks.get(node.id) || 0,
+    connections: neighbors.get(node.id)?.size || 0,
+  }));
 
   return { revision: snapshot.revision, nodes, edges };
 }
