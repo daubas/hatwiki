@@ -30,3 +30,9 @@ Authenticated writes require a repository-installed GitHub App and these
 server-only Worker secrets: `GITHUB_APP_ID`, `GITHUB_CLIENT_ID`,
 `GITHUB_CLIENT_SECRET`, `GITHUB_PRIVATE_KEY`, `GITHUB_INSTALLATION_ID`,
 `GITHUB_REPOSITORY_ID`, and `SESSION_SECRET`.
+
+## License
+
+HatWiki source code is licensed under the
+[Apache License 2.0](LICENSE). Demo Wiki content and third-party materials
+retain their source-specific licenses and attribution requirements.
