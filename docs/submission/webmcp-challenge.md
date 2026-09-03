@@ -66,9 +66,9 @@ history.
 The final video is governed by the recorded-course artifacts in
 [`docs/submission/video-flow/`](video-flow/). The machine-authoritative paper
 edit is [`paper-edit.json`](video-flow/paper-edit.json); its generated human
-review is [`generated/paper-edit.md`](video-flow/generated/paper-edit.md).
+review is [`generated/v0.2-paper-edit.md`](video-flow/generated/v0.2-paper-edit.md).
 
-The 2:40 video is a compressed eight-chapter course flow with one outcome:
+The 2:40 video is a compact five-beat course flow with one outcome:
 
 > A human correction becomes shared, cited, Git-backed memory that a new
 > browser-agent session can read through WebMCP.

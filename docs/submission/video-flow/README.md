@@ -16,8 +16,8 @@ The existing submission draft describes a good interaction, but it is not yet a
 production-safe source of truth. The course pipeline adds the missing discipline:
 
 1. `course-manifest.json` records the approved scope, duration, and gates.
-2. `paper-edit.json` records eight reviewable Editorial Beats mapped to the
-   recorded-course chapters.
+2. `paper-edit.json` records five reviewable Editorial Beats mapped to the
+   actual demo flow; the recorded-course chapter example is not a requirement.
 3. Real UI recordings become evidence only after they exist, are redacted, and
    are tied to source ranges and hashes.
 4. Human keep/delete decisions are recorded before any cut is assembled.
@@ -36,7 +36,15 @@ The current HatWiki implementation exposes the public `search_wiki`,
 `get_ingestion_status`, and `inspect_changes` tools from the product note are
 not shown in this video until they actually exist.
 
-## Review order
+## Five-beat review order
+
+1. Outcome and environment.
+2. Task and human-facing Wiki surface.
+3. Agent discovery through `search_wiki` and `read_page`.
+4. Human approval, `edit_page`, and durable Git revision.
+5. Fresh-session validation and close.
+
+## Production gates
 
 1. Approve the learner outcome and the proposed beats.
 2. Finish the Gate A/B product work that the canonical HatWiki note requires.

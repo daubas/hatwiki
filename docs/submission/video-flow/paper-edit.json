@@ -1,11 +1,11 @@
 {
   "schema_version": 2,
-  "version": "0.1-proposal",
+  "version": "0.2-proposal",
   "status": "proposed",
   "metadata": {
     "competition": "Open WebMCP Challenge",
     "purpose": "Prove that a human correction becomes shared memory for a new browser agent session.",
-    "learner_outcome": "By the end, the viewer can see search_wiki, read_page, human authorization, Git revision, and a fresh-session readback.",
+    "learner_outcome": "By the end, the viewer can verify the WebMCP search/read flow, human authorization, Git revision, and fresh-session readback.",
     "narration_language": "English",
     "source_policy": "Use real deployed UI and real tool operations as evidence; use no fabricated UI.",
     "publication_target": "Public YouTube demo under three minutes with clear audio."
@@ -28,16 +28,16 @@
     {
       "id": "beat-00",
       "chapter_id": "00",
-      "chapter_title": "Environment readiness",
-      "teaching_purpose": "Establish the deployed entry point and the real WebMCP environment.",
-      "spoken_content": "This is HatWiki, a live Git-native Wiki where people and browser agents maintain shared knowledge together. We will use the deployed site and a browser agent with WebMCP enabled.",
+      "chapter_title": "Outcome and environment",
+      "teaching_purpose": "Establish the live product and the single result the viewer will verify.",
+      "spoken_content": "This is HatWiki, a live Git-native Wiki where people and browser agents maintain shared knowledge together. In this short demo, a human correction becomes readable to a new agent session through WebMCP.",
       "narration_spine": {
-        "name": "English opening pickup",
+        "name": "English opening and outcome pickup",
         "availability": "planned",
         "role": "illustration",
         "production_method": "Record a human voiceover after the live URL and WebMCP host are verified.",
-        "duration": "00:00:10",
-        "acceptance": "The opening names HatWiki, the live environment, and the WebMCP context in one clear sentence."
+        "duration": "00:00:20",
+        "acceptance": "The opening names HatWiki, the live environment, and the concrete outcome without introducing unused features."
       },
       "source_ranges": [],
       "visual_slots": [
@@ -47,194 +47,136 @@
           "availability": "planned",
           "role": "illustration",
           "production_method": "Capture the deployed HatWiki home page without private browser data.",
-          "duration": "00:00:10",
+          "duration": "00:00:20",
           "acceptance": "The live URL, HatWiki identity, and Knowledge Loom are readable."
         }
       ],
-      "duration": "00:00:10",
+      "duration": "00:00:20",
       "unresolved_work": []
     },
     {
       "id": "beat-01",
       "chapter_id": "01",
-      "chapter_title": "Result and self-introduction",
-      "teaching_purpose": "State the viewer promise before showing implementation details.",
-      "spoken_content": "Agent conversations are useful, but their context is temporary. HatWiki turns important decisions into inspectable Wiki pages with citations, links, and Git history.",
+      "chapter_title": "Task and human surface",
+      "teaching_purpose": "Show the existing page and define the human-facing task before the Agent acts.",
+      "spoken_content": "Our task is to improve an existing human-written research page, preserve its evidence boundary, and make the corrected result available to a new agent session. A person can browse the same page as a normal Wiki, with citations and related links.",
       "narration_spine": {
-        "name": "English product promise pickup",
+        "name": "English task setup pickup",
         "availability": "planned",
         "role": "illustration",
-        "production_method": "Record a human voiceover against the home page and final-state reference frame.",
-        "duration": "00:00:15",
-        "acceptance": "The product promise is understandable without naming implementation libraries."
+        "production_method": "Record a concise task statement over the selected Wiki page and its source context.",
+        "duration": "00:00:25",
+        "acceptance": "The existing page, source context, and fresh-session success condition are all understandable."
       },
       "source_ranges": [],
       "visual_slots": [
         {
           "id": "visual-01",
-          "name": "Human-facing Wiki index",
+          "name": "Agent2UCB page and citation context",
           "availability": "planned",
           "role": "illustration",
-          "production_method": "Capture the public Wiki index and one readable page.",
-          "duration": "00:00:15",
-          "acceptance": "A viewer can see this is a usable Wiki, not only a tool registration screen."
+          "production_method": "Capture the public Wiki index, Agent2UCB page, citation, and table of contents.",
+          "duration": "00:00:25",
+          "acceptance": "The selected page is visibly existing and source-aware, not a generated placeholder."
         }
       ],
-      "duration": "00:00:15",
+      "duration": "00:00:25",
       "unresolved_work": []
     },
     {
       "id": "beat-02",
       "chapter_id": "02",
-      "chapter_title": "Task begins",
-      "teaching_purpose": "Define one repeatable task and its success evidence.",
-      "spoken_content": "Our task is to improve an existing human-written research page, preserve its evidence boundary, and make the corrected result available to a new agent session.",
-      "narration_spine": {
-        "name": "English task setup pickup",
-        "availability": "planned",
-        "role": "illustration",
-        "production_method": "Record a concise task statement over the selected Wiki page.",
-        "duration": "00:00:15",
-        "acceptance": "The task names the existing page, the human decision, and the fresh-session readback."
-      },
-      "source_ranges": [],
-      "visual_slots": [
-        {
-          "id": "visual-02",
-          "name": "Selected Agent2UCB page and source citation",
-          "availability": "planned",
-          "role": "illustration",
-          "production_method": "Capture the real page, citation, and revision fields after the demo page is fixed for recording.",
-          "duration": "00:00:15",
-          "acceptance": "The selected page is clearly an existing page with source context."
-        }
-      ],
-      "duration": "00:00:15",
-      "unresolved_work": []
-    },
-    {
-      "id": "beat-03",
-      "chapter_id": "03",
-      "chapter_title": "First plan and Agent theory",
-      "teaching_purpose": "Show the browser agent discovering and reading the page through WebMCP.",
-      "spoken_content": "Find the existing Agent2UCB page using HatWiki's tools. Then read it and summarize the evidence boundary in three bullets. The agent searches first and reads the canonical page instead of guessing from chat context.",
+      "chapter_title": "Agent discovery through WebMCP",
+      "teaching_purpose": "Prove that the browser Agent discovers and reads the page through the WebMCP surface.",
+      "spoken_content": "Find the existing Agent2UCB page using HatWiki's tools. Then read it and summarize its evidence boundary in three bullets. WebMCP lets the Agent search first and read the canonical page instead of guessing from temporary conversation context.",
       "narration_spine": {
         "name": "English WebMCP explanation pickup",
         "availability": "planned",
         "role": "illustration",
         "production_method": "Record human narration after a real WebMCP host completes search_wiki followed by read_page.",
-        "duration": "00:00:25",
-        "acceptance": "The recording visibly proves both tool calls and shows structured page ID, citations, and revision."
+        "duration": "00:00:35",
+        "acceptance": "The recording visibly proves both tool calls and shows the page ID, short search result, citations, and revision."
+      },
+      "source_ranges": [],
+      "visual_slots": [
+        {
+          "id": "visual-02",
+          "name": "WebMCP search and read evidence",
+          "availability": "planned",
+          "role": "illustration",
+          "production_method": "Capture the real external Agent host and redact private session details.",
+          "duration": "00:00:35",
+          "acceptance": "search_wiki and read_page names, inputs, and bounded results are readable."
+        }
+      ],
+      "duration": "00:00:35",
+      "unresolved_work": []
+    },
+    {
+      "id": "beat-03",
+      "chapter_id": "03",
+      "chapter_title": "Human approval and durable publish",
+      "teaching_purpose": "Make the safety boundary, approved write, and durable revision visible in one continuous sequence.",
+      "spoken_content": "Propose one small clarification, but do not publish until I approve the exact text. I approve this exact sentence. Publish it to HatWiki using edit_page. After approval, the authenticated server validates the change and records a Git-backed revision.",
+      "narration_spine": {
+        "name": "English approval and write-path pickup",
+        "availability": "planned",
+        "role": "illustration",
+        "production_method": "Record the agent proposal, explicit human approval, authenticated edit_page call, and result in one controlled take.",
+        "duration": "00:00:45",
+        "acceptance": "The agent stops before the write, the approval is explicit, and the result status, revision, and Git commit or diff are visible."
       },
       "source_ranges": [],
       "visual_slots": [
         {
           "id": "visual-03",
-          "name": "WebMCP search and read evidence",
+          "name": "Proposed clarification, edit_page, and Git revision",
           "availability": "planned",
           "role": "illustration",
-          "production_method": "Capture the real external agent host and redact private session details.",
-          "duration": "00:00:25",
-          "acceptance": "search_wiki and read_page names, inputs, and bounded results are readable."
-        }
-      ],
-      "duration": "00:00:25",
-      "unresolved_work": []
-    },
-    {
-      "id": "beat-04",
-      "chapter_id": "04",
-      "chapter_title": "Complete the plan",
-      "teaching_purpose": "Make the human safety decision visible before any write operation.",
-      "spoken_content": "Propose one small clarification, but do not publish until I approve the exact text. HatWiki separates agent assistance from publication and keeps the human decision visible.",
-      "narration_spine": {
-        "name": "English authorization boundary pickup",
-        "availability": "planned",
-        "role": "illustration",
-        "production_method": "Record the agent proposal and the human approval prompt in one uninterrupted take.",
-        "duration": "00:00:25",
-        "acceptance": "The agent stops before the write call and the proposed text is readable."
-      },
-      "source_ranges": [],
-      "visual_slots": [
-        {
-          "id": "visual-04",
-          "name": "Proposed clarification before approval",
-          "availability": "planned",
-          "role": "illustration",
-          "production_method": "Capture the real agent proposal and the explicit approval boundary.",
-          "duration": "00:00:25",
-          "acceptance": "No write operation occurs before the on-screen human approval."
-        }
-      ],
-      "duration": "00:00:25",
-      "unresolved_work": []
-    },
-    {
-      "id": "beat-05",
-      "chapter_id": "05",
-      "chapter_title": "Manual execute",
-      "teaching_purpose": "Show the approved write, the permission boundary, and the durable Git result.",
-      "spoken_content": "I approve this exact sentence. Publish it to HatWiki using edit_page. After approval, the authenticated server validates the change and records a Git-backed revision.",
-      "narration_spine": {
-        "name": "English write-path pickup",
-        "availability": "planned",
-        "role": "illustration",
-        "production_method": "Record the real authenticated edit_page call only after Gate A write UX is verified.",
-        "duration": "00:00:25",
-        "acceptance": "The authorization field, result status, page revision, and Git commit or diff are all visible."
-      },
-      "source_ranges": [],
-      "visual_slots": [
-        {
-          "id": "visual-05",
-          "name": "Authenticated edit and Git revision",
-          "availability": "planned",
-          "role": "illustration",
-          "production_method": "Capture the real write flow, then show the public readback and GitHub revision without exposing credentials.",
-          "duration": "00:00:25",
+          "production_method": "Capture the real authenticated write flow, then show public readback and the GitHub revision without exposing credentials.",
+          "duration": "00:00:45",
           "acceptance": "The result is verifiable as committed, not merely a success message fabricated in the video."
         }
       ],
-      "duration": "00:00:25",
+      "duration": "00:00:45",
       "unresolved_work": [
         {
           "name": "Gate A write-flow evidence",
           "availability": "gap",
           "role": "evidence",
-          "production_method": "Complete and test the visible authenticated edit flow, including diff or preview and committed/conflict/approval_required result.",
+          "production_method": "Complete and test the visible authenticated edit flow, including preview or minimal diff and committed/conflict/approval_required result.",
           "duration": "00:00:05",
           "acceptance": "A real external WebMCP host can complete the write using the same signed-in session."
         }
       ]
     },
     {
-      "id": "beat-06",
-      "chapter_id": "06",
-      "chapter_title": "Validate and fix",
-      "teaching_purpose": "Prove that the shared state survives a new agent session and remains traceable.",
-      "spoken_content": "Now I open a fresh agent session. It can read the updated page, the citation, and the new revision without inheriting the previous conversation. The shared memory is the Wiki and Git history, not the chat transcript.",
+      "id": "beat-04",
+      "chapter_id": "04",
+      "chapter_title": "Fresh-session validation and close",
+      "teaching_purpose": "Prove that the new state is shared memory rather than context hidden in the first Agent session.",
+      "spoken_content": "Now I open a fresh agent session. It can read the corrected page, its citation, and the new revision without inheriting the previous conversation. The shared memory is the Wiki and Git history, not the chat transcript.",
       "narration_spine": {
-        "name": "English fresh-session validation pickup",
+        "name": "English fresh-session validation and closing pickup",
         "availability": "planned",
         "role": "illustration",
-        "production_method": "Record a new browser-agent session reading the updated public page after the write has fully propagated.",
-        "duration": "00:00:25",
-        "acceptance": "The fresh session reads the corrected sentence and reports the current revision and source."
+        "production_method": "Record a new browser-Agent session reading the updated public page, then close on the updated page and Knowledge Loom.",
+        "duration": "00:00:35",
+        "acceptance": "The fresh session reads the corrected sentence and reports the current revision and source; the close states the human/Agent boundary."
       },
       "source_ranges": [],
       "visual_slots": [
         {
-          "id": "visual-06",
-          "name": "Fresh-session readback",
+          "id": "visual-04",
+          "name": "Fresh-session readback and final Knowledge Loom",
           "availability": "planned",
           "role": "illustration",
-          "production_method": "Capture a new session and the updated public page after commit, GitHub readback, and R2 publication.",
-          "duration": "00:00:25",
+          "production_method": "Capture a genuinely new session and the updated public page after commit, GitHub readback, and R2 publication.",
+          "duration": "00:00:35",
           "acceptance": "The second session visibly reads the new state without relying on the first session's transcript."
         }
       ],
-      "duration": "00:00:25",
+      "duration": "00:00:35",
       "unresolved_work": [
         {
           "name": "Gate C fresh-session evidence",
@@ -245,35 +187,6 @@
           "acceptance": "The updated page, citation, and revision are available to a new session."
         }
       ]
-    },
-    {
-      "id": "beat-07",
-      "chapter_id": "07",
-      "chapter_title": "Homework and close",
-      "teaching_purpose": "Close on the durable product pattern and give the viewer a verifiable next step.",
-      "spoken_content": "HatWiki demonstrates a practical WebMCP pattern: agents help maintain shared knowledge, people control publication, and every public result remains inspectable through the Wiki, citations, and Git history.",
-      "narration_spine": {
-        "name": "English closing pickup",
-        "availability": "planned",
-        "role": "illustration",
-        "production_method": "Record a short human closing over the updated page and Knowledge Loom.",
-        "duration": "00:00:20",
-        "acceptance": "The final sentence names the human/agent boundary and points to the live demo and public repository."
-      },
-      "source_ranges": [],
-      "visual_slots": [
-        {
-          "id": "visual-07",
-          "name": "Updated page, Knowledge Loom, and repository link",
-          "availability": "planned",
-          "role": "illustration",
-          "production_method": "Capture the final verified state and the public project link.",
-          "duration": "00:00:20",
-          "acceptance": "The video ends on a verifiable product state, not a generic title card."
-        }
-      ],
-      "duration": "00:00:20",
-      "unresolved_work": []
     }
   ]
 }
