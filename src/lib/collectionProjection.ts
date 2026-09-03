@@ -5,6 +5,7 @@ export type CollectionEntry = {
   body?: string;
   data: {
     title?: string;
+    resource?: unknown;
     sources?: unknown;
     pendingCandidates?: unknown;
     visibility?: unknown;
@@ -56,6 +57,9 @@ export function createCollectionProjection(
     .filter(({ entry, pageId }) => isPublicEntry(pageId, entry.data.visibility))
     .map(({ entry, pageId }) => {
       const citations = publicCitations(entry.data.sources);
+      const resource = typeof entry.data.resource === 'string' && /^https?:\/\//i.test(entry.data.resource.trim())
+        ? entry.data.resource.trim()
+        : undefined;
       const pendingCandidates = typeof entry.data.pendingCandidates === 'number'
         && Number.isFinite(entry.data.pendingCandidates)
         && entry.data.pendingCandidates >= 0
@@ -65,6 +69,7 @@ export function createCollectionProjection(
         pageId,
         title: entry.data.title || pageId,
         markdown: entry.body || '',
+        ...(resource ? { resource } : {}),
         ...(citations ? { citations } : {}),
         ...(pendingCandidates !== undefined ? { pendingCandidates } : {}),
       };

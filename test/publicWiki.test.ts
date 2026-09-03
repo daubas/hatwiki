@@ -42,6 +42,7 @@ test('readPage derives backlinks from resolved links in the same snapshot', asyn
 
   assert.ok(page);
   assert.deepEqual(page.backlinks, ['notes/reviewer']);
+  assert.deepEqual(page.backlinkPages, [{ pageId: 'notes/reviewer', title: 'Review note' }]);
 });
 
 test('searchWiki finds only projected pages whose public text matches the query', async () => {
@@ -80,4 +81,12 @@ test('readPage resolves root-relative Markdown paths but rejects traversal paths
     pageId: 'concepts/hatwiki',
   });
   assert.equal(page.links.some((link) => link.target.includes('..')), false);
+});
+
+test('readPage does not report intentionally private raw evidence as a broken Wiki link', async () => {
+  const wiki = createPublicWiki(publicProjection);
+  const page = await wiki.readPage('guides/overview');
+
+  assert.ok(page);
+  assert.equal(page.links.some((link) => link.target.startsWith('raw/')), false);
 });

@@ -18,6 +18,7 @@ const citationHref = (resource: string) => {
   if (resource.startsWith('/') && resource.endsWith('.md')) return `/wiki/${resource.slice(1, -3)}`;
   return undefined;
 };
+const canonicalSource = page.resource && /^https?:\/\//i.test(page.resource) ? page.resource : undefined;
 ---
 
 <Layout title={page.title}>
@@ -42,9 +43,11 @@ const citationHref = (resource: string) => {
       <section class="wiki-content" set:html={html} />
     </div>
 
-    {page.citations && page.citations.length > 0 && <section class="wiki-sources" aria-labelledby="wiki-sources-title">
+    {(canonicalSource || (page.citations && page.citations.length > 0)) && <section class="wiki-sources" aria-labelledby="wiki-sources-title">
       <p class="section-kicker" id="wiki-sources-title">{t(locale, 'sources')}</p>
-      <ul>{page.citations.map((source) => {
+      <ul>
+        {canonicalSource && <li><a href={canonicalSource}>{page.title} ↗</a></li>}
+        {page.citations?.filter((source) => source.resource !== canonicalSource).map((source) => {
         const href = citationHref(source.resource);
         return <li>{href
           ? <a href={href}>{source.title ?? source.resource}</a>
@@ -58,7 +61,7 @@ const citationHref = (resource: string) => {
     {page.backlinks.length > 0 && <section aria-labelledby="wiki-related-title">
       <p class="section-kicker" id="wiki-related-title">{t(locale, 'wikiRelated')}</p>
       <p class="side-label">{t(locale, 'backlinks')}</p>
-      <ul>{page.backlinks.map((id) => <li><a href={withLocale(`/wiki/${id}`, locale)}>{id}</a></li>)}</ul>
+      <ul>{page.backlinkPages.map((backlink) => <li><a href={withLocale(`/wiki/${backlink.pageId}`, locale)}>{backlink.title}</a></li>)}</ul>
     </section>}
     {hasDiagnostics && <section aria-labelledby="wiki-diagnostics-title">
       <p class="section-kicker" id="wiki-diagnostics-title">{t(locale, 'linkDiagnostics')}</p>

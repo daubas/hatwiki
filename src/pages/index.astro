@@ -14,7 +14,6 @@ const locale = getLocale(Astro.url);
 <Layout title="Humans and Agents Together">
   <section class="home">
     <header class="home-copy">
-      <img class="home-emblem" src="/brand/hatwiki.svg" alt="" />
       <p class="status-line"><span aria-hidden="true"></span>{t(locale, 'homeStatus')}</p>
       <p class="overline">{t(locale, 'homeOverline')}</p>
       <h1>{t(locale, 'homeTitle1')}<br />{t(locale, 'homeTitle2')}<br /><strong>{t(locale, 'homeTitle3')}</strong></h1>
@@ -51,8 +50,7 @@ const locale = getLocale(Astro.url);
 
 <style>
   .home { display:grid; min-width:0; grid-template-columns:minmax(260px,380px) minmax(0,1fr); gap:clamp(28px,4vw,64px); align-items:start; }
-  .home-copy { position:sticky; top:118px; display:grid; align-content:start; min-width:0; }
-  .home-emblem { width:clamp(118px,12vw,164px); height:auto; margin:0 0 26px -10px; }
+  .home-copy { display:grid; align-content:start; min-width:0; }
   .status-line, .overline { margin:0; font-size:.72rem; font-weight:850; letter-spacing:.11em; text-transform:uppercase; }
   .status-line { justify-self:start; display:inline-flex; align-items:center; gap:8px; padding:7px 10px; border:1px solid var(--line); color:var(--muted); }
   .status-line span { width:8px; height:8px; border-radius:50%; background:var(--lime); box-shadow:0 0 14px var(--lime); }
@@ -82,7 +80,6 @@ const locale = getLocale(Astro.url);
   @media (max-width:760px) {
     .home { grid-template-columns:minmax(0,1fr); gap:54px; }
     .home-copy { position:static; }
-    .home-emblem { width:126px; margin-bottom:20px; }
     .home-copy, .loom, .loom-heading, .loom-heading > div, .public-pages { min-width:0; }
     .home-copy .overline { margin-top:38px; }
     .home-copy h1 { font-size:clamp(2.75rem,14vw,4rem); }

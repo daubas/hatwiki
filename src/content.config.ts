@@ -8,6 +8,7 @@ const wiki = defineCollection({
     type: z.string(),
     title: z.string(),
     description: z.string().optional(),
+    resource: z.string().optional(),
     tags: z.array(z.string()).optional(),
     visibility: z.enum(['public', 'private']).optional(),
     pendingCandidates: z.number().int().nonnegative().optional(),

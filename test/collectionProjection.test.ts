@@ -23,6 +23,17 @@ test('projects a public collection entry into a public snapshot', async () => {
   });
 });
 
+test('projects only an HTTP canonical resource for public reading', async () => {
+  const projection = createCollectionProjection('rev-resource', [
+    { id: 'entities/public', data: { title: 'Public', resource: 'https://example.test/source' } },
+    { id: 'entities/internal', data: { title: 'Internal', resource: '/raw/source.md' } },
+  ]);
+
+  const snapshot = await projection.readSnapshot();
+  assert.equal(snapshot.pages[0].resource, 'https://example.test/source');
+  assert.equal(snapshot.pages[1].resource, undefined);
+});
+
 test('excludes private and system collection entries from the snapshot', async () => {
   const projection = createCollectionProjection('rev-2', [
     { id: 'guides/visible', data: { title: 'Visible' } },

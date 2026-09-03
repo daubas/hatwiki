@@ -15,7 +15,9 @@ function normalizeMarkdownTarget(target: string): string | null {
   const path = target.split(/[?#]/, 1)[0];
   if (!path || /^[a-z][a-z\d+.-]*:/i.test(path) || path.startsWith('//')) return null;
   if (path.split('/').includes('..')) return null;
-  return path.replace(/^\/+/, '').replace(/\.md$/i, '');
+  const normalized = path.replace(/^\/+/, '').replace(/\.md$/i, '');
+  if (normalized === 'raw' || normalized.startsWith('raw/') || normalized === 'extracted' || normalized.startsWith('extracted/')) return null;
+  return normalized;
 }
 
 function linksFor(page: PublicPage, pages: PublicPage[]): LinkResolution[] {
@@ -42,12 +44,13 @@ export function createPublicWiki(projection: PublicProjection) {
 
       const links = linksFor(page, snapshot.pages);
       // ponytail: scans the current snapshot; add a per-revision link index if public wikis grow large.
-      const backlinks = snapshot.pages
+      const backlinkPages = snapshot.pages
         .filter((candidate) => candidate.pageId !== pageId)
         .filter((candidate) => linksFor(candidate, snapshot.pages).some((link) => link.pageId === pageId))
-        .map((candidate) => candidate.pageId);
+        .map((candidate) => ({ pageId: candidate.pageId, title: candidate.title }));
+      const backlinks = backlinkPages.map((candidate) => candidate.pageId);
 
-      return { ...page, revision: snapshot.revision, links, backlinks };
+      return { ...page, revision: snapshot.revision, links, backlinks, backlinkPages };
     },
   };
 }

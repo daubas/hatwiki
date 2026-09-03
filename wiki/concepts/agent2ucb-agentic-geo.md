@@ -2,6 +2,7 @@
 type: Research Finding
 title: Agent2UCB：以雙 UCB 選擇 GEO 改寫工具
 description: 從 Agent2UCB 原始研究整理逐內容項目的 GEO tool selection、LLM prior、visibility reward、dual-UCB、GEO-Bench 與 SEO readiness trade-off；不等同公開 AI Search 或 GEO 因果效果。
+resource: https://arxiv.org/abs/2608.29063
 tags:
   - generative-engine-optimization
   - generative-search
