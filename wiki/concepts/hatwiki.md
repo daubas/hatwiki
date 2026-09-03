@@ -16,6 +16,3 @@ change; the public site and WebMCP expose the latest validated revision.
 
 Continue with [[guides/getting-started|Getting started]] or explore
 [[concepts/shared-memory|shared memory]].
-
-
-<!-- HatWiki live write-path verification -->
