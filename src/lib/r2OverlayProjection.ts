@@ -1,0 +1,52 @@
+import type { PublicPage, PublicProjection } from './contracts.ts';
+import type { PublishedPage } from './r2Publisher.ts';
+
+type R2Like = {
+  list(options: { prefix: string; limit: number }): Promise<{ objects: Array<{ key: string }> }>;
+  get(key: string): Promise<{ json<T>(): Promise<T> } | null>;
+};
+
+function valid(page: unknown, key: string): page is PublishedPage {
+  if (!page || typeof page !== 'object') return false;
+  const value = page as Record<string, unknown>;
+  return typeof value.pageId === 'string'
+    && key === `published/pages/${value.pageId}.json`
+    && !value.pageId.split('/').some((part) => !part || part === '.' || part === '..')
+    && typeof value.content === 'string'
+    && typeof value.revision === 'string'
+    && typeof value.baseSha === 'string';
+}
+
+function project(page: PublishedPage): PublicPage {
+  const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)([\s\S]*)$/.exec(page.content);
+  const title = frontmatter?.[1].match(/^title:\s*["']?(.+?)["']?\s*$/m)?.[1] || page.pageId;
+  return {
+    pageId: page.pageId,
+    title,
+    markdown: frontmatter?.[2] ?? page.content,
+    sourceMarkdown: page.content,
+    baseSha: page.baseSha,
+  };
+}
+
+export function createR2OverlayProjection(base: PublicProjection, bucket: R2Like): PublicProjection {
+  return {
+    async readSnapshot() {
+      const snapshot = await base.readSnapshot();
+      // ponytail: one R2 list page supports the first 1,000 overrides; paginate when a Wiki reaches that size.
+      const listed = await bucket.list({ prefix: 'published/pages/', limit: 1000 });
+      const pages = new Map(snapshot.pages.map((page) => [page.pageId, page]));
+      for (const { key } of listed.objects) {
+        const object = await bucket.get(key);
+        const value = object ? await object.json<unknown>() : null;
+        if (valid(value, key)) pages.set(value.pageId, project(value));
+      }
+      const marker = await bucket.get('published/revision.json');
+      const value = marker ? await marker.json<unknown>() : null;
+      const revision = value && typeof value === 'object' && typeof (value as { revision?: unknown }).revision === 'string'
+        ? (value as { revision: string }).revision
+        : snapshot.revision;
+      return { revision, pages: [...pages.values()] };
+    },
+  };
+}

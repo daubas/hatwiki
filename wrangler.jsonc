@@ -5,5 +5,15 @@
   "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true
-  }
+  },
+  "d1_databases": [{
+    "binding": "HATWIKI_STATE",
+    "database_name": "hatwiki-state",
+    "database_id": "1f89cbb9-9bd9-424f-a164-9842b1861a63",
+    "migrations_dir": "migrations"
+  }],
+  "r2_buckets": [{
+    "binding": "HATWIKI_PUBLIC",
+    "bucket_name": "hatwiki-public"
+  }]
 }

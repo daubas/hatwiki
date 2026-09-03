@@ -95,7 +95,7 @@ export function createEditPageService({ repository, receipts, publisher, policy 
     const readback = await repository.readPage(input.pageId, revision);
     if (!readback || !sameBytes(readback.content, input.content)) throw new Error('readback_mismatch');
 
-    const published = await publisher.publish(revision);
+    const published = await publisher.publish({ revision, baseSha: readback.sha, pageId: input.pageId, content: input.content });
     if (published.revision !== revision) throw new Error('publisher_mismatch');
 
     const receipt: EditReceipt = { requestId: input.requestId, status: 'committed', revision };

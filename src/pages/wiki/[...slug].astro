@@ -10,7 +10,7 @@ const html = await renderWiki(page.markdown);
 ---
 
 <Layout title={page.title}>
-  <p class="meta">Revision {page.revision}</p>
+  <p class="meta">Revision {page.revision} · <a href={`/edit/${page.pageId}`}>編輯這一頁</a></p>
   <article set:html={html} />
   {page.citations && page.citations.length > 0 && <section class="card"><h2>Sources</h2><ul>{page.citations.map((source) => <li><a href={source.resource}>{source.title ?? source.resource}</a></li>)}</ul></section>}
   <div slot="right">

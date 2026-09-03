@@ -36,7 +36,7 @@ test('commits only after GitHub readback and the public projection confirm the s
       },
     },
     publisher: {
-      publish: async (revision) => {
+      publish: async ({ revision }) => {
         calls.push(`publish:${revision}`);
         return { revision };
       },
@@ -549,7 +549,7 @@ test('does not store a committed receipt when the publisher reports another revi
       },
     },
     publisher: {
-      publish: async (revision) => {
+      publish: async ({ revision }) => {
         calls.push(`publisher.publish:${revision}`);
         return { revision: 'commit-other' };
       },
@@ -614,7 +614,7 @@ test('recovers a Git-written page revision before attempting a new write', async
       },
     },
     publisher: {
-      publish: async (revision) => {
+      publish: async ({ revision }) => {
         calls.push(`publisher.publish:${revision}`);
         return { revision };
       },

@@ -16,6 +16,7 @@ const { title = 'HatWiki' } = Astro.props;
     <header>
       <a class="brand" href="/">HatWiki</a>
       <span>Humans and Agents Together</span>
+      <a class="account" href="/auth/login">GitHub 登入</a>
     </header>
     <div class="shell">
       <nav aria-label="Wiki navigation">
@@ -39,6 +40,7 @@ const { title = 'HatWiki' } = Astro.props;
   header { height:64px; display:flex; align-items:center; gap:18px; padding:0 28px; border-bottom:1px solid var(--line); background:var(--panel); }
   .brand { color:var(--text); font-size:1.2rem; font-weight:750; text-decoration:none; }
   header span, .label { color:var(--muted); font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; }
+  .account { margin-left:auto; color:var(--accent); text-decoration:none; }
   .shell { display:grid; grid-template-columns:220px minmax(0,760px) 220px; gap:36px; max-width:1280px; margin:auto; padding:34px 28px; }
   nav { display:flex; flex-direction:column; gap:8px; position:sticky; top:32px; align-self:start; }
   nav a { padding:8px 10px; border-radius:7px; color:var(--muted); text-decoration:none; }

@@ -2,6 +2,8 @@ export type PublicPage = {
   pageId: string;
   title: string;
   markdown: string;
+  baseSha?: string;
+  sourceMarkdown?: string;
   citations?: Array<{ id: string; resource: string; title?: string }>;
   pendingCandidates?: number;
 };

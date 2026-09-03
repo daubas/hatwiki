@@ -37,7 +37,7 @@ export interface EditReceiptStore {
 }
 
 export interface PublicPublisher {
-  publish(revision: string): Promise<{ revision: string }>;
+  publish(page: { revision: string; baseSha: string; pageId: string; content: string }): Promise<{ revision: string }>;
 }
 
 export type EditPolicy = {
