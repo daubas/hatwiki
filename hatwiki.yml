@@ -1,0 +1,6 @@
+visibility: public_projection
+write_policy: github_authenticated
+protected_paths:
+  - policies/**
+maintenance_agent: null
+large_edit_threshold: 50000
