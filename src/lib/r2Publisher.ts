@@ -1,13 +1,14 @@
 import type { PublicPublisher } from './editContracts.ts';
 
 type R2PutOptions = {
+  onlyIf?: { etagMatches?: string; etagDoesNotMatch?: string };
   httpMetadata?: { contentType?: string };
   customMetadata?: Record<string, string>;
 };
 
 type R2BucketLike = {
   put(key: string, value: string, options: R2PutOptions): Promise<unknown>;
-  get(key: string): Promise<{ json<T>(): Promise<T> } | null>;
+  get(key: string): Promise<{ etag?: string; json<T>(): Promise<T> } | null>;
 };
 
 type R2ReaderLike = Pick<R2BucketLike, 'get'>;
@@ -27,27 +28,28 @@ export async function readR2Page(bucket: R2ReaderLike, pageId: string): Promise<
   return object ? object.json<PublishedPage>() : null;
 }
 
-export function createR2Publisher(bucket: R2BucketLike, key = 'published/revision.json'): PublicPublisher {
+export function createR2Publisher(bucket: R2BucketLike): PublicPublisher {
   return {
-    async publish({ revision, baseSha, pageId, content }) {
-      await bucket.put(`published/pages/${pageId}.json`, JSON.stringify({ pageId, content, revision, baseSha }), {
+    async publish({ revision, previousSha, baseSha, pageId, content }) {
+      const pageKey = `published/pages/${pageId}.json`;
+      const currentObject = await bucket.get(pageKey);
+      const current = currentObject ? await currentObject.json<PublishedPage>() : null;
+      if (current?.revision === revision && current.baseSha === baseSha && current.content === content) return { revision };
+      if (current && current.baseSha !== previousSha) throw new Error('publisher_conflict');
+      if (currentObject && !currentObject.etag) throw new Error('publisher_conflict');
+
+      const written = await bucket.put(pageKey, JSON.stringify({ pageId, content, revision, baseSha }), {
+        onlyIf: currentObject ? { etagMatches: currentObject.etag } : { etagDoesNotMatch: '*' },
         httpMetadata: { contentType: 'application/json' },
         customMetadata: { revision },
       });
-      await bucket.put(key, JSON.stringify({ revision }), {
-        httpMetadata: { contentType: 'application/json' },
-        customMetadata: { revision },
-      });
-      const [readback, marker] = await Promise.all([
-        readR2Page(bucket, pageId),
-        bucket.get(key).then((object) => object?.json<{ revision?: unknown }>()),
-      ]);
+      if (!written) throw new Error('publisher_conflict');
+      const readback = await readR2Page(bucket, pageId);
       if (!readback
         || readback.pageId !== pageId
         || readback.revision !== revision
         || readback.baseSha !== baseSha
-        || readback.content !== content
-        || marker?.revision !== revision) throw new Error('publisher_mismatch');
+        || readback.content !== content) throw new Error('publisher_mismatch');
       return { revision };
     },
   };

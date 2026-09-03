@@ -11,51 +11,160 @@ const loginUrl = withLocale('/auth/login', locale);
 ---
 
 <Layout title={`${t(locale, 'edit')} ${page.title}`}>
-  <p class="meta"><a href={withLocale(`/wiki/${page.pageId}`, locale)}>← {t(locale, 'editBack')}</a></p>
-  <h1>{t(locale, 'edit')} {page.title}</h1>
-  {!editable && <p class="card">{t(locale, 'editReadOnly')}</p>}
-  <form id="edit-form" data-page-id={page.pageId} data-base-sha={page.baseSha ?? ''} data-login-url={loginUrl} data-completed={t(locale, 'completed')} data-unable={t(locale, 'unableToSubmit')}>
-    <label for="content">Markdown</label>
-    <textarea id="content" name="content" rows="24" required disabled={!editable}>{page.sourceMarkdown ?? page.markdown}</textarea>
-    <label for="reason">{t(locale, 'changeSummary')}</label>
-    <input id="reason" name="reason" required maxlength="160" disabled={!editable} />
-    <label class="confirmation"><input name="authorizationConfirmed" type="checkbox" required disabled={!editable} /> {t(locale, 'publishAuthorization')}</label>
-    <button type="submit" disabled={!editable}>{t(locale, 'submitEdit')}</button>
-    <a class="login" href={loginUrl}>{t(locale, 'signInFirst')}</a>
-    <p id="result" role="status" aria-live="polite"></p>
-  </form>
+  <article class="edit-page" aria-labelledby="edit-page-title">
+    <header class="edit-header">
+      <a class="back-link" href={withLocale(`/wiki/${page.pageId}`, locale)}>← {t(locale, 'editBack')}</a>
+      <p class="page-kicker">{t(locale, 'edit')} / {page.pageId}</p>
+      <h1 id="edit-page-title">{t(locale, 'edit')} {page.title}</h1>
+      <div class="page-meta"><span>{t(locale, 'graphRevision')} {page.revision}</span></div>
+    </header>
+
+    {!editable && <p id="edit-readonly" class="notice" role="status">{t(locale, 'editReadOnly')}</p>}
+
+    <form
+      id="edit-form"
+      class="edit-form"
+      data-page-id={page.pageId}
+      data-base-sha={page.baseSha ?? ''}
+      data-login-url={loginUrl}
+      data-completed={t(locale, 'completed')}
+      data-unable={t(locale, 'unableToSubmit')}
+      data-status-committed={t(locale, 'editStatusCommitted')}
+      data-status-conflict={t(locale, 'editStatusConflict')}
+      data-status-approval={t(locale, 'editStatusApproval')}
+      data-status-unknown={t(locale, 'editStatusUnknown')}
+      data-error-authentication={t(locale, 'editErrorAuthentication')}
+      data-error-cross-origin={t(locale, 'editErrorCrossOrigin')}
+      data-error-authorization={t(locale, 'editErrorAuthorization')}
+      data-error-invalid-input={t(locale, 'editErrorInvalidInput')}
+      data-error-not-found={t(locale, 'editErrorNotFound')}
+      data-error-app-not-configured={t(locale, 'editErrorAppNotConfigured')}
+      data-error-network={t(locale, 'editNetworkError')}
+      data-error-unknown={t(locale, 'editErrorUnknown')}
+      aria-describedby="edit-form-hint"
+    >
+      <p id="edit-form-hint" class="form-intro">{t(locale, 'editContentHint')}</p>
+      <fieldset disabled={!editable}>
+        <legend class="sr-only">{t(locale, 'editFormLegend')}</legend>
+        <div class="field">
+          <label for="content">{t(locale, 'editContent')}</label>
+          <textarea id="content" name="content" rows="24" required aria-describedby="content-hint">{page.sourceMarkdown ?? page.markdown}</textarea>
+          <p id="content-hint" class="field-hint">{t(locale, 'editContentHint')}</p>
+        </div>
+        <div class="field">
+          <label for="reason">{t(locale, 'changeSummary')}</label>
+          <input id="reason" name="reason" required maxlength="160" placeholder={t(locale, 'editReasonPlaceholder')} aria-describedby="reason-hint" />
+          <p id="reason-hint" class="field-hint">{t(locale, 'editReasonHint')}</p>
+        </div>
+        <label class="confirmation"><input name="authorizationConfirmed" type="checkbox" required aria-describedby="authorization-hint" /> <span id="authorization-hint">{t(locale, 'publishAuthorization')}</span></label>
+        <div class="edit-actions">
+          <button class="submit-edit" type="submit">{t(locale, 'submitEdit')}</button>
+          <a class="login" href={loginUrl}>{t(locale, 'signInFirst')}</a>
+        </div>
+      </fieldset>
+      <p id="result" class="edit-result" role="status" aria-live="polite"></p>
+    </form>
+  </article>
 </Layout>
 
 <script>
+  import { editResultMessage } from '../../lib/editUi.ts';
+
   const form = document.querySelector<HTMLFormElement>('#edit-form');
+  const result = document.querySelector<HTMLElement>('#result');
+  const labels = {
+    completed: form?.dataset.completed || 'Completed',
+    unableToSubmit: form?.dataset.unable || 'Unable to submit',
+    status: {
+      committed: form?.dataset.statusCommitted || 'Committed',
+      conflict: form?.dataset.statusConflict || 'Conflict',
+      approval_required: form?.dataset.statusApproval || 'Submitted for review',
+    },
+    error: {
+      authentication_required: form?.dataset.errorAuthentication || 'Sign-in required',
+      cross_origin_request: form?.dataset.errorCrossOrigin || 'Submit from the HatWiki page',
+      authorization_required: form?.dataset.errorAuthorization || 'Publishing authorization is required',
+      invalid_input: form?.dataset.errorInvalidInput || 'Invalid input',
+      page_not_found: form?.dataset.errorNotFound || 'Page not found',
+      github_app_not_configured: form?.dataset.errorAppNotConfigured || 'The GitHub App is not configured',
+      network_error: form?.dataset.errorNetwork || 'Network error',
+    },
+    unknownStatus: form?.dataset.statusUnknown || 'Response received',
+    unknownError: form?.dataset.errorUnknown || 'Please try again later',
+  };
+
   form?.addEventListener('submit', async (event) => {
     event.preventDefault();
-    const result = document.querySelector('#result');
     const data = new FormData(form);
-    const response = await fetch('/api/edit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        requestId: crypto.randomUUID(),
-        pageId: form.dataset.pageId,
-        baseSha: form.dataset.baseSha,
-        content: data.get('content'),
-        reason: data.get('reason'),
-        authorizationConfirmed: data.get('authorizationConfirmed') === 'on',
-      }),
-    });
-    const receipt = await response.json() as { status?: string; error?: string };
-    if (result) result.textContent = response.ok ? `${form.dataset.completed}: ${receipt.status}` : `${form.dataset.unable}: ${receipt.error ?? response.status}`;
-    if (response.status === 401) location.href = form.dataset.loginUrl || '/auth/login';
+    if (result) {
+      result.dataset.state = 'pending';
+      result.textContent = '';
+    }
+    try {
+      const response = await fetch('/api/edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId: crypto.randomUUID(),
+          pageId: form.dataset.pageId,
+          baseSha: form.dataset.baseSha,
+          content: data.get('content'),
+          reason: data.get('reason'),
+          authorizationConfirmed: data.get('authorizationConfirmed') === 'on',
+        }),
+      });
+      const receipt = await response.json() as { status?: string; error?: string };
+      if (result) {
+        result.dataset.state = response.ok ? 'success' : 'error';
+        result.textContent = editResultMessage({ ok: response.ok, status: receipt.status, error: receipt.error }, labels);
+      }
+      if (response.status === 401) location.href = form.dataset.loginUrl || '/auth/login';
+    } catch {
+      if (result) {
+        result.dataset.state = 'error';
+        result.textContent = editResultMessage({ ok: false, error: 'network_error' }, labels);
+      }
+    }
   });
 </script>
 
 <style>
-  form { display:grid; gap:12px; }
-  textarea, input { width:100%; padding:12px; border:1px solid var(--line); border-radius:8px; background:var(--panel); color:var(--text); font:inherit; }
-  textarea { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; line-height:1.55; resize:vertical; }
-  .confirmation { display:flex; gap:9px; align-items:flex-start; }
-  .confirmation input { width:auto; margin-top:6px; }
-  button, .login { width:max-content; padding:10px 15px; border-radius:8px; border:0; background:var(--accent); color:var(--panel); text-decoration:none; font:inherit; cursor:pointer; }
-  .login { background:transparent; color:var(--accent); border:1px solid var(--line); }
+  .edit-page { min-width:0; }
+  .edit-header { display:grid; gap:0; margin-bottom:28px; border-bottom:2px solid var(--line); padding-bottom:24px; }
+  .back-link { width:max-content; color:var(--accent); font-size:.84rem; font-weight:800; text-decoration:none; }
+  .back-link:hover { color:var(--text); }
+  .page-kicker { margin:30px 0 0; color:var(--accent); font-size:.72rem; font-weight:850; letter-spacing:.12em; text-transform:uppercase; overflow-wrap:anywhere; }
+  .edit-header h1 { margin:10px 0 14px; overflow-wrap:anywhere; }
+  .page-meta { display:flex; flex-wrap:wrap; gap:14px; color:var(--muted); font-size:.84rem; }
+  .notice { margin:0 0 24px; padding:16px; border:2px solid var(--accent); background:var(--soft); color:var(--text); line-height:1.6; }
+  .edit-form { display:grid; gap:16px; min-width:0; }
+  .form-intro { margin:0; color:var(--muted); line-height:1.6; }
+  fieldset { display:grid; gap:20px; min-width:0; margin:0; padding:22px; border:2px solid var(--line); background:var(--panel); box-shadow:6px 6px 0 var(--line); }
+  fieldset:disabled { opacity:.78; }
+  .field { display:grid; gap:8px; min-width:0; }
+  .field label { color:var(--text); font-size:.86rem; font-weight:850; }
+  .field textarea, .field input { width:100%; min-width:0; padding:12px; border:2px solid var(--line); border-radius:0; background:var(--bg); color:var(--text); font:inherit; }
+  .field textarea { min-height:320px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; line-height:1.55; resize:vertical; }
+  .field input { min-height:48px; }
+  .field input::placeholder { color:var(--muted); opacity:1; }
+  .field textarea:disabled, .field input:disabled { cursor:not-allowed; background:var(--soft); }
+  .field-hint { margin:0; color:var(--muted); font-size:.78rem; line-height:1.5; }
+  .confirmation { display:flex; align-items:flex-start; gap:10px; min-width:0; color:var(--text); line-height:1.5; }
+  .confirmation input { flex:0 0 auto; width:20px; height:20px; margin:2px 0 0; accent-color:var(--accent); }
+  .edit-actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+  .submit-edit, .login { display:inline-flex; align-items:center; justify-content:center; min-height:46px; padding:10px 15px; border:2px solid var(--line); border-radius:0; font:inherit; font-weight:850; text-decoration:none; }
+  .submit-edit { background:var(--accent); color:var(--panel); cursor:pointer; box-shadow:3px 3px 0 var(--line); }
+  .submit-edit:hover { background:var(--lime); color:var(--text); }
+  .submit-edit:disabled { cursor:not-allowed; opacity:.55; box-shadow:none; }
+  .login { background:transparent; color:var(--accent); }
+  .login:hover { background:var(--soft); color:var(--text); }
+  .edit-result { min-height:1.6em; margin:0; color:var(--muted); line-height:1.6; }
+  .edit-result[data-state="success"] { color:var(--text); }
+  .edit-result[data-state="error"] { color:#b42318; }
+  .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  @media (max-width:560px) {
+    fieldset { padding:16px; }
+    .edit-actions { display:grid; grid-template-columns:minmax(0,1fr); }
+    .submit-edit, .login { width:100%; }
+  }
 </style>

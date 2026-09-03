@@ -12,7 +12,8 @@ export async function handleEditRequest(request: Request, actor: EditActor | nul
   if (origin && origin !== new URL(request.url).origin) return json({ error: 'cross_origin_request' }, 403);
 
   try {
-    const body = await request.json() as Record<string, unknown>;
+    const body = await request.json();
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('invalid_input');
     if (body.authorizationConfirmed !== true) return json({ error: 'authorization_required' }, 400);
     return json(await edit(actor, {
       requestId: body.requestId as string,

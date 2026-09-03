@@ -3,34 +3,66 @@ import type { WikiGraph } from '../lib/wikiGraph.ts';
 import { t, type Locale } from '../lib/i18n.ts';
 
 const { graph, variant = 'graph', locale = 'zh-Hant' } = Astro.props as { graph: WikiGraph; variant?: 'graph' | 'loom'; locale?: Locale };
-const graphJson = JSON.stringify({ graph, locale, labels: { backlinks: t(locale, 'backlinks'), neighbors: t(locale, 'neighbors') } }).replaceAll('<', '\\u003c');
+const labels = {
+  backlinks: t(locale, 'backlinks'),
+  neighbors: t(locale, 'neighbors'),
+  search: locale === 'en' ? 'Search nodes' : '搜尋節點',
+  searchPlaceholder: locale === 'en' ? 'Title or path' : '標題或路徑',
+  noResults: locale === 'en' ? 'No matching nodes' : '沒有符合的節點',
+  details: locale === 'en' ? 'Node details' : '節點詳情',
+  openPage: locale === 'en' ? 'Open page' : '閱讀頁面',
+};
+const graphJson = JSON.stringify({ graph, locale, labels }).replaceAll('<', '\\u003c');
 ---
 
 <div class:list={['graph-wrap', 'card', `graph-wrap--${variant}`]}>
   <div class="graph-tools">
-    <div>
+    <div class="graph-summary">
       <p>{variant === 'loom' ? t(locale, 'graphLoom') : t(locale, 'graphMap')}</p>
       <span>{graph.nodes.length} {t(locale, 'graphPages')} · {graph.edges.length} {t(locale, 'graphLinks')} · {t(locale, 'graphScaleHint')}</span>
     </div>
-    <button id="reset-graph" type="button">{t(locale, 'graphReset')}</button>
+    <div class="graph-actions">
+      <label class="graph-search">
+        <span>{labels.search}</span>
+        <input data-graph-search type="search" autocomplete="off" placeholder={labels.searchPlaceholder} />
+      </label>
+      <button data-graph-reset type="button">{t(locale, 'graphReset')}</button>
+      <p class="graph-search-status" data-graph-search-status role="status" aria-live="polite" hidden></p>
+    </div>
   </div>
   <svg id="wiki-graph" role="group" aria-label={variant === 'loom' ? t(locale, 'graphAriaLoom') : t(locale, 'graphAriaMap')}></svg>
+  <section class="graph-detail" data-graph-detail aria-live="polite" tabindex="-1" hidden>
+    <p class="label">{labels.details}</p>
+    <strong data-graph-detail-title></strong>
+    <p data-graph-detail-summary></p>
+    <a data-graph-detail-link></a>
+  </section>
   <script type="application/json" id="wiki-graph-data" set:html={graphJson} />
 </div>
 
 <script>
   import * as d3 from 'd3';
+  import { focusedGraphNodeIds, graphKeyboardAction, matchingGraphNodeIds, observeResize } from '../lib/graphInteraction.ts';
 
   const element = document.querySelector<SVGSVGElement>('#wiki-graph');
   const dataElement = document.querySelector<HTMLScriptElement>('#wiki-graph-data');
-  if (element && dataElement) {
+  const wrapper = element?.closest<HTMLElement>('.graph-wrap');
+  if (element && dataElement && wrapper) {
     const payload = JSON.parse(dataElement.textContent || '{"graph":{"nodes":[],"edges":[]},"locale":"zh-Hant","labels":{}}');
     const graph = payload.graph;
     const labels = payload.labels;
-    const width = element.clientWidth || 760;
-    const height = element.clientHeight || 560;
+    const searchInput = wrapper.querySelector<HTMLInputElement>('[data-graph-search]');
+    const searchStatus = wrapper.querySelector<HTMLElement>('[data-graph-search-status]');
+    const resetButton = wrapper.querySelector<HTMLButtonElement>('[data-graph-reset]');
+    const detail = wrapper.querySelector<HTMLElement>('[data-graph-detail]');
+    const detailTitle = wrapper.querySelector<HTMLElement>('[data-graph-detail-title]');
+    const detailSummary = wrapper.querySelector<HTMLElement>('[data-graph-detail-summary]');
+    const detailLink = wrapper.querySelector<HTMLAnchorElement>('[data-graph-detail-link]');
+    const size = () => ({ width: element.clientWidth || 760, height: element.clientHeight || 560 });
+    let { width, height } = size();
     const nodes = graph.nodes.map((node: any) => ({ ...node }));
     const links = graph.edges.map((edge: any) => ({ ...edge }));
+    const nodeById = new Map(nodes.map((node: any) => [node.id, node]));
     const svg = d3.select(element).attr('viewBox', [0, 0, width, height]);
     const root = svg.append('g');
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -47,6 +79,7 @@ const graphJson = JSON.stringify({ graph, locale, labels: { backlinks: t(locale,
       adjacency.get(edge.target)?.add(edge.source);
     }
     const labelOpacity = (node: any) => !isLoom || node.connections >= labelThreshold ? 1 : 0;
+    let selectedId: string | undefined;
 
     svg.append('defs').append('marker')
       .attr('id', 'graph-arrow')
@@ -63,8 +96,10 @@ const graphJson = JSON.stringify({ graph, locale, labels: { backlinks: t(locale,
       .selectAll('line').data(links).join('line')
       .attr('marker-end', 'url(#graph-arrow)');
     const node = root.append('g').attr('class', 'graph-nodes')
-      .selectAll('a').data(nodes).join('a')
-      .attr('href', (d: any) => `/wiki/${d.id}${payload.locale === 'en' ? '?lang=en' : ''}`)
+      .selectAll('g').data(nodes).join('g')
+      .attr('class', 'graph-node')
+      .attr('role', 'button')
+      .attr('tabindex', 0)
       .attr('aria-label', (d: any) => `${d.title}, ${d.backlinks} ${labels.backlinks}`);
     node.append('circle').attr('r', (d: any) => radius(d.connections)).attr('fill', 'var(--lime)');
     node.append('text').text((d: any) => d.title.length > 22 ? `${d.title.slice(0, 21)}…` : d.title).attr('x', (d: any) => radius(d.connections) + 5).attr('y', 4)
@@ -79,6 +114,56 @@ const graphJson = JSON.stringify({ graph, locale, labels: { backlinks: t(locale,
         .attr('text-anchor', (d: any) => d.x > width - 110 ? 'end' : 'start');
     };
 
+    const updateDetail = (focus = false) => {
+      const selected = selectedId ? nodeById.get(selectedId) : undefined;
+      if (!detail || !selected) {
+        if (detail) detail.hidden = true;
+        return;
+      }
+      detail.hidden = false;
+      if (detailTitle) detailTitle.textContent = selected.title;
+      if (detailSummary) detailSummary.textContent = `${selected.backlinks} ${labels.backlinks} · ${selected.connections} ${labels.neighbors}`;
+      if (detailLink) {
+        detailLink.href = `/wiki/${selected.id}${payload.locale === 'en' ? '?lang=en' : ''}`;
+        detailLink.textContent = labels.openPage;
+      }
+      if (focus) detail.focus();
+    };
+
+    const updateInteraction = (focusDetail = false) => {
+      const query = searchInput?.value || '';
+      const matches = new Set(matchingGraphNodeIds(nodes, query));
+      const focused = selectedId ? focusedGraphNodeIds(graph.edges, selectedId) : matches;
+      const hasQuery = query.trim().length > 0;
+      if (searchStatus) {
+        searchStatus.hidden = !hasQuery || matches.size > 0;
+        searchStatus.textContent = matches.size > 0 ? '' : labels.noResults;
+      }
+      node
+        .attr('opacity', (candidate: any) => !focused.has(candidate.id) ? 0.14 : selectedId && candidate.id !== selectedId ? 0.7 : 1)
+        .attr('tabindex', (candidate: any) => focused.has(candidate.id) ? 0 : -1)
+        .style('pointer-events', (candidate: any) => focused.has(candidate.id) ? null : 'none')
+        .classed('is-selected', (candidate: any) => candidate.id === selectedId)
+        .classed('is-neighbor', (candidate: any) => Boolean(selectedId && candidate.id !== selectedId && focused.has(candidate.id)));
+      node.select('text').attr('opacity', (candidate: any) => focused.has(candidate.id) ? selectedId ? 1 : labelOpacity(candidate) : 0);
+      link.attr('opacity', (edge: any) => focused.has(idOf(edge.source)) && focused.has(idOf(edge.target)) ? null : 0.08);
+      updateDetail(focusDetail);
+    };
+
+    const clearInteraction = (focusSearch = false) => {
+      selectedId = undefined;
+      if (searchInput) searchInput.value = '';
+      updateInteraction();
+      if (focusSearch) searchInput?.focus();
+    };
+
+    const selectNode = (id: string, focusDetail = false) => {
+      if (!nodeById.has(id)) return;
+      selectedId = id;
+      if (searchInput) searchInput.value = '';
+      updateInteraction(focusDetail);
+    };
+
     const simulation = d3.forceSimulation(nodes)
       .force('link', d3.forceLink(links).id((d: any) => d.id).distance(110))
       .force('charge', d3.forceManyBody().strength(-280))
@@ -87,14 +172,23 @@ const graphJson = JSON.stringify({ graph, locale, labels: { backlinks: t(locale,
       .on('tick', render);
 
     node.on('pointerover', function(_, hovered: any) {
+      if (selectedId || searchInput?.value.trim()) return;
       const connected = adjacency.get(hovered.id) ?? new Set();
       node.attr('opacity', (candidate: any) => candidate.id === hovered.id || connected.has(candidate.id) ? 1 : 0.16);
       link.attr('opacity', (edge: any) => idOf(edge.source) === hovered.id || idOf(edge.target) === hovered.id ? 1 : 0.08);
       d3.select(this).select('text').attr('opacity', 1);
     }).on('pointerout', () => {
-      node.attr('opacity', 1);
-      link.attr('opacity', null);
-      node.select('text').attr('opacity', labelOpacity);
+      if (!selectedId && !searchInput?.value.trim()) updateInteraction();
+    }).on('click', (event: MouseEvent, selected: any) => {
+      if (event.defaultPrevented) return;
+      event.preventDefault();
+      selectNode(selected.id);
+    }).on('keydown', (event: KeyboardEvent, selected: any) => {
+      const action = graphKeyboardAction(event.key);
+      if (!action) return;
+      event.preventDefault();
+      if (action === 'select') selectNode(selected.id, true);
+      else clearInteraction(true);
     });
     if (reducedMotion) {
       simulation.stop();
@@ -128,10 +222,49 @@ const graphJson = JSON.stringify({ graph, locale, labels: { backlinks: t(locale,
       .scaleExtent([0.35, 4])
       .on('zoom', (event) => root.attr('transform', event.transform));
     svg.call(zoom);
-    document.querySelector<HTMLButtonElement>('#reset-graph')?.addEventListener('click', () => {
+    const resetZoom = () => {
       if (reducedMotion) svg.call(zoom.transform, d3.zoomIdentity);
       else svg.transition().duration(250).call(zoom.transform, d3.zoomIdentity);
+    };
+    resetButton?.addEventListener('click', () => {
+      clearInteraction();
+      resetZoom();
     });
+    searchInput?.addEventListener('input', () => {
+      selectedId = undefined;
+      updateInteraction();
+    });
+    searchInput?.addEventListener('keydown', (event) => {
+      if (graphKeyboardAction(event.key) !== 'clear') return;
+      event.preventDefault();
+      clearInteraction();
+    });
+    detail?.addEventListener('keydown', (event) => {
+      if (graphKeyboardAction(event.key) !== 'clear') return;
+      event.preventDefault();
+      clearInteraction(true);
+    });
+    const resize = () => {
+      const next = size();
+      if (next.width === width && next.height === height) return;
+      width = next.width;
+      height = next.height;
+      svg.attr('viewBox', [0, 0, width, height]);
+      simulation.force('center', d3.forceCenter(width / 2, height / 2));
+      if (reducedMotion) {
+        simulation.stop();
+        for (let tick = 0; tick < 180; tick += 1) simulation.tick();
+        render();
+      } else {
+        simulation.alpha(0.35).restart();
+      }
+    };
+    const stopResize = observeResize(window, resize);
+    window.addEventListener('pagehide', () => {
+      stopResize();
+      simulation.stop();
+    }, { once: true });
+    updateInteraction();
   }
 </script>
 
@@ -139,23 +272,37 @@ const graphJson = JSON.stringify({ graph, locale, labels: { backlinks: t(locale,
   .graph-wrap { position:relative; padding:0; overflow:hidden; }
   .graph-wrap--loom { border:1px solid var(--line); background:var(--panel); box-shadow:none; }
   .graph-tools { position:absolute; z-index:1; inset:14px 14px auto; display:flex; justify-content:space-between; align-items:start; gap:12px; pointer-events:none; }
-  .graph-tools > div { max-width:260px; padding:8px 10px; border:2px solid var(--line); background:var(--panel); box-shadow:3px 3px 0 var(--line); color:var(--muted); font-size:.75rem; line-height:1.35; }
-  .graph-tools p { margin:0 0 2px; color:var(--text); font-size:.82rem; font-weight:850; letter-spacing:.04em; }
+  .graph-summary { max-width:260px; padding:8px 10px; border:2px solid var(--line); background:var(--panel); box-shadow:3px 3px 0 var(--line); color:var(--muted); font-size:.75rem; line-height:1.35; }
+  .graph-summary p { margin:0 0 2px; color:var(--text); font-size:.82rem; font-weight:850; letter-spacing:.04em; }
+  .graph-actions { display:grid; grid-template-columns:minmax(130px,1fr) auto; align-items:end; gap:8px; pointer-events:auto; }
+  .graph-search { display:grid; gap:3px; color:var(--muted); font-size:.7rem; font-weight:800; letter-spacing:.04em; }
+  .graph-search input { width:100%; min-height:36px; border:2px solid var(--line); border-radius:0; padding:6px 8px; background:var(--panel); color:var(--text); font:inherit; letter-spacing:normal; }
+  .graph-search input:focus { outline:3px solid var(--cobalt); outline-offset:2px; }
+  .graph-search-status { grid-column:1 / -1; margin:0; padding:5px 7px; border:1px solid var(--line); background:var(--panel); color:var(--muted); font-size:.72rem; }
   .graph-tools button { min-height:36px; padding:7px 10px; border:2px solid var(--line); border-radius:0; background:var(--lime); box-shadow:3px 3px 0 var(--line); color:var(--text); font:inherit; font-size:.78rem; font-weight:800; cursor:pointer; pointer-events:auto; }
   .graph-tools button:hover { background:var(--cobalt); color:var(--panel); }
+  .graph-detail { position:absolute; z-index:1; inset:auto 14px 14px; width:min(300px,calc(100% - 28px)); padding:12px; border:2px solid var(--line); background:var(--panel); box-shadow:4px 4px 0 var(--line); pointer-events:auto; }
+  .graph-detail[hidden] { display:none; }
+  .graph-detail .label { margin-bottom:4px; }
+  .graph-detail strong { display:block; font-size:.98rem; }
+  .graph-detail p:not(.label) { margin:5px 0 9px; color:var(--muted); font-size:.8rem; }
+  .graph-detail a { font-size:.8rem; font-weight:800; }
   svg { display:block; width:100%; height:clamp(540px,calc(100svh - 240px),760px); cursor:grab; background:radial-gradient(circle at 50% 50%, rgb(200 255 45 / .22), transparent 38%); }
   .graph-wrap--loom svg { height:clamp(560px,63vw,760px); min-height:0; }
   svg:active { cursor:grabbing; }
   :global(.graph-links line) { stroke:var(--cobalt); stroke-opacity:.42; stroke-width:1.5px; }
-  :global(.graph-nodes a) { color:inherit; }
+  :global(.graph-nodes [role="button"]) { color:inherit; cursor:pointer; }
   :global(.graph-nodes circle) { stroke:var(--line); stroke-width:2px; transition:fill .15s ease, stroke-width .15s ease; }
   :global(.graph-nodes text) { fill:var(--text); font-size:12px; font-weight:700; paint-order:stroke; stroke:var(--panel); stroke-width:3px; stroke-linejoin:round; }
-  :global(.graph-wrap--loom .graph-nodes a:hover text), :global(.graph-wrap--loom .graph-nodes a:focus text) { opacity:1; }
+  :global(.graph-wrap--loom .graph-nodes [role="button"]:hover text), :global(.graph-wrap--loom .graph-nodes [role="button"]:focus text) { opacity:1; }
   :global(.graph-wrap--loom .graph-links line) { stroke-opacity:.24; }
-  :global(.graph-nodes a:hover circle), :global(.graph-nodes a:focus circle) { fill:var(--cobalt); stroke-width:4px; }
+  :global(.graph-nodes [role="button"]:hover circle), :global(.graph-nodes [role="button"]:focus-visible circle), :global(.graph-nodes .is-selected circle) { fill:var(--cobalt); stroke-width:4px; }
+  :global(.graph-nodes .is-neighbor circle) { stroke-width:3px; }
   @media (max-width: 640px) {
-    .graph-tools { inset:10px 10px auto; }
-    .graph-tools > div { max-width:12rem; }
+    .graph-tools { inset:10px 10px auto; align-items:stretch; flex-wrap:wrap; }
+    .graph-summary { max-width:12rem; }
+    .graph-actions { width:100%; grid-template-columns:minmax(0,1fr) auto; }
+    .graph-detail { inset:auto 10px 10px; width:calc(100% - 20px); }
     .graph-wrap--graph svg { height:68svh; min-height:480px; }
     .graph-wrap--loom svg { height:370px; min-height:0; }
   }

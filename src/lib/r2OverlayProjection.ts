@@ -29,6 +29,13 @@ function project(page: PublishedPage): PublicPage {
   };
 }
 
+export async function overlayRevision(baseRevision: string, pages: PublishedPage[]): Promise<string> {
+  if (pages.length === 0) return baseRevision;
+  const state = pages.map((page) => `${page.pageId}\0${page.revision}`).sort().join('\n');
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(state));
+  return `r2-${[...new Uint8Array(digest)].slice(0, 8).map((byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+}
+
 export function createR2OverlayProjection(base: PublicProjection, bucket: R2Like): PublicProjection {
   return {
     async readSnapshot() {
@@ -36,17 +43,16 @@ export function createR2OverlayProjection(base: PublicProjection, bucket: R2Like
       // ponytail: one R2 list page supports the first 1,000 overrides; paginate when a Wiki reaches that size.
       const listed = await bucket.list({ prefix: 'published/pages/', limit: 1000 });
       const pages = new Map(snapshot.pages.map((page) => [page.pageId, page]));
+      const published: PublishedPage[] = [];
       for (const { key } of listed.objects) {
         const object = await bucket.get(key);
         const value = object ? await object.json<unknown>() : null;
-        if (valid(value, key)) pages.set(value.pageId, project(value));
+        if (valid(value, key)) {
+          pages.set(value.pageId, project(value));
+          published.push(value);
+        }
       }
-      const marker = await bucket.get('published/revision.json');
-      const value = marker ? await marker.json<unknown>() : null;
-      const revision = value && typeof value === 'object' && typeof (value as { revision?: unknown }).revision === 'string'
-        ? (value as { revision: string }).revision
-        : snapshot.revision;
-      return { revision, pages: [...pages.values()] };
+      return { revision: await overlayRevision(snapshot.revision, published), pages: [...pages.values()] };
     },
   };
 }

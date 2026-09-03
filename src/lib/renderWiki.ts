@@ -2,6 +2,11 @@ import { Marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
 
 const marked = new Marked({
+  walkTokens(token) {
+    if (token.type === 'link' && token.href.startsWith('/') && token.href.endsWith('.md')) {
+      token.href = `/wiki/${token.href.slice(1, -3)}`;
+    }
+  },
   extensions: [
     {
       name: 'wikilink',
@@ -34,5 +39,5 @@ export async function renderWiki(markdown: string): Promise<string> {
     },
     allowedSchemes: ['http', 'https', 'mailto'],
     disallowedTagsMode: 'escape',
-  });
+  }).replace(/<a href="\/wiki\/raw\/[^"]*">([\s\S]*?)<\/a>/g, '<span class="source-unavailable">$1</span>');
 }

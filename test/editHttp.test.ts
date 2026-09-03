@@ -72,6 +72,23 @@ test('rejects malformed JSON without invoking the edit service', async () => {
   assert.equal(calls, 0);
 });
 
+test('rejects non-object JSON without invoking the edit service', async () => {
+  let calls = 0;
+  for (const payload of ['null', '[]']) {
+    const response = await handleEditRequest(
+      new Request('https://hatwiki.test/api/edit', { method: 'POST', body: payload }),
+      { userId: 7, login: 'octo' },
+      async () => {
+        calls += 1;
+        return { requestId: 'unused', status: 'committed' };
+      },
+    );
+    assert.equal(response.status, 400);
+    assert.deepEqual(await response.json(), { error: 'invalid_input' });
+  }
+  assert.equal(calls, 0);
+});
+
 test('rejects a cross-origin edit before parsing it', async () => {
   let calls = 0;
   const response = await handleEditRequest(

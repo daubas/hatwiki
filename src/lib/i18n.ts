@@ -10,6 +10,20 @@ export interface UiMessages {
   login: string;
   language: string;
   primaryNavigation: string;
+  home: string;
+  tagline: string;
+  wikiIndexTitle: string;
+  wikiIndexDescription: string;
+  wikiIndexBack: string;
+  wikiSearchLabel: string;
+  wikiSearchPlaceholder: string;
+  wikiSearchClear: string;
+  wikiSearchHint: string;
+  wikiSearchEmpty: string;
+  wikiResultCount: string;
+  wikiContents: string;
+  wikiRelated: string;
+  wikiPageId: string;
   homeStatus: string;
   homeOverline: string;
   homeTitle1: string;
@@ -42,13 +56,31 @@ export interface UiMessages {
   edit: string;
   editBack: string;
   editReadOnly: string;
+  editFormLegend: string;
+  editContent: string;
+  editContentHint: string;
   changeSummary: string;
+  editReasonHint: string;
+  editReasonPlaceholder: string;
   publishAuthorization: string;
   submitEdit: string;
   signInFirst: string;
   completed: string;
   unableToSubmit: string;
+  editStatusCommitted: string;
+  editStatusConflict: string;
+  editStatusApproval: string;
+  editStatusUnknown: string;
+  editErrorAuthentication: string;
+  editErrorCrossOrigin: string;
+  editErrorAuthorization: string;
+  editErrorInvalidInput: string;
+  editErrorNotFound: string;
+  editErrorAppNotConfigured: string;
+  editErrorUnknown: string;
+  editNetworkError: string;
   sources: string;
+  sourceUnavailable: string;
   linkDiagnostics: string;
   linkAmbiguous: string;
   linkUnresolved: string;
@@ -66,6 +98,20 @@ export const ui: Record<Locale, UiMessages> = {
     login: '登入',
     language: '語言',
     primaryNavigation: '主要導覽',
+    home: 'HatWiki 首頁',
+    tagline: '人與 Agent 共同編織',
+    wikiIndexTitle: 'Wiki 索引',
+    wikiIndexDescription: '搜尋公開頁面、頁面 ID、描述與標籤，從一個節點開始。',
+    wikiIndexBack: '回首頁',
+    wikiSearchLabel: '搜尋公開頁面',
+    wikiSearchPlaceholder: '輸入標題、頁面 ID、描述或標籤…',
+    wikiSearchClear: '清除搜尋',
+    wikiSearchHint: '可用標題、頁面 ID、描述或標籤搜尋。',
+    wikiSearchEmpty: '找不到符合的頁面。',
+    wikiResultCount: '個結果',
+    wikiContents: '本頁目錄',
+    wikiRelated: '相關頁面',
+    wikiPageId: '頁面 ID',
     homeStatus: '公開 Wiki · Git 版本管理',
     homeOverline: 'HATWIKI / 共同知識',
     homeTitle1: '人與 Agent',
@@ -98,13 +144,31 @@ export const ui: Record<Locale, UiMessages> = {
     edit: '編輯',
     editBack: '回到頁面',
     editReadOnly: '這一頁尚未同步 Git revision，現在只能閱讀。',
+    editFormLegend: '編輯 Wiki 頁面',
+    editContent: 'Markdown 內容',
+    editContentHint: '保留 Markdown 語法；送出前請確認內容可以公開。',
     changeSummary: '修改說明',
+    editReasonHint: '簡短說明這次修改，最多 160 字。',
+    editReasonPlaceholder: '例如：補充來源與修正連結',
     publishAuthorization: '我確認有權將這份內容公開到 HatWiki。',
     submitEdit: '送出修改',
     signInFirst: '先用 GitHub 登入',
     completed: '已完成',
     unableToSubmit: '無法送出',
+    editStatusCommitted: '已提交',
+    editStatusConflict: '發生衝突，已保留候選版本',
+    editStatusApproval: '已送出，等待審核',
+    editStatusUnknown: '已收到回應',
+    editErrorAuthentication: '需要先登入',
+    editErrorCrossOrigin: '請從 HatWiki 頁面送出',
+    editErrorAuthorization: '需要確認發佈權限',
+    editErrorInvalidInput: '內容或欄位格式無效',
+    editErrorNotFound: '找不到頁面',
+    editErrorAppNotConfigured: 'GitHub App 尚未設定完成',
+    editErrorUnknown: '請稍後再試',
+    editNetworkError: '網路連線失敗，請稍後再試',
     sources: '來源',
+    sourceUnavailable: '原始證據未公開',
     linkDiagnostics: '連結診斷',
     linkAmbiguous: '有多個可能頁面',
     linkUnresolved: '找不到目標頁面',
@@ -120,6 +184,20 @@ export const ui: Record<Locale, UiMessages> = {
     login: 'Log in',
     language: 'Language',
     primaryNavigation: 'Primary navigation',
+    home: 'HatWiki homepage',
+    tagline: 'Humans and Agents Together',
+    wikiIndexTitle: 'Wiki index',
+    wikiIndexDescription: 'Search public pages, page IDs, descriptions, and tags. Start from one node.',
+    wikiIndexBack: 'Back home',
+    wikiSearchLabel: 'Search public pages',
+    wikiSearchPlaceholder: 'Search titles, page IDs, descriptions, or tags…',
+    wikiSearchClear: 'Clear search',
+    wikiSearchHint: 'Search by title, page ID, description, or tag.',
+    wikiSearchEmpty: 'No pages match your search.',
+    wikiResultCount: 'results',
+    wikiContents: 'On this page',
+    wikiRelated: 'Related pages',
+    wikiPageId: 'Page ID',
     homeStatus: 'Public wiki · Git-backed',
     homeOverline: 'HATWIKI / SHARED KNOWLEDGE',
     homeTitle1: 'Humans + agents',
@@ -152,13 +230,31 @@ export const ui: Record<Locale, UiMessages> = {
     edit: 'Edit',
     editBack: 'Back to page',
     editReadOnly: 'This page has not synced a Git revision yet and is currently read-only.',
+    editFormLegend: 'Edit Wiki page',
+    editContent: 'Markdown content',
+    editContentHint: 'Keep Markdown syntax; make sure the content is safe to publish.',
     changeSummary: 'Change summary',
+    editReasonHint: 'Briefly describe this change, up to 160 characters.',
+    editReasonPlaceholder: 'e.g. Add sources and fix links',
     publishAuthorization: 'I confirm that I am authorized to publish this content to HatWiki.',
     submitEdit: 'Submit edit',
     signInFirst: 'Sign in with GitHub first',
     completed: 'Completed',
     unableToSubmit: 'Unable to submit',
+    editStatusCommitted: 'Committed',
+    editStatusConflict: 'Conflict saved as a candidate version',
+    editStatusApproval: 'Submitted for review',
+    editStatusUnknown: 'Response received',
+    editErrorAuthentication: 'Sign-in required',
+    editErrorCrossOrigin: 'Submit from the HatWiki page',
+    editErrorAuthorization: 'Publishing authorization is required',
+    editErrorInvalidInput: 'Invalid input',
+    editErrorNotFound: 'Page not found',
+    editErrorAppNotConfigured: 'The GitHub App is not configured',
+    editErrorUnknown: 'Please try again later',
+    editNetworkError: 'Network error. Please try again later.',
     sources: 'Sources',
+    sourceUnavailable: 'Raw evidence is not public',
     linkDiagnostics: 'Link diagnostics',
     linkAmbiguous: 'Multiple possible pages',
     linkUnresolved: 'Target page not found',

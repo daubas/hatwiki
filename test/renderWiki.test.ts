@@ -13,3 +13,16 @@ test('renders WikiLinks without executing untrusted HTML', async () => {
   assert.doesNotMatch(html, /<script/i);
   assert.match(html, /&lt;script&gt;/);
 });
+
+test('routes root-relative Markdown links through the Wiki reader', async () => {
+  const html = await renderWiki('[Evidence](/methods/evidence-lifecycle.md)');
+
+  assert.match(html, /href="\/wiki\/methods\/evidence-lifecycle"/);
+});
+
+test('renders unpublished raw evidence references as non-clickable text', async () => {
+  const html = await renderWiki('[Raw capture](/raw/source.md)');
+
+  assert.match(html, /<span class="source-unavailable">Raw capture<\/span>/);
+  assert.doesNotMatch(html, /<a /);
+});

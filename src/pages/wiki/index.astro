@@ -1,0 +1,148 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../components/Layout.astro';
+import { getLocale, t, withLocale } from '../../lib/i18n.ts';
+import { getSiteSnapshot } from '../../lib/siteWiki.ts';
+import { mergeWikiIndexPages, type WikiIndexItem } from '../../lib/wikiIndex.ts';
+
+const locale = getLocale(Astro.url);
+const metadata: WikiIndexItem[] = (await getCollection('wiki'))
+  .map((entry) => ({
+    id: entry.id,
+    title: entry.data.title ?? entry.id,
+    ...(entry.data.description ? { description: entry.data.description } : {}),
+    ...(entry.data.tags?.length ? { tags: entry.data.tags } : {}),
+  }));
+const pages = mergeWikiIndexPages((await getSiteSnapshot()).pages, metadata)
+  .sort((a, b) => a.title.localeCompare(b.title, locale));
+const pageJson = JSON.stringify(pages).replaceAll('<', '\\u003c');
+const pageHref = (id: string) => `/wiki/${id.split('/').map(encodeURIComponent).join('/')}`;
+---
+
+<Layout title={t(locale, 'wikiIndexTitle')}>
+  <section class="wiki-index" aria-labelledby="wiki-index-title">
+    <header class="index-header">
+      <a class="back-link" href={withLocale('/', locale)}>← {t(locale, 'wikiIndexBack')}</a>
+      <p class="eyebrow">{t(locale, 'wikiIndexTitle')}</p>
+      <h1 id="wiki-index-title">{t(locale, 'wikiIndexTitle')}</h1>
+      <p class="index-description">{t(locale, 'wikiIndexDescription')}</p>
+    </header>
+
+    <form id="wiki-search-form" class="search-panel" role="search" data-result-label={t(locale, 'wikiResultCount')}>
+      <div class="search-row">
+        <label class="search-field" for="wiki-search">
+          <span>{t(locale, 'wikiSearchLabel')}</span>
+          <input
+            id="wiki-search"
+            name="q"
+            type="search"
+            placeholder={t(locale, 'wikiSearchPlaceholder')}
+            aria-describedby="wiki-search-hint"
+            aria-controls="wiki-results"
+            aria-keyshortcuts="Escape"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </label>
+        <button id="wiki-search-clear" class="clear-search" type="button" hidden>{t(locale, 'wikiSearchClear')}</button>
+      </div>
+      <p id="wiki-search-hint" class="search-hint">{t(locale, 'wikiSearchHint')}</p>
+    </form>
+
+    <p id="wiki-results-status" class="results-status" role="status" aria-live="polite"></p>
+    <ul id="wiki-results" class="wiki-results">
+      {pages.map((page) => (
+        <li class="wiki-result" data-page-id={page.id}>
+          <a href={withLocale(pageHref(page.id), locale)}>
+            <span class="result-id">{page.id}</span>
+            <strong>{page.title}</strong>
+            {page.description && <span class="result-description">{page.description}</span>}
+            {page.tags && <span class="result-tags">{page.tags.map((tag) => <span>#{tag}</span>)}</span>}
+          </a>
+        </li>
+      ))}
+    </ul>
+    <p id="wiki-search-empty" class="search-empty" hidden>{t(locale, 'wikiSearchEmpty')}</p>
+  </section>
+</Layout>
+
+<script>
+  import { filterWikiIndex, type WikiIndexItem } from '../../lib/wikiIndex.ts';
+
+  const form = document.querySelector<HTMLFormElement>('#wiki-search-form');
+  const input = document.querySelector<HTMLInputElement>('#wiki-search');
+  const clear = document.querySelector<HTMLButtonElement>('#wiki-search-clear');
+  const status = document.querySelector<HTMLElement>('#wiki-results-status');
+  const empty = document.querySelector<HTMLElement>('#wiki-search-empty');
+  const data = document.querySelector<HTMLScriptElement>('#wiki-index-data');
+  const rows = Array.from(document.querySelectorAll<HTMLElement>('.wiki-result'));
+  const items = data ? JSON.parse(data.textContent || '[]') as WikiIndexItem[] : [];
+  const resultLabel = form?.dataset.resultLabel || 'results';
+
+  const render = (query: string) => {
+    const visible = new Set(filterWikiIndex(items, query).map((item) => item.id));
+    let count = 0;
+    for (const row of rows) {
+      const isVisible = visible.has(row.dataset.pageId || '');
+      row.hidden = !isVisible;
+      if (isVisible) count += 1;
+    }
+    if (status) status.textContent = `${count} ${resultLabel}`;
+    if (empty) empty.hidden = count !== 0;
+    if (clear) clear.hidden = query.trim().length === 0;
+  };
+
+  form?.addEventListener('submit', (event) => event.preventDefault());
+  input?.addEventListener('input', () => render(input.value));
+  input?.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && input.value) {
+      input.value = '';
+      render('');
+    }
+  });
+  clear?.addEventListener('click', () => {
+    if (!input) return;
+    input.value = '';
+    render('');
+    input.focus();
+  });
+  render(input?.value || '');
+</script>
+
+<script type="application/json" id="wiki-index-data" set:html={pageJson} />
+
+<style>
+  .wiki-index { width:min(100%, 900px); margin:0 auto; }
+  .index-header { display:grid; gap:0; margin-bottom:34px; }
+  .back-link { width:max-content; color:var(--accent); font-size:.84rem; font-weight:800; text-decoration:none; }
+  .back-link:hover { color:var(--text); }
+  .eyebrow { margin:32px 0 0; color:var(--accent); font-size:.72rem; font-weight:850; letter-spacing:.12em; text-transform:uppercase; }
+  .index-header h1 { margin:10px 0 12px; }
+  .index-description { max-width:620px; margin:0; color:var(--muted); font-size:1.05rem; line-height:1.7; }
+  .search-panel { display:grid; gap:12px; padding:20px; border:2px solid var(--line); background:var(--panel); box-shadow:6px 6px 0 var(--line); }
+  .search-row { display:flex; align-items:end; gap:12px; min-width:0; }
+  .search-field { display:grid; flex:1 1 300px; min-width:0; gap:8px; color:var(--text); font-size:.8rem; font-weight:800; }
+  .search-field input { width:100%; min-width:0; min-height:48px; padding:10px 12px; border:2px solid var(--line); border-radius:0; background:var(--bg); color:var(--text); font:inherit; font-weight:500; }
+  .search-field input::placeholder { color:var(--muted); opacity:1; }
+  .clear-search { flex:0 0 auto; min-height:48px; padding:10px 14px; border:2px solid var(--line); border-radius:0; background:var(--lime); box-shadow:3px 3px 0 var(--line); color:var(--text); font:inherit; font-weight:800; cursor:pointer; }
+  .clear-search:hover { background:var(--accent); }
+  .search-hint { margin:0; color:var(--muted); font-size:.8rem; line-height:1.5; }
+  .results-status { margin:30px 0 10px; color:var(--muted); font-size:.8rem; font-weight:800; letter-spacing:.04em; }
+  .wiki-results { display:grid; gap:10px; min-width:0; margin:0; padding:0; list-style:none; }
+  .wiki-result { min-width:0; }
+  .wiki-result a { display:grid; min-width:0; gap:6px; padding:18px; border:1px solid var(--line); background:var(--panel); color:var(--text); text-decoration:none; }
+  .wiki-result a:hover, .wiki-result a:focus-visible { border-color:var(--accent); box-shadow:4px 4px 0 var(--line); }
+  .result-id { overflow-wrap:anywhere; color:var(--accent); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.72rem; font-weight:700; }
+  .wiki-result strong { min-width:0; font-size:1.1rem; letter-spacing:-.02em; overflow-wrap:anywhere; }
+  .result-description { min-width:0; color:var(--muted); line-height:1.55; overflow-wrap:anywhere; }
+  .result-tags { display:flex; flex-wrap:wrap; gap:6px; color:var(--muted); font-size:.76rem; }
+  .result-tags span { padding:3px 7px; border:1px solid var(--line); color:var(--text); }
+  .search-empty { margin:24px 0; padding:20px; border:1px dashed var(--line); color:var(--muted); }
+  [hidden] { display:none !important; }
+  @media (max-width:560px) {
+    .search-row { display:grid; grid-template-columns:minmax(0,1fr); align-items:stretch; }
+    .clear-search { width:100%; }
+    .index-header { margin-bottom:26px; }
+    .wiki-result a { padding:15px; }
+  }
+</style>

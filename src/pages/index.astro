@@ -20,7 +20,7 @@ const locale = getLocale(Astro.url);
       <h1>{t(locale, 'homeTitle1')}<br />{t(locale, 'homeTitle2')}<br /><strong>{t(locale, 'homeTitle3')}</strong></h1>
       <p class="home-lede">{t(locale, 'homeLede')}</p>
       <nav class="home-actions" aria-label={t(locale, 'homeExplore')}>
-        <a class="primary-action" href={withLocale('/wiki/concepts/hatwiki', locale)}>{t(locale, 'homeRead')} <span aria-hidden="true">↗</span></a>
+        <a class="primary-action" href={withLocale('/wiki', locale)}>{t(locale, 'homeRead')} <span aria-hidden="true">↗</span></a>
         <a href={withLocale('/graph', locale)}>{t(locale, 'homeOpenGraph')}</a>
       </nav>
     </header>

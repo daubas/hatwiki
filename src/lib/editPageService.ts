@@ -55,6 +55,7 @@ function isValidInput(input: EditPageInput): boolean {
     && !/\s/.test(input.baseSha)
     && isNonBlank(input.content)
     && isNonBlank(input.reason)
+    && input.reason.length <= 160
     && !/[\r\n]/.test(input.reason);
 }
 
@@ -92,12 +93,15 @@ function changedByteCount(before: string, after: string): number {
 }
 
 export function createEditPageService({ repository, receipts, publisher, policy }: EditDependencies) {
-  async function completePage(input: EditPageInput, revision: string): Promise<EditReceipt> {
+  async function completePage(input: EditPageInput, revision: string, recovered = false): Promise<EditReceipt> {
     const readback = await repository.readPage(input.pageId, revision);
     if (!readback || !sameBytes(readback.content, input.content)) throw new Error('readback_mismatch');
 
-    const published = await publisher.publish({ revision, baseSha: readback.sha, pageId: input.pageId, content: input.content });
-    if (published.revision !== revision) throw new Error('publisher_mismatch');
+    const head = recovered ? await repository.readPage(input.pageId) : readback;
+    if (head?.sha === readback.sha) {
+      const published = await publisher.publish({ revision, previousSha: input.baseSha, baseSha: readback.sha, pageId: input.pageId, content: input.content });
+      if (published.revision !== revision) throw new Error('publisher_mismatch');
+    }
 
     const receipt: EditReceipt = { requestId: input.requestId, status: 'committed', revision };
     await receipts.put(receipt);
@@ -113,7 +117,7 @@ export function createEditPageService({ repository, receipts, publisher, policy 
       if (existing) return existing;
 
       const recovered = await repository.findRequestRevision(input.pageId, input.requestId);
-      if (recovered?.kind === 'page') return completePage(input, recovered.revision);
+      if (recovered?.kind === 'page') return completePage(input, recovered.revision, true);
       if (recovered?.kind === 'candidate') {
         const receipt: EditReceipt = {
           requestId: input.requestId,

@@ -3,20 +3,114 @@ import Layout from '../../components/Layout.astro';
 import { getLocale, t, withLocale } from '../../lib/i18n.ts';
 import { renderWiki } from '../../lib/renderWiki.ts';
 import { getSiteWiki } from '../../lib/siteWiki.ts';
+import { addHeadingIds, extractWikiOutline, removeLeadingTitle } from '../../lib/wikiOutline.ts';
 
 const wiki = await getSiteWiki();
 const locale = getLocale(Astro.url);
 const page = await wiki.readPage(Astro.params.slug ?? '');
 if (!page) return new Response(t(locale, 'notFound'), { status: 404 });
-const html = await renderWiki(page.markdown);
+const outline = extractWikiOutline(page.markdown);
+const html = addHeadingIds(removeLeadingTitle(await renderWiki(page.markdown)), outline);
+const hasDiagnostics = page.links.some((link) => link.status !== 'resolved');
+const citationHref = (resource: string) => {
+  if (/^https?:\/\//i.test(resource)) return resource;
+  if (resource.startsWith('/raw/')) return undefined;
+  if (resource.startsWith('/') && resource.endsWith('.md')) return `/wiki/${resource.slice(1, -3)}`;
+  return undefined;
+};
 ---
 
 <Layout title={page.title}>
-  <p class="meta">{t(locale, 'graphRevision')} {page.revision} · <a href={withLocale(`/edit/${page.pageId}`, locale)}>{t(locale, 'edit')}</a></p>
-  <article set:html={html} />
-  {page.citations && page.citations.length > 0 && <section class="card"><h2>{t(locale, 'sources')}</h2><ul>{page.citations.map((source) => <li><a href={source.resource}>{source.title ?? source.resource}</a></li>)}</ul></section>}
-  <div slot="right">
-    {page.backlinks.length > 0 && <><p class="label">{t(locale, 'backlinks')}</p><ul>{page.backlinks.map((id) => <li><a href={withLocale(`/wiki/${id}`, locale)}>{id}</a></li>)}</ul></>}
-    {page.links.some((link) => link.status !== 'resolved') && <><p class="label">{t(locale, 'linkDiagnostics')}</p><ul>{page.links.filter((link) => link.status !== 'resolved').map((link) => <li>{link.target}: {t(locale, link.status === 'ambiguous' ? 'linkAmbiguous' : 'linkUnresolved')}</li>)}</ul></>}
-  </div>
+  <article class="wiki-page" aria-labelledby="wiki-page-title">
+    <header class="wiki-page-header">
+      <a class="back-link" href={withLocale('/wiki', locale)}>← {t(locale, 'wikiIndexBack')}</a>
+      <p class="page-kicker">{t(locale, 'wikiPageId')} / {page.pageId}</p>
+      <h1 id="wiki-page-title">{page.title}</h1>
+      <div class="page-meta">
+        <span>{t(locale, 'graphRevision')} {page.revision}</span>
+        <a class="edit-link" href={withLocale(`/edit/${page.pageId}`, locale)}>{t(locale, 'edit')}</a>
+      </div>
+    </header>
+
+    <div class:list={['wiki-page-layout', { 'wiki-page-layout--with-toc': outline.length > 0 }]}>
+      {outline.length > 0 && <nav class="wiki-toc" aria-labelledby="wiki-contents-title">
+        <p id="wiki-contents-title">{t(locale, 'wikiContents')}</p>
+        <ol>
+          {outline.map((item) => <li class:list={{ 'toc-level-3': item.level === 3 }}><a href={`#${item.id}`}>{item.text}</a></li>)}
+        </ol>
+      </nav>}
+      <section class="wiki-content" set:html={html} />
+    </div>
+
+    {page.citations && page.citations.length > 0 && <section class="wiki-sources" aria-labelledby="wiki-sources-title">
+      <p class="section-kicker" id="wiki-sources-title">{t(locale, 'sources')}</p>
+      <ul>{page.citations.map((source) => {
+        const href = citationHref(source.resource);
+        return <li>{href
+          ? <a href={href}>{source.title ?? source.resource}</a>
+          : <><span>{source.title ?? source.resource}</span> <small>({t(locale, 'sourceUnavailable')})</small></>}
+        </li>;
+      })}</ul>
+    </section>}
+  </article>
+
+  {(page.backlinks.length > 0 || hasDiagnostics) && <div slot="right" class="wiki-side">
+    {page.backlinks.length > 0 && <section aria-labelledby="wiki-related-title">
+      <p class="section-kicker" id="wiki-related-title">{t(locale, 'wikiRelated')}</p>
+      <p class="side-label">{t(locale, 'backlinks')}</p>
+      <ul>{page.backlinks.map((id) => <li><a href={withLocale(`/wiki/${id}`, locale)}>{id}</a></li>)}</ul>
+    </section>}
+    {hasDiagnostics && <section aria-labelledby="wiki-diagnostics-title">
+      <p class="section-kicker" id="wiki-diagnostics-title">{t(locale, 'linkDiagnostics')}</p>
+      <ul>{page.links.filter((link) => link.status !== 'resolved').map((link) => <li><code>{link.target}</code><span>{t(locale, link.status === 'ambiguous' ? 'linkAmbiguous' : 'linkUnresolved')}</span></li>)}</ul>
+    </section>}
+  </div>}
 </Layout>
+
+<style>
+  .wiki-page { min-width:0; }
+  .wiki-page-header { display:grid; gap:0; margin-bottom:34px; border-bottom:2px solid var(--line); padding-bottom:24px; }
+  .back-link { width:max-content; color:var(--accent); font-size:.84rem; font-weight:800; text-decoration:none; }
+  .back-link:hover { color:var(--text); }
+  .page-kicker, .section-kicker { margin:30px 0 0; color:var(--accent); font-size:.72rem; font-weight:850; letter-spacing:.12em; text-transform:uppercase; overflow-wrap:anywhere; }
+  .wiki-page-header h1 { margin:10px 0 14px; overflow-wrap:anywhere; }
+  .page-meta { display:flex; flex-wrap:wrap; align-items:center; gap:14px; color:var(--muted); font-size:.84rem; }
+  .edit-link { color:var(--accent); font-weight:800; text-decoration:none; }
+  .edit-link:hover { color:var(--text); }
+  .wiki-page-layout { min-width:0; }
+  .wiki-page-layout--with-toc { display:grid; grid-template-columns:minmax(0,1fr) 190px; grid-template-areas:'content toc'; gap:clamp(28px,5vw,56px); align-items:start; }
+  .wiki-content { grid-area:content; min-width:0; }
+  .wiki-content :global(h2), .wiki-content :global(h3) { scroll-margin-top:108px; }
+  .wiki-content :global(h1), .wiki-content :global(h2), .wiki-content :global(h3), .wiki-content :global(h4), .wiki-content :global(h5), .wiki-content :global(h6) { overflow-wrap:anywhere; }
+  .wiki-content :global(h2) { margin-top:2.4rem; padding-top:1rem; border-top:1px solid var(--line); }
+  .wiki-content :global(h3) { margin-top:1.8rem; }
+  .wiki-content :global(pre), .wiki-content :global(table) { max-width:100%; overflow:auto; }
+  .wiki-content :global(table) { display:block; }
+  .wiki-content :global(pre) { padding:14px; background:var(--soft); }
+  .wiki-content :global(img) { max-width:100%; height:auto; }
+  .wiki-content :global(a) { overflow-wrap:anywhere; }
+  .wiki-toc { grid-area:toc; position:sticky; top:104px; max-height:calc(100vh - 128px); min-width:0; overflow:auto; border-left:2px solid var(--line); padding-left:14px; }
+  .wiki-toc > p { margin:0 0 12px; color:var(--text); font-size:.78rem; font-weight:850; letter-spacing:.04em; }
+  .wiki-toc ol { display:grid; gap:7px; margin:0; padding:0; list-style:none; }
+  .wiki-toc li { min-width:0; }
+  .wiki-toc li.toc-level-3 { padding-left:12px; font-size:.8rem; }
+  .wiki-toc a { display:block; color:var(--muted); line-height:1.4; overflow-wrap:anywhere; text-decoration:none; }
+  .wiki-toc a:hover, .wiki-toc a:focus-visible { color:var(--accent); }
+  .wiki-sources { margin-top:40px; border-top:2px solid var(--line); padding-top:22px; }
+  .wiki-sources .section-kicker { margin:0 0 10px; }
+  .wiki-sources ul, .wiki-side ul { margin:0; padding-left:18px; }
+  .wiki-sources li, .wiki-side li { overflow-wrap:anywhere; }
+  .wiki-sources small { color:var(--muted); }
+  .wiki-side { display:grid; gap:30px; }
+  .wiki-side section { min-width:0; }
+  .wiki-side .section-kicker { margin:0 0 12px; }
+  .wiki-side .side-label { margin:0 0 7px; color:var(--muted); font-size:.78rem; font-weight:800; }
+  .wiki-side a { color:var(--accent); overflow-wrap:anywhere; }
+  .wiki-side code { display:block; overflow-wrap:anywhere; color:var(--text); font:inherit; }
+  .wiki-side li span { display:block; color:var(--muted); font-size:.8rem; }
+  @media (max-width:760px) {
+    .wiki-page-layout--with-toc { grid-template-columns:minmax(0,1fr); grid-template-areas:'toc' 'content'; gap:22px; }
+    .wiki-toc { position:static; max-height:none; overflow:visible; border-top:2px solid var(--line); border-left:0; padding:16px 0 0; }
+    .wiki-sources { margin-top:32px; }
+  }
+</style>

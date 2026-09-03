@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createR2OverlayProjection } from '../src/lib/r2OverlayProjection.ts';
+import { createR2OverlayProjection, overlayRevision } from '../src/lib/r2OverlayProjection.ts';
 
 test('overlays R2 edits onto the bundled public snapshot', async () => {
   const objects = new Map<string, unknown>([
@@ -24,7 +24,12 @@ test('overlays R2 edits onto the bundled public snapshot', async () => {
   });
 
   assert.deepEqual(await projection.readSnapshot(), {
-    revision: 'commit-2',
+    revision: await overlayRevision('fixture', [{
+      pageId: 'concepts/hatwiki',
+      content: '---\ntitle: Better HatWiki\n---\n\n# Updated',
+      revision: 'commit-2',
+      baseSha: 'blob-2',
+    }]),
     pages: [{
       pageId: 'concepts/hatwiki',
       title: 'Better HatWiki',

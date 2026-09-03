@@ -118,6 +118,7 @@ test('rejects malformed edit input before reading receipts or the repository', a
     { ...valid, content: '  ' },
     { ...valid, content: 7 as unknown as string },
     { ...valid, reason: '  ' },
+    { ...valid, reason: 'x'.repeat(161) },
     { ...valid, reason: 'Clarify\nHatWiki-User-ID: forged' },
     { ...valid, requestId: 'request\nforged' },
     { ...valid, requestId: 7 as unknown as string },
@@ -588,7 +589,6 @@ test('recovers a Git-written page revision before attempting a new write', async
     repository: {
       readPage: async (pageId, ref) => {
         calls.push(`repository.read:${pageId}:${ref ?? 'head'}`);
-        if (!ref) throw new Error('unexpected_head_read');
         return { sha: 'blob-after', content: 'Recovered note' };
       },
       findRequestRevision: async (pageId, requestId) => {
@@ -643,6 +643,7 @@ test('recovers a Git-written page revision before attempting a new write', async
     'receipt.get:request-recovered-page',
     'repository.find:guides/overview:request-recovered-page',
     'repository.read:guides/overview:commit-recovered',
+    'repository.read:guides/overview:head',
     'publisher.publish:commit-recovered',
     'receipt.put:committed',
   ]);
@@ -651,6 +652,44 @@ test('recovers a Git-written page revision before attempting a new write', async
     status: 'committed',
     revision: 'commit-recovered',
   }]);
+});
+
+test('does not republish a recovered revision after the page has advanced', async () => {
+  const calls: string[] = [];
+  const service = createEditPageService({
+    repository: {
+      readPage: async (_pageId, ref) => {
+        calls.push(`repository.read:${ref ?? 'head'}`);
+        return ref
+          ? { sha: 'blob-old', content: 'Recovered note' }
+          : { sha: 'blob-new', content: 'Newer note' };
+      },
+      findRequestRevision: async () => ({ kind: 'page', revision: 'commit-old' }),
+      commitPage: async () => ({ revision: 'unexpected' }),
+      saveCandidate: async () => ({ revision: 'unexpected' }),
+    },
+    receipts: {
+      get: async () => null,
+      put: async ({ status }) => { calls.push(`receipt.put:${status}`); },
+    },
+    publisher: {
+      publish: async () => {
+        calls.push('publisher.publish');
+        return { revision: 'unexpected' };
+      },
+    },
+    policy: { protectedPaths: [], largeEditThreshold: 1000 },
+  });
+
+  assert.deepEqual(await service.edit(
+    { userId: 7, login: 'octo' },
+    { requestId: 'request-old', pageId: 'guides/overview', baseSha: 'blob-before-old', content: 'Recovered note', reason: 'Recover' },
+  ), { requestId: 'request-old', status: 'committed', revision: 'commit-old' });
+  assert.deepEqual(calls, [
+    'repository.read:commit-old',
+    'repository.read:head',
+    'receipt.put:committed',
+  ]);
 });
 
 test('recovers a Git-written candidate as a conflict without another write', async () => {

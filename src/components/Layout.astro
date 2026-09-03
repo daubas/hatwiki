@@ -19,10 +19,10 @@ const locale = getLocale(Astro.url);
   <body class={pageClass}>
     <WebMcpRegistration />
     <header class="site-header">
-      <a class="brand" href={withLocale('/', locale)} aria-label="HatWiki homepage"><img class="brand-mark" src="/brand/hatwiki.svg" alt="" /><span>HatWiki</span></a>
-      <p class="tagline">Humans and Agents Together</p>
+      <a class="brand" href={withLocale('/', locale)} aria-label={t(locale, 'home')}><img class="brand-mark" src="/brand/hatwiki.svg" alt="" /><span>HatWiki</span></a>
+      <p class="tagline">{t(locale, 'tagline')}</p>
       <nav class="primary-nav" aria-label={t(locale, 'primaryNavigation')}>
-        <a href={withLocale('/wiki/concepts/hatwiki', locale)} aria-current={pathname.startsWith('/wiki') ? 'page' : undefined}>{t(locale, 'wiki')}</a>
+        <a href={withLocale('/wiki', locale)} aria-current={pathname.startsWith('/wiki') ? 'page' : undefined}>{t(locale, 'wiki')}</a>
         <a href={withLocale('/graph', locale)} aria-current={pathname === '/graph' ? 'page' : undefined}>{t(locale, 'graph')}</a>
       </nav>
       <div class="header-actions">
@@ -56,7 +56,7 @@ const locale = getLocale(Astro.url);
   .header-actions, .language-switch { display:flex; align-items:center; gap:8px; }
   .language-switch a { padding:5px 3px; color:var(--muted); font-size:.7rem; font-weight:800; text-decoration:none; }
   .language-switch a[aria-current="page"] { color:var(--text); text-decoration:underline; text-underline-offset:4px; }
-  a:focus-visible, button:focus-visible { outline:3px solid var(--cobalt); outline-offset:3px; }
+  a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline:3px solid var(--cobalt); outline-offset:3px; }
   .shell { width:min(calc(100% - 48px), 840px); margin:auto; padding:48px 0 76px; }
   .shell--with-aside { display:grid; width:min(calc(100% - 48px), 1120px); grid-template-columns:minmax(0,1fr) 230px; gap:48px; }
   .home-page .shell, .graph-page .shell { width:min(calc(100% - 48px), 1320px); }
