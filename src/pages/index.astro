@@ -1,0 +1,18 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../components/Layout.astro';
+
+const pages = (await getCollection('wiki')).filter((entry) => entry.data.visibility !== 'private');
+---
+
+<Layout title="Open collaborative Wiki">
+  <p class="meta">HUMANS AND AGENTS TOGETHER</p>
+  <h1>資料進來，Wiki 長出來。</h1>
+  <p>HatWiki 讓人與不同 Agent 共同維護一座可追查、可修正、能跨 session 使用的 Wiki。</p>
+  <section class="card">
+    <h2>Public Wiki</h2>
+    <ul>
+      {pages.map((page) => <li><a href={`/wiki/${page.id}`}>{page.data.title}</a> — {page.data.description}</li>)}
+    </ul>
+  </section>
+</Layout>

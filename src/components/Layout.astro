@@ -1,0 +1,55 @@
+---
+const { title = 'HatWiki' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content="Humans and Agents Together" />
+    <title>{title} · HatWiki</title>
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="/">HatWiki</a>
+      <span>Humans and Agents Together</span>
+    </header>
+    <div class="shell">
+      <nav aria-label="Wiki navigation">
+        <p class="label">Explore</p>
+        <a href="/wiki/concepts/hatwiki">HatWiki</a>
+        <a href="/wiki/concepts/shared-memory">Shared memory</a>
+        <a href="/wiki/guides/getting-started">Getting started</a>
+        <a href="/graph">Graph</a>
+      </nav>
+      <main><slot /></main>
+      <aside><slot name="right" /></aside>
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  :root { color-scheme: light dark; --bg:#f7f5ef; --panel:#fffdf8; --text:#24231f; --muted:#747168; --line:#dcd7cb; --accent:#315f52; --soft:#e8f0ea; }
+  @media (prefers-color-scheme:dark) { :root { --bg:#171916; --panel:#20231f; --text:#eef0e9; --muted:#a9ada2; --line:#3a3e37; --accent:#8fc8b4; --soft:#29352f; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Noto Sans TC",sans-serif; }
+  header { height:64px; display:flex; align-items:center; gap:18px; padding:0 28px; border-bottom:1px solid var(--line); background:var(--panel); }
+  .brand { color:var(--text); font-size:1.2rem; font-weight:750; text-decoration:none; }
+  header span, .label { color:var(--muted); font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; }
+  .shell { display:grid; grid-template-columns:220px minmax(0,760px) 220px; gap:36px; max-width:1280px; margin:auto; padding:34px 28px; }
+  nav { display:flex; flex-direction:column; gap:8px; position:sticky; top:32px; align-self:start; }
+  nav a { padding:8px 10px; border-radius:7px; color:var(--muted); text-decoration:none; }
+  nav a:hover { color:var(--text); background:var(--soft); }
+  main { min-width:0; }
+  main h1 { font-size:2.15rem; letter-spacing:-.035em; margin:0 0 18px; }
+  main h2 { margin-top:2rem; }
+  main p, main li { line-height:1.8; }
+  main a { color:var(--accent); }
+  aside { color:var(--muted); font-size:.9rem; }
+  .card { padding:22px; border:1px solid var(--line); border-radius:14px; background:var(--panel); }
+  .meta { color:var(--muted); font-size:.85rem; }
+  .tags { display:flex; flex-wrap:wrap; gap:6px; margin:16px 0; }
+  .tags span { background:var(--soft); border-radius:999px; padding:4px 9px; font-size:.78rem; }
+  @media (max-width:900px) { .shell { grid-template-columns:1fr; } nav, aside { position:static; } nav { flex-direction:row; flex-wrap:wrap; } }
+</style>
