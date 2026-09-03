@@ -53,6 +53,28 @@ test('searchWiki finds only projected pages whose public text matches the query'
   assert.deepEqual(pages.map((page) => ({ pageId: page.pageId, title: page.title })), [
     { pageId: 'topics/unique', title: 'Unique topic' },
   ]);
+  assert.equal('markdown' in pages[0], false);
+  assert.match(pages[0].snippet, /comet/);
+});
+
+test('searchWiki caps results and returns short snippets', async () => {
+  const wiki = createPublicWiki({
+    async readSnapshot() {
+      return {
+        revision: 'r1',
+        pages: Array.from({ length: 10 }, (_, index) => ({
+          pageId: `topics/${index}`,
+          title: `Topic ${index}`,
+          markdown: `A searchable comet page with supporting detail ${'x'.repeat(300)}.`,
+        })),
+      };
+    },
+  });
+
+  const pages = await wiki.searchWiki('comet');
+
+  assert.equal(pages.length, 8);
+  assert.ok(pages.every((page) => page.snippet.length <= 182));
 });
 
 test('readPage normalizes internal Markdown paths and applies the WikiLink ambiguity rules', async () => {

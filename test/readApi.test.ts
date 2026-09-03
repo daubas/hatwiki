@@ -21,7 +21,7 @@ test('search rejects an empty q query without calling PublicWiki', async () => {
 });
 
 test('search delegates q and returns only PublicWiki JSON without caching', async () => {
-  const results = [{ pageId: 'guides/overview', title: 'Overview', markdown: 'Public text.' }];
+  const results = [{ pageId: 'guides/overview', title: 'Overview', snippet: 'Public text.' }];
   const queries: string[] = [];
   const api = createReadApi({
     searchWiki: async (query) => {

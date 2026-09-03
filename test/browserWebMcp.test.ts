@@ -19,6 +19,12 @@ test('registers browser-native read tools that reuse the public HTTP API', async
   assert.equal(registration.supported, true);
   assert.deepEqual(registered.map(({ tool }) => tool.name), ['search_wiki', 'read_page']);
   assert.ok(registered.every(({ signal }) => signal && !signal.aborted));
+  for (const { tool } of registered) {
+    assert.deepEqual(tool.annotations, {
+      readOnlyHint: true,
+      untrustedContentHint: true,
+    });
+  }
   assert.deepEqual(await registered[0].tool.execute({ query: 'shared memory' }), { url: '/api/search?q=shared+memory' });
   assert.deepEqual(await registered[1].tool.execute({ pageId: 'concepts/hatwiki' }), { url: '/api/pages/concepts/hatwiki' });
   assert.deepEqual(requests, ['/api/search?q=shared+memory', '/api/pages/concepts/hatwiki']);

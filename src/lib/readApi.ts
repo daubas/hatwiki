@@ -1,7 +1,7 @@
-import type { PageRead, PublicPage } from './contracts.ts';
+import type { PageRead, PublicSearchResult } from './contracts.ts';
 
 type PublicWiki = {
-  searchWiki(query: string): Promise<PublicPage[]>;
+  searchWiki(query: string): Promise<PublicSearchResult[]>;
   readPage(pageId: string): Promise<PageRead | null>;
 };
 

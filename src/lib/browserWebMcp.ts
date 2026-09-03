@@ -2,7 +2,7 @@ type BrowserTool = {
   name: string;
   description: string;
   inputSchema: object;
-  annotations: { readOnlyHint: boolean };
+  annotations: { readOnlyHint: boolean; untrustedContentHint?: boolean };
   execute(input: Record<string, unknown>): Promise<unknown>;
 };
 
@@ -29,7 +29,7 @@ export async function registerBrowserReadTools(
   const controller = new AbortController();
   if (!modelContext?.registerTool) return { supported: false, dispose: () => controller.abort() };
 
-  const annotations = { readOnlyHint: true } as const;
+  const annotations = { readOnlyHint: true, untrustedContentHint: true } as const;
   const tools: BrowserTool[] = [
     {
       name: 'search_wiki',

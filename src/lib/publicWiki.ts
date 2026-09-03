@@ -1,4 +1,7 @@
-import type { LinkResolution, PageRead, PublicPage, PublicProjection } from './contracts.ts';
+import type { LinkResolution, PageRead, PublicPage, PublicProjection, PublicSearchResult } from './contracts.ts';
+
+const SEARCH_RESULT_LIMIT = 8;
+const SEARCH_SNIPPET_LENGTH = 180;
 
 function resolveLink(target: string, pages: PublicPage[]): LinkResolution {
   const exact = pages.find((page) => page.pageId === target);
@@ -27,14 +30,31 @@ function linksFor(page: PublicPage, pages: PublicPage[]): LinkResolution[] {
     .map((target) => resolveLink(target, pages));
 }
 
+function searchSnippet(page: PublicPage, needle: string): string {
+  const text = `${page.title}\n${page.markdown}`.replace(/\s+/g, ' ').trim();
+  const match = text.toLowerCase().indexOf(needle);
+  const start = Math.max(0, match < 0 ? 0 : match - 60);
+  const excerpt = text.slice(start, start + SEARCH_SNIPPET_LENGTH).trim();
+  return `${start > 0 ? '…' : ''}${excerpt}${start + excerpt.length < text.length ? '…' : ''}`;
+}
+
 export function createPublicWiki(projection: PublicProjection) {
   return {
-    async searchWiki(query: string): Promise<PublicPage[]> {
+    async searchWiki(query: string): Promise<PublicSearchResult[]> {
       const needle = query.trim().toLowerCase();
       if (!needle) return [];
 
       const snapshot = await projection.readSnapshot();
-      return snapshot.pages.filter((page) => `${page.title}\n${page.markdown}`.toLowerCase().includes(needle));
+      // ponytail: fixed result cap keeps Agent context bounded; add ranking/indexing when the corpus outgrows this.
+      return snapshot.pages
+        .filter((page) => `${page.title}\n${page.markdown}`.toLowerCase().includes(needle))
+        .slice(0, SEARCH_RESULT_LIMIT)
+        .map((page) => ({
+          pageId: page.pageId,
+          title: page.title,
+          snippet: searchSnippet(page, needle),
+          ...(page.resource ? { resource: page.resource } : {}),
+        }));
     },
 
     async readPage(pageId: string): Promise<PageRead | null> {

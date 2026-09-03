@@ -9,6 +9,13 @@ export type PublicPage = {
   pendingCandidates?: number;
 };
 
+export type PublicSearchResult = {
+  pageId: string;
+  title: string;
+  snippet: string;
+  resource?: string;
+};
+
 export type PublicSnapshot = {
   revision: string;
   pages: PublicPage[];
