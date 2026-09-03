@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createGitHubRepository } from '../src/lib/githubRepository.ts';
+import { StalePageError } from '../src/lib/editContracts.ts';
 
 test('readPage fetches a wiki file and decodes its UTF-8 content', async () => {
   const calls: Array<{ url: string; init: RequestInit }> = [];
@@ -161,6 +162,17 @@ test('does not include the token in GitHub error messages', async () => {
     assert.match((error as Error).message, /500/);
     return true;
   });
+});
+
+test('reports a GitHub commit conflict as a stale page', async () => {
+  const repository = createGitHubRepository({
+    owner: 'acme', repo: 'hatwiki', branch: 'main', token: 'secret-token',
+    fetcher: async () => new Response('{}', { status: 409 }),
+  });
+
+  await assert.rejects(repository.commitPage({
+    pageId: 'concepts/hatwiki', baseSha: 'old-blob', content: 'Updated', message: 'Edit',
+  }), StalePageError);
 });
 
 test('findRequestRevision returns the first page commit with an exact request trailer', async () => {

@@ -17,7 +17,7 @@ test('registers browser-native read tools that reuse the public HTTP API', async
   const registration = await registerBrowserReadTools(modelContext, fetchJson);
 
   assert.equal(registration.supported, true);
-  assert.deepEqual(registered.map(({ tool }) => tool.name), ['search_wiki', 'read_page', 'edit_page']);
+  assert.deepEqual(registered.map(({ tool }) => tool.name), ['search_wiki', 'read_page']);
   assert.ok(registered.every(({ signal }) => signal && !signal.aborted));
   assert.deepEqual(await registered[0].tool.execute({ query: 'shared memory' }), { url: '/api/search?q=shared+memory' });
   assert.deepEqual(await registered[1].tool.execute({ pageId: 'concepts/hatwiki' }), { url: '/api/pages/concepts/hatwiki' });
@@ -36,7 +36,7 @@ test('registers edit_page as an authorization-gated write through the session AP
     return { ok: true, json: async () => ({ status: 'committed' }) } as Response;
   };
 
-  await registerBrowserReadTools(modelContext, fetchJson);
+  await registerBrowserReadTools(modelContext, fetchJson, 'authenticated');
   const tool = registered.find(({ name }) => name === 'edit_page');
   const input = {
     requestId: 'request-1',

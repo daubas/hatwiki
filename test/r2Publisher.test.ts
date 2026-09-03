@@ -4,10 +4,16 @@ import { createR2Publisher, readR2Page } from '../src/lib/r2Publisher.ts';
 
 test('publish stores the revision marker and returns the same revision', async () => {
   const calls: Array<{ key: string; value: string; options: Record<string, unknown> }> = [];
+  const values = new Map<string, string>();
   const bucket = {
     async put(key: string, value: string, options: Record<string, unknown>) {
       calls.push({ key, value, options });
+      values.set(key, value);
       return {};
+    },
+    async get(key: string) {
+      const value = values.get(key);
+      return value ? { json: async () => JSON.parse(value) } : null;
     },
   };
 
@@ -32,6 +38,19 @@ test('publish stores the revision marker and returns the same revision', async (
       },
     },
   ]);
+});
+
+test('does not acknowledge a publication that fails R2 readback', async () => {
+  const publisher = createR2Publisher({
+    put: async () => ({}),
+    get: async (key: string) => ({ json: async () => key.endsWith('revision.json')
+      ? { revision: 'other' }
+      : { pageId: 'concepts/hatwiki', content: '# HatWiki', revision: 'rev-1', baseSha: 'blob-1' } }),
+  });
+
+  await assert.rejects(publisher.publish({
+    revision: 'rev-1', baseSha: 'blob-1', pageId: 'concepts/hatwiki', content: '# HatWiki',
+  }), /publisher_mismatch/);
 });
 
 test('reads an edited page from the public projection', async () => {

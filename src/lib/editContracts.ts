@@ -4,6 +4,12 @@ export type EditActor = {
   agent?: string;
 };
 
+export class StalePageError extends Error {
+  constructor() {
+    super('stale_page');
+  }
+}
+
 export type EditPageInput = {
   requestId: string;
   pageId: string;

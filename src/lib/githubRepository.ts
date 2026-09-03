@@ -1,4 +1,4 @@
-import type { RepositoryPage, WikiRepository } from './editContracts.ts';
+import { StalePageError, type RepositoryPage, type WikiRepository } from './editContracts.ts';
 
 type GitHubResponse = {
   status: number;
@@ -75,6 +75,7 @@ async function putContent(
   url: string,
   headers: Record<string, string>,
   body: Record<string, string>,
+  staleOnConflict = false,
 ): Promise<{ revision: string }> {
   let response: GitHubResponse;
   try {
@@ -86,6 +87,7 @@ async function putContent(
   } catch {
     throw new Error('GitHub request failed');
   }
+  if (staleOnConflict && response.status === 409) throw new StalePageError();
   if (response.status < 200 || response.status >= 300) {
     throw new Error(`GitHub request failed (${response.status})`);
   }
@@ -197,7 +199,7 @@ export function createGitHubRepository(options: GitHubRepositoryOptions): WikiRe
         content: encodeBase64Utf8(input.content),
         branch: options.branch,
         sha: input.baseSha,
-      });
+      }, true);
     },
 
     async saveCandidate(input: { pageId: string; content: string; requestId: string; message: string }) {

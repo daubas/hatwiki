@@ -1,3 +1,4 @@
+import { StalePageError } from './editContracts.ts';
 import type {
   EditActor,
   EditPageInput,
@@ -138,7 +139,7 @@ export function createEditPageService({ repository, receipts, publisher, policy 
         return receipt;
       }
 
-      if (current.sha !== input.baseSha) {
+      const saveConflict = async () => {
         const candidate = await repository.saveCandidate({
           pageId: input.pageId,
           content: input.content,
@@ -152,14 +153,22 @@ export function createEditPageService({ repository, receipts, publisher, policy 
         };
         await receipts.put(receipt);
         return receipt;
-      }
+      };
 
-      const { revision } = await repository.commitPage({
-        pageId: input.pageId,
-        baseSha: input.baseSha,
-        content: input.content,
-        message: messageFor(actor, input),
-      });
+      if (current.sha !== input.baseSha) return saveConflict();
+
+      let revision: string;
+      try {
+        ({ revision } = await repository.commitPage({
+          pageId: input.pageId,
+          baseSha: input.baseSha,
+          content: input.content,
+          message: messageFor(actor, input),
+        }));
+      } catch (error) {
+        if (error instanceof StalePageError) return saveConflict();
+        throw error;
+      }
       return completePage(input, revision);
     },
   };

@@ -2,6 +2,7 @@
   import { registerBrowserReadTools } from '../lib/browserWebMcp.ts';
 
   const modelContext = (document as Document & { modelContext?: Parameters<typeof registerBrowserReadTools>[0] }).modelContext;
-  const registration = await registerBrowserReadTools(modelContext, fetch);
+  const actor = await fetch('/api/session').then((response) => response.json()).then((value) => value.actor).catch(() => null);
+  const registration = await registerBrowserReadTools(modelContext, fetch, actor ? 'authenticated' : 'anonymous');
   window.addEventListener('pagehide', registration.dispose, { once: true });
 </script>

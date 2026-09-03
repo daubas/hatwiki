@@ -21,7 +21,11 @@ async function json(response: Response) {
   return response.json();
 }
 
-export async function registerBrowserReadTools(modelContext: ModelContext | undefined, fetcher: FetchLike) {
+export async function registerBrowserReadTools(
+  modelContext: ModelContext | undefined,
+  fetcher: FetchLike,
+  session: 'anonymous' | 'authenticated' = 'anonymous',
+) {
   const controller = new AbortController();
   if (!modelContext?.registerTool) return { supported: false, dispose: () => controller.abort() };
 
@@ -51,7 +55,8 @@ export async function registerBrowserReadTools(modelContext: ModelContext | unde
       annotations,
       execute: async ({ pageId }) => json(await fetcher(pageUrl(pageId))),
     },
-    {
+  ];
+  if (session === 'authenticated') tools.push({
       name: 'edit_page',
       description: 'Edit one HatWiki page as the signed-in GitHub user. Requires explicit authorization to publish the submitted material.',
       inputSchema: {
@@ -73,8 +78,7 @@ export async function registerBrowserReadTools(modelContext: ModelContext | unde
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
       })),
-    },
-  ];
+    });
 
   await Promise.all(tools.map((tool) => modelContext.registerTool(tool, { signal: controller.signal })));
   return { supported: true, dispose: () => controller.abort() };

@@ -7,11 +7,10 @@ type R2PutOptions = {
 
 type R2BucketLike = {
   put(key: string, value: string, options: R2PutOptions): Promise<unknown>;
-};
-
-type R2ReaderLike = {
   get(key: string): Promise<{ json<T>(): Promise<T> } | null>;
 };
+
+type R2ReaderLike = Pick<R2BucketLike, 'get'>;
 
 export type PublishedPage = { pageId: string; content: string; revision: string; baseSha: string };
 
@@ -39,6 +38,16 @@ export function createR2Publisher(bucket: R2BucketLike, key = 'published/revisio
         httpMetadata: { contentType: 'application/json' },
         customMetadata: { revision },
       });
+      const [readback, marker] = await Promise.all([
+        readR2Page(bucket, pageId),
+        bucket.get(key).then((object) => object?.json<{ revision?: unknown }>()),
+      ]);
+      if (!readback
+        || readback.pageId !== pageId
+        || readback.revision !== revision
+        || readback.baseSha !== baseSha
+        || readback.content !== content
+        || marker?.revision !== revision) throw new Error('publisher_mismatch');
       return { revision };
     },
   };

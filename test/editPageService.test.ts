@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createEditPageService } from '../src/lib/editPageService.ts';
+import { StalePageError } from '../src/lib/editContracts.ts';
 
 test('commits only after GitHub readback and the public projection confirm the same revision', async () => {
   const calls: string[] = [];
@@ -719,4 +720,34 @@ test('recovers a Git-written candidate as a conflict without another write', asy
     status: 'conflict',
     candidateRevision: 'candidate-recovered',
   }]);
+});
+
+test('preserves an edit as a candidate when Git detects a stale-write race', async () => {
+  const calls: string[] = [];
+  const service = createEditPageService({
+    repository: {
+      readPage: async () => ({ sha: 'blob-before', content: 'Old note' }),
+      findRequestRevision: async () => null,
+      commitPage: async () => {
+        calls.push('commit');
+        throw new StalePageError();
+      },
+      saveCandidate: async ({ requestId }) => {
+        calls.push(`candidate:${requestId}`);
+        return { revision: 'candidate-race' };
+      },
+    },
+    receipts: {
+      get: async () => null,
+      put: async ({ status }) => { calls.push(`receipt:${status}`); },
+    },
+    publisher: { publish: async ({ revision }) => ({ revision }) },
+    policy: { protectedPaths: [], largeEditThreshold: 1000 },
+  });
+
+  assert.deepEqual(await service.edit(
+    { userId: 7, login: 'octo' },
+    { requestId: 'race-1', pageId: 'guides/overview', baseSha: 'blob-before', content: 'Updated', reason: 'Clarify' },
+  ), { requestId: 'race-1', status: 'conflict', candidateRevision: 'candidate-race' });
+  assert.deepEqual(calls, ['commit', 'candidate:race-1', 'receipt:conflict']);
 });
