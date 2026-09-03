@@ -17,4 +17,6 @@ test('falls back to zh-Hant and preserves the current URL while switching langua
     '/wiki/concepts/hatwiki?tag=geo&lang=en#sources',
   );
   assert.equal(withLocale('/graph?view=full#top', 'en'), '/graph?view=full&lang=en#top');
+  assert.equal(withLocale('/', 'en'), '/?lang=en');
+  assert.equal(withLocale('/?lang=en', DEFAULT_LOCALE), '/');
 });

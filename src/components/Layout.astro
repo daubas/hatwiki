@@ -19,7 +19,7 @@ const locale = getLocale(Astro.url);
   <body class={pageClass}>
     <WebMcpRegistration />
     <header class="site-header">
-      <a class="brand" href={withLocale('/', locale)} aria-label="HatWiki homepage"><img class="brand-mark" src="/brand/twin-weave.svg" alt="" /><span>HatWiki</span></a>
+      <a class="brand" href={withLocale('/', locale)} aria-label="HatWiki homepage"><img class="brand-mark" src="/brand/hatwiki.svg" alt="" /><span>HatWiki</span></a>
       <p class="tagline">Humans and Agents Together</p>
       <nav class="primary-nav" aria-label={t(locale, 'primaryNavigation')}>
         <a href={withLocale('/wiki/concepts/hatwiki', locale)} aria-current={pathname.startsWith('/wiki') ? 'page' : undefined}>{t(locale, 'wiki')}</a>
