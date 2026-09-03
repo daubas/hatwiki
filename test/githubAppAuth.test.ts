@@ -94,7 +94,7 @@ test('exchanges a verified callback code and returns the GitHub user identity', 
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: 'client_id=client-123&client_secret=client-secret&code=code-123&redirect_uri=https%3A%2F%2Fwiki.example%2Fauth%2Fgithub%2Fcallback',
-        redirect: 'error',
+        redirect: 'manual',
       },
     },
     {
@@ -104,9 +104,10 @@ test('exchanges a verified callback code and returns the GitHub user identity', 
         headers: {
           Accept: 'application/vnd.github+json',
           Authorization: 'Bearer user-token',
+          'User-Agent': 'HatWiki-WebMCP',
           'X-GitHub-Api-Version': '2022-11-28',
         },
-        redirect: 'error',
+        redirect: 'manual',
       },
     },
   ]);
@@ -175,10 +176,11 @@ test('creates a repository-scoped installation token with an App JWT', async () 
       Accept: 'application/vnd.github+json',
       Authorization: (calls[0].init.headers as Record<string, string>).Authorization,
       'Content-Type': 'application/json',
+      'User-Agent': 'HatWiki-WebMCP',
       'X-GitHub-Api-Version': '2022-11-28',
     },
     body: JSON.stringify({ repository_ids: [1234], permissions: { contents: 'write' } }),
-    redirect: 'error',
+    redirect: 'manual',
   });
   const authorization = (calls[0].init.headers as Record<string, string>).Authorization;
   assert.match(authorization, /^Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9\./);

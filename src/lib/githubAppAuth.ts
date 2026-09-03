@@ -192,7 +192,7 @@ export function createGitHubAppAuth(options: GitHubAppAuthOptions) {
           code,
           redirect_uri: redirect.toString(),
         }).toString(),
-        redirect: 'error',
+        redirect: 'manual',
       });
       const accessToken =
         tokenPayload && typeof tokenPayload === 'object' &&
@@ -207,9 +207,10 @@ export function createGitHubAppAuth(options: GitHubAppAuthOptions) {
         headers: {
           Accept: 'application/vnd.github+json',
           Authorization: `Bearer ${accessToken}`,
+          'User-Agent': 'HatWiki-WebMCP',
           'X-GitHub-Api-Version': '2022-11-28',
         },
-        redirect: 'error',
+        redirect: 'manual',
       }));
       return { accessToken, user };
     },
@@ -227,10 +228,11 @@ export function createGitHubAppAuth(options: GitHubAppAuthOptions) {
             Accept: 'application/vnd.github+json',
             Authorization: `Bearer ${await createAppJwt()}`,
             'Content-Type': 'application/json',
+            'User-Agent': 'HatWiki-WebMCP',
             'X-GitHub-Api-Version': '2022-11-28',
           },
           body: JSON.stringify({ repository_ids: [repositoryId], permissions: { contents: 'write' } }),
-          redirect: 'error',
+          redirect: 'manual',
         },
       );
       if (

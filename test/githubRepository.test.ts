@@ -10,7 +10,8 @@ test('readPage fetches a wiki file and decodes its UTF-8 content', async () => {
     repo: 'hatwiki',
     branch: 'main',
     token: 'secret-token',
-    fetcher: async (url, init) => {
+    fetcher: async function (this: undefined, url, init) {
+      assert.equal(this, undefined);
       calls.push({ url, init });
       return new Response(
         JSON.stringify({
@@ -29,6 +30,7 @@ test('readPage fetches a wiki file and decodes its UTF-8 content', async () => {
   assert.equal(calls[0].url, 'https://api.github.com/repos/acme/hatwiki/contents/wiki/concepts/hatwiki.md?ref=main');
   assert.equal(calls[0].init.method, 'GET');
   assert.equal(calls[0].init.headers && (calls[0].init.headers as Record<string, string>).Authorization, 'Bearer secret-token');
+  assert.equal(calls[0].init.headers && (calls[0].init.headers as Record<string, string>)['User-Agent'], 'HatWiki-WebMCP');
 });
 
 test('readPage returns null for a missing GitHub file', async () => {

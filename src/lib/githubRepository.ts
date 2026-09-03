@@ -109,10 +109,12 @@ async function putContent(
 }
 
 export function createGitHubRepository(options: GitHubRepositoryOptions): WikiRepository {
+  const fetcher = options.fetcher;
   const apiBase = `https://api.github.com/repos/${encodeURIComponent(options.owner)}/${encodeURIComponent(options.repo)}`;
   const headers = {
     Accept: 'application/vnd.github+json',
     Authorization: `Bearer ${options.token}`,
+    'User-Agent': 'HatWiki-WebMCP',
     'X-GitHub-Api-Version': '2022-11-28',
   };
 
@@ -120,7 +122,7 @@ export function createGitHubRepository(options: GitHubRepositoryOptions): WikiRe
     const url = `${apiBase}/commits?path=${encodeURIComponent(relativePath)}&sha=${encodeURIComponent(options.branch)}&per_page=100`;
     let response: GitHubResponse;
     try {
-      response = await options.fetcher(url, { method: 'GET', headers });
+      response = await fetcher(url, { method: 'GET', headers });
     } catch {
       throw new Error('GitHub request failed');
     }
@@ -156,7 +158,7 @@ export function createGitHubRepository(options: GitHubRepositoryOptions): WikiRe
       const url = `${apiBase}/${wikiPath(pageId)}?ref=${encodeURIComponent(ref)}`;
       let response: GitHubResponse;
       try {
-        response = await options.fetcher(url, { method: 'GET', headers });
+        response = await fetcher(url, { method: 'GET', headers });
       } catch {
         throw new Error('GitHub request failed');
       }
@@ -194,7 +196,7 @@ export function createGitHubRepository(options: GitHubRepositoryOptions): WikiRe
     },
 
     async commitPage(input: { pageId: string; baseSha: string; content: string; message: string }) {
-      return putContent(options.fetcher, `${apiBase}/${wikiPath(input.pageId)}`, headers, {
+      return putContent(fetcher, `${apiBase}/${wikiPath(input.pageId)}`, headers, {
         message: input.message,
         content: encodeBase64Utf8(input.content),
         branch: options.branch,
@@ -203,7 +205,7 @@ export function createGitHubRepository(options: GitHubRepositoryOptions): WikiRe
     },
 
     async saveCandidate(input: { pageId: string; content: string; requestId: string; message: string }) {
-      return putContent(options.fetcher, `${apiBase}/${candidatePath(input.pageId, input.requestId)}`, headers, {
+      return putContent(fetcher, `${apiBase}/${candidatePath(input.pageId, input.requestId)}`, headers, {
         message: input.message,
         content: encodeBase64Utf8(input.content),
         branch: options.branch,
