@@ -1,19 +1,20 @@
 ---
 import type { WikiGraph } from '../lib/wikiGraph.ts';
+import { t, type Locale } from '../lib/i18n.ts';
 
-const { graph, variant = 'graph' } = Astro.props as { graph: WikiGraph; variant?: 'graph' | 'loom' };
-const graphJson = JSON.stringify(graph).replaceAll('<', '\\u003c');
+const { graph, variant = 'graph', locale = 'zh-Hant' } = Astro.props as { graph: WikiGraph; variant?: 'graph' | 'loom'; locale?: Locale };
+const graphJson = JSON.stringify({ graph, locale, labels: { backlinks: t(locale, 'backlinks'), neighbors: t(locale, 'neighbors') } }).replaceAll('<', '\\u003c');
 ---
 
 <div class:list={['graph-wrap', 'card', `graph-wrap--${variant}`]}>
   <div class="graph-tools">
     <div>
-      <p>{variant === 'loom' ? 'Knowledge Loom' : 'WikiLink Graph'}</p>
-      <span>{graph.nodes.length} pages · {graph.edges.length} links · 節點越大，連線越多</span>
+      <p>{variant === 'loom' ? t(locale, 'graphLoom') : t(locale, 'graphMap')}</p>
+      <span>{graph.nodes.length} {t(locale, 'graphPages')} · {graph.edges.length} {t(locale, 'graphLinks')} · {t(locale, 'graphScaleHint')}</span>
     </div>
-    <button id="reset-graph" type="button">回到全圖</button>
+    <button id="reset-graph" type="button">{t(locale, 'graphReset')}</button>
   </div>
-  <svg id="wiki-graph" role="group" aria-label={variant === 'loom' ? 'Knowledge Loom — Wiki page relationship graph' : 'Wiki page relationship graph'}></svg>
+  <svg id="wiki-graph" role="group" aria-label={variant === 'loom' ? t(locale, 'graphAriaLoom') : t(locale, 'graphAriaMap')}></svg>
   <script type="application/json" id="wiki-graph-data" set:html={graphJson} />
 </div>
 
@@ -23,7 +24,9 @@ const graphJson = JSON.stringify(graph).replaceAll('<', '\\u003c');
   const element = document.querySelector<SVGSVGElement>('#wiki-graph');
   const dataElement = document.querySelector<HTMLScriptElement>('#wiki-graph-data');
   if (element && dataElement) {
-    const graph = JSON.parse(dataElement.textContent || '{"nodes":[],"edges":[]}');
+    const payload = JSON.parse(dataElement.textContent || '{"graph":{"nodes":[],"edges":[]},"locale":"zh-Hant","labels":{}}');
+    const graph = payload.graph;
+    const labels = payload.labels;
     const width = element.clientWidth || 760;
     const height = element.clientHeight || 560;
     const nodes = graph.nodes.map((node: any) => ({ ...node }));
@@ -33,6 +36,17 @@ const graphJson = JSON.stringify(graph).replaceAll('<', '\\u003c');
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const maxConnections = d3.max(nodes, (node: any) => node.connections) || 1;
     const radius = d3.scaleSqrt().domain([0, maxConnections]).range([7, 18]);
+    const isLoom = element.closest('.graph-wrap--loom') !== null;
+    const labelThreshold = d3.quantile(nodes.map((node: any) => node.connections).sort(d3.ascending), 0.88) || 0;
+    const idOf = (value: string | { id: string }) => typeof value === 'string' ? value : value.id;
+    const adjacency = new Map<string, Set<string>>();
+    for (const edge of links) {
+      if (!adjacency.has(edge.source)) adjacency.set(edge.source, new Set());
+      if (!adjacency.has(edge.target)) adjacency.set(edge.target, new Set());
+      adjacency.get(edge.source)?.add(edge.target);
+      adjacency.get(edge.target)?.add(edge.source);
+    }
+    const labelOpacity = (node: any) => !isLoom || node.connections >= labelThreshold ? 1 : 0;
 
     svg.append('defs').append('marker')
       .attr('id', 'graph-arrow')
@@ -50,11 +64,12 @@ const graphJson = JSON.stringify(graph).replaceAll('<', '\\u003c');
       .attr('marker-end', 'url(#graph-arrow)');
     const node = root.append('g').attr('class', 'graph-nodes')
       .selectAll('a').data(nodes).join('a')
-      .attr('href', (d: any) => `/wiki/${d.id}`)
-      .attr('aria-label', (d: any) => `${d.title}，${d.backlinks} 個反向連結`);
+      .attr('href', (d: any) => `/wiki/${d.id}${payload.locale === 'en' ? '?lang=en' : ''}`)
+      .attr('aria-label', (d: any) => `${d.title}, ${d.backlinks} ${labels.backlinks}`);
     node.append('circle').attr('r', (d: any) => radius(d.connections)).attr('fill', 'var(--lime)');
-    node.append('text').text((d: any) => d.title).attr('x', (d: any) => radius(d.connections) + 5).attr('y', 4);
-    node.append('title').text((d: any) => `${d.title}\n${d.backlinks} 個反向連結 · ${d.connections} 個相鄰頁面`);
+    node.append('text').text((d: any) => d.title.length > 22 ? `${d.title.slice(0, 21)}…` : d.title).attr('x', (d: any) => radius(d.connections) + 5).attr('y', 4)
+      .attr('opacity', labelOpacity);
+    node.append('title').text((d: any) => `${d.title}\n${d.backlinks} ${labels.backlinks} · ${d.connections} ${labels.neighbors}`);
 
     const render = () => {
       link.attr('x1', (d: any) => d.source.x).attr('y1', (d: any) => d.source.y).attr('x2', (d: any) => d.target.x).attr('y2', (d: any) => d.target.y);
@@ -70,6 +85,17 @@ const graphJson = JSON.stringify(graph).replaceAll('<', '\\u003c');
       .force('collision', d3.forceCollide().radius((d: any) => radius(d.connections) + 20))
       .force('center', d3.forceCenter(width / 2, height / 2))
       .on('tick', render);
+
+    node.on('pointerover', function(_, hovered: any) {
+      const connected = adjacency.get(hovered.id) ?? new Set();
+      node.attr('opacity', (candidate: any) => candidate.id === hovered.id || connected.has(candidate.id) ? 1 : 0.16);
+      link.attr('opacity', (edge: any) => idOf(edge.source) === hovered.id || idOf(edge.target) === hovered.id ? 1 : 0.08);
+      d3.select(this).select('text').attr('opacity', 1);
+    }).on('pointerout', () => {
+      node.attr('opacity', 1);
+      link.attr('opacity', null);
+      node.select('text').attr('opacity', labelOpacity);
+    });
     if (reducedMotion) {
       simulation.stop();
       for (let tick = 0; tick < 180; tick += 1) simulation.tick();
@@ -111,18 +137,21 @@ const graphJson = JSON.stringify(graph).replaceAll('<', '\\u003c');
 
 <style>
   .graph-wrap { position:relative; padding:0; overflow:hidden; }
+  .graph-wrap--loom { border:1px solid var(--line); background:var(--panel); box-shadow:none; }
   .graph-tools { position:absolute; z-index:1; inset:14px 14px auto; display:flex; justify-content:space-between; align-items:start; gap:12px; pointer-events:none; }
   .graph-tools > div { max-width:260px; padding:8px 10px; border:2px solid var(--line); background:var(--panel); box-shadow:3px 3px 0 var(--line); color:var(--muted); font-size:.75rem; line-height:1.35; }
   .graph-tools p { margin:0 0 2px; color:var(--text); font-size:.82rem; font-weight:850; letter-spacing:.04em; }
   .graph-tools button { min-height:36px; padding:7px 10px; border:2px solid var(--line); border-radius:0; background:var(--lime); box-shadow:3px 3px 0 var(--line); color:var(--text); font:inherit; font-size:.78rem; font-weight:800; cursor:pointer; pointer-events:auto; }
   .graph-tools button:hover { background:var(--cobalt); color:var(--panel); }
   svg { display:block; width:100%; height:clamp(540px,calc(100svh - 240px),760px); cursor:grab; background:radial-gradient(circle at 50% 50%, rgb(200 255 45 / .22), transparent 38%); }
-  .graph-wrap--loom svg { height:clamp(340px,36vw,480px); min-height:0; }
+  .graph-wrap--loom svg { height:clamp(560px,63vw,760px); min-height:0; }
   svg:active { cursor:grabbing; }
   :global(.graph-links line) { stroke:var(--cobalt); stroke-opacity:.42; stroke-width:1.5px; }
   :global(.graph-nodes a) { color:inherit; }
   :global(.graph-nodes circle) { stroke:var(--line); stroke-width:2px; transition:fill .15s ease, stroke-width .15s ease; }
   :global(.graph-nodes text) { fill:var(--text); font-size:12px; font-weight:700; paint-order:stroke; stroke:var(--panel); stroke-width:3px; stroke-linejoin:round; }
+  :global(.graph-wrap--loom .graph-nodes a:hover text), :global(.graph-wrap--loom .graph-nodes a:focus text) { opacity:1; }
+  :global(.graph-wrap--loom .graph-links line) { stroke-opacity:.24; }
   :global(.graph-nodes a:hover circle), :global(.graph-nodes a:focus circle) { fill:var(--cobalt); stroke-width:4px; }
   @media (max-width: 640px) {
     .graph-tools { inset:10px 10px auto; }

@@ -1,24 +1,27 @@
 ---
 import Layout from '../../components/Layout.astro';
+import { getLocale, t, withLocale } from '../../lib/i18n.ts';
 import { getSiteWiki } from '../../lib/siteWiki.ts';
 
+const locale = getLocale(Astro.url);
 const page = await (await getSiteWiki()).readPage(Astro.params.slug ?? '');
-if (!page) return new Response('Not found', { status: 404 });
+if (!page) return new Response(t(locale, 'notFound'), { status: 404 });
 const editable = Boolean(page.baseSha);
+const loginUrl = withLocale('/auth/login', locale);
 ---
 
-<Layout title={`編輯 ${page.title}`}>
-  <p class="meta"><a href={`/wiki/${page.pageId}`}>← 回到頁面</a></p>
-  <h1>編輯 {page.title}</h1>
-  {!editable && <p class="card">這一頁尚未同步 Git revision，現在只能閱讀。</p>}
-  <form id="edit-form" data-page-id={page.pageId} data-base-sha={page.baseSha ?? ''}>
+<Layout title={`${t(locale, 'edit')} ${page.title}`}>
+  <p class="meta"><a href={withLocale(`/wiki/${page.pageId}`, locale)}>← {t(locale, 'editBack')}</a></p>
+  <h1>{t(locale, 'edit')} {page.title}</h1>
+  {!editable && <p class="card">{t(locale, 'editReadOnly')}</p>}
+  <form id="edit-form" data-page-id={page.pageId} data-base-sha={page.baseSha ?? ''} data-login-url={loginUrl} data-completed={t(locale, 'completed')} data-unable={t(locale, 'unableToSubmit')}>
     <label for="content">Markdown</label>
     <textarea id="content" name="content" rows="24" required disabled={!editable}>{page.sourceMarkdown ?? page.markdown}</textarea>
-    <label for="reason">修改說明</label>
+    <label for="reason">{t(locale, 'changeSummary')}</label>
     <input id="reason" name="reason" required maxlength="160" disabled={!editable} />
-    <label class="confirmation"><input name="authorizationConfirmed" type="checkbox" required disabled={!editable} /> 我確認有權將這份內容公開到 HatWiki。</label>
-    <button type="submit" disabled={!editable}>送出修改</button>
-    <a class="login" href="/auth/login">先用 GitHub 登入</a>
+    <label class="confirmation"><input name="authorizationConfirmed" type="checkbox" required disabled={!editable} /> {t(locale, 'publishAuthorization')}</label>
+    <button type="submit" disabled={!editable}>{t(locale, 'submitEdit')}</button>
+    <a class="login" href={loginUrl}>{t(locale, 'signInFirst')}</a>
     <p id="result" role="status" aria-live="polite"></p>
   </form>
 </Layout>
@@ -42,8 +45,8 @@ const editable = Boolean(page.baseSha);
       }),
     });
     const receipt = await response.json() as { status?: string; error?: string };
-    if (result) result.textContent = response.ok ? `已完成：${receipt.status}` : `無法送出：${receipt.error ?? response.status}`;
-    if (response.status === 401) location.href = '/auth/login';
+    if (result) result.textContent = response.ok ? `${form.dataset.completed}: ${receipt.status}` : `${form.dataset.unable}: ${receipt.error ?? response.status}`;
+    if (response.status === 401) location.href = form.dataset.loginUrl || '/auth/login';
   });
 </script>
 

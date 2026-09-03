@@ -1,8 +1,9 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
+import { wikiLoaderOptions } from './lib/wikiLoader.ts';
 
 const wiki = defineCollection({
-  loader: glob({ pattern: '**/*.md', base: './wiki' }),
+  loader: glob(wikiLoaderOptions(process.env.HATWIKI_WIKI_DIR)),
   schema: z.object({
     type: z.string(),
     title: z.string(),

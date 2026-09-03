@@ -1,29 +1,36 @@
 ---
 import WebMcpRegistration from './WebMcpRegistration.astro';
+import { getLocale, LOCALES, switchLocaleUrl, t, withLocale } from '../lib/i18n.ts';
 const { title = 'HatWiki' } = Astro.props;
 const pathname = Astro.url.pathname;
 const pageClass = pathname === '/' ? 'home-page' : pathname === '/graph' ? 'graph-page' : 'reading-page';
 const hasAside = Astro.slots.has('right');
+const locale = getLocale(Astro.url);
 ---
 
 <!doctype html>
-<html lang="zh-Hant-TW">
+<html lang={locale}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
-    <meta name="description" content="Humans and Agents Together" />
+    <meta name="description" content={t(locale, 'metaDescription')} />
     <title>{title} · HatWiki</title>
   </head>
   <body class={pageClass}>
     <WebMcpRegistration />
     <header class="site-header">
-      <a class="brand" href="/" aria-label="HatWiki homepage"><span class="brand-mark">HAT</span><span>HatWiki</span></a>
+      <a class="brand" href={withLocale('/', locale)} aria-label="HatWiki homepage"><img class="brand-mark" src="/brand/twin-weave.svg" alt="" /><span>HatWiki</span></a>
       <p class="tagline">Humans and Agents Together</p>
-      <nav class="primary-nav" aria-label="Primary navigation">
-        <a href="/wiki/concepts/hatwiki" aria-current={pathname.startsWith('/wiki') ? 'page' : undefined}>Wiki</a>
-        <a href="/graph" aria-current={pathname === '/graph' ? 'page' : undefined}>Graph</a>
+      <nav class="primary-nav" aria-label={t(locale, 'primaryNavigation')}>
+        <a href={withLocale('/wiki/concepts/hatwiki', locale)} aria-current={pathname.startsWith('/wiki') ? 'page' : undefined}>{t(locale, 'wiki')}</a>
+        <a href={withLocale('/graph', locale)} aria-current={pathname === '/graph' ? 'page' : undefined}>{t(locale, 'graph')}</a>
       </nav>
-      <a class="account" href="/auth/login"><span class="account-long">GitHub&nbsp;</span>登入 <span aria-hidden="true">↗</span></a>
+      <div class="header-actions">
+        <nav class="language-switch" aria-label={t(locale, 'language')}>
+          {LOCALES.map((item) => <a href={switchLocaleUrl(Astro.url, item)} aria-current={item === locale ? 'page' : undefined}>{item === 'zh-Hant' ? '繁' : 'EN'}</a>)}
+        </nav>
+        <a class="account" href={withLocale('/auth/login', locale)}><span class="account-long">GitHub&nbsp;</span>{t(locale, 'login')} <span aria-hidden="true">↗</span></a>
+      </div>
     </header>
     <div class:list={['shell', { 'shell--with-aside': hasAside }]}>
       <main><slot /></main>
@@ -35,20 +42,27 @@ const hasAside = Astro.slots.has('right');
 <style is:global>
   :root { color-scheme:light; --bg:#f8f2e4; --panel:#fffdf7; --text:#171715; --muted:#635f56; --line:#171715; --accent:#2156df; --lime:#c8ff2d; --cobalt:#2156df; --soft:#e8e0d1; }
   * { box-sizing:border-box; }
+  html, body { overflow-x:clip; }
   html { background:var(--bg); }
   body { min-width:0; min-height:100vh; margin:0; background-color:var(--bg); background-image:linear-gradient(rgb(23 23 21 / .08) 1px, transparent 1px),linear-gradient(90deg, rgb(23 23 21 / .08) 1px, transparent 1px); background-size:24px 24px; color:var(--text); font-family:"Avenir Next","PingFang TC","Noto Sans TC",sans-serif; }
   .site-header { position:sticky; top:0; z-index:10; display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; align-items:center; gap:16px; min-height:72px; padding:12px clamp(16px,3vw,40px); border-bottom:2px solid var(--line); background:var(--panel); }
   .brand { display:inline-flex; align-items:center; gap:10px; color:var(--text); font-size:1.24rem; font-weight:900; letter-spacing:-.05em; text-decoration:none; }
-  .brand-mark { padding:4px 6px; border:2px solid var(--line); background:var(--lime); box-shadow:3px 3px 0 var(--line); font-size:.68rem; letter-spacing:.04em; }
+  .brand-mark { width:36px; height:36px; object-fit:contain; }
   .tagline, .label { margin:0; color:var(--muted); font-size:.78rem; letter-spacing:.04em; }
   .primary-nav { display:flex; justify-self:center; gap:7px; }
   .primary-nav a { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:8px 14px; border:2px solid transparent; color:var(--text); font-size:.88rem; font-weight:750; text-decoration:none; }
   .primary-nav a:hover, .primary-nav a[aria-current="page"] { border-color:var(--line); background:var(--lime); box-shadow:3px 3px 0 var(--line); }
   .account { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:8px 13px; border:2px solid var(--line); background:var(--cobalt); box-shadow:3px 3px 0 var(--line); color:var(--panel); font-size:.88rem; font-weight:800; text-decoration:none; white-space:nowrap; }
+  .header-actions, .language-switch { display:flex; align-items:center; gap:8px; }
+  .language-switch a { padding:5px 3px; color:var(--muted); font-size:.7rem; font-weight:800; text-decoration:none; }
+  .language-switch a[aria-current="page"] { color:var(--text); text-decoration:underline; text-underline-offset:4px; }
   a:focus-visible, button:focus-visible { outline:3px solid var(--cobalt); outline-offset:3px; }
   .shell { width:min(calc(100% - 48px), 840px); margin:auto; padding:48px 0 76px; }
   .shell--with-aside { display:grid; width:min(calc(100% - 48px), 1120px); grid-template-columns:minmax(0,1fr) 230px; gap:48px; }
   .home-page .shell, .graph-page .shell { width:min(calc(100% - 48px), 1320px); }
+  body.home-page { --bg:#09111a; --panel:#101c27; --text:#f5f2e8; --muted:#a8b2b8; --line:#40505c; --accent:#8ae6ff; --cobalt:#8ae6ff; --lime:#d6ff4a; --soft:#182733; background-image:linear-gradient(rgb(138 230 255 / .055) 1px,transparent 1px),linear-gradient(90deg,rgb(138 230 255 / .055) 1px,transparent 1px); background-size:40px 40px; }
+  .home-page .site-header { border-color:var(--line); background:rgb(9 17 26 / .92); backdrop-filter:blur(14px); }
+  .home-page .account { border-color:var(--lime); background:transparent; color:var(--lime); box-shadow:none; }
   .graph-page .shell { padding-top:38px; }
   main { min-width:0; }
   main h1 { margin:0 0 18px; font-size:clamp(2.1rem,5vw,3.5rem); letter-spacing:-.06em; line-height:1; }
@@ -61,11 +75,12 @@ const hasAside = Astro.slots.has('right');
   .tags { display:flex; flex-wrap:wrap; gap:6px; margin:16px 0; }
   .tags span { border:1px solid var(--line); background:var(--lime); border-radius:0; padding:4px 9px; font-size:.78rem; }
   @media (max-width:760px) {
-    .site-header { grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; padding:11px 16px 14px; }
-    .brand { grid-column:1 / -1; }
+    .site-header { grid-template-columns:minmax(0,1fr) auto; gap:10px; padding:11px 16px 14px; }
+    .brand { grid-column:1; grid-row:1; }
     .tagline { display:none; }
-    .primary-nav { grid-column:1 / 3; grid-row:2; display:grid; width:100%; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
-    .account { grid-column:3; grid-row:2; min-width:0; padding-inline:6px; }
+    .primary-nav { grid-column:1 / -1; grid-row:2; display:grid; width:100%; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+    .header-actions { grid-column:2; grid-row:1; }
+    .account { min-width:72px; padding-inline:8px; }
     .account-long { display:none; }
     .primary-nav a, .account { min-height:46px; }
     .shell, .shell--with-aside, .home-page .shell, .graph-page .shell { display:block; width:min(calc(100% - 32px), 1320px); padding:30px 0 56px; }

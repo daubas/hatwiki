@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-labelledby="title">
+  <title id="title">HatWiki</title>
+  <path d="M5 15 7 5h6l-2 10H5Z" fill="#d6ff4a" stroke="#09111a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="m11 15 2-10h4l2 10h-8Z" fill="#8ae6ff" stroke="#09111a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="M3 15h18l-2 3.5H5L3 15Z" fill="#d6ff4a" stroke="#09111a" stroke-width="1.5" stroke-linejoin="round"/>
+  <path d="m11 15 4 3.5h4l2-3.5H11Z" fill="#8ae6ff" stroke="#09111a" stroke-width="1.5" stroke-linejoin="round"/>
+</svg>

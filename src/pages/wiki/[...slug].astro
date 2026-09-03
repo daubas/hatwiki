@@ -1,20 +1,22 @@
 ---
 import Layout from '../../components/Layout.astro';
+import { getLocale, t, withLocale } from '../../lib/i18n.ts';
 import { renderWiki } from '../../lib/renderWiki.ts';
 import { getSiteWiki } from '../../lib/siteWiki.ts';
 
 const wiki = await getSiteWiki();
+const locale = getLocale(Astro.url);
 const page = await wiki.readPage(Astro.params.slug ?? '');
-if (!page) return new Response('Not found', { status: 404 });
+if (!page) return new Response(t(locale, 'notFound'), { status: 404 });
 const html = await renderWiki(page.markdown);
 ---
 
 <Layout title={page.title}>
-  <p class="meta">Revision {page.revision} · <a href={`/edit/${page.pageId}`}>編輯這一頁</a></p>
+  <p class="meta">{t(locale, 'graphRevision')} {page.revision} · <a href={withLocale(`/edit/${page.pageId}`, locale)}>{t(locale, 'edit')}</a></p>
   <article set:html={html} />
-  {page.citations && page.citations.length > 0 && <section class="card"><h2>Sources</h2><ul>{page.citations.map((source) => <li><a href={source.resource}>{source.title ?? source.resource}</a></li>)}</ul></section>}
+  {page.citations && page.citations.length > 0 && <section class="card"><h2>{t(locale, 'sources')}</h2><ul>{page.citations.map((source) => <li><a href={source.resource}>{source.title ?? source.resource}</a></li>)}</ul></section>}
   <div slot="right">
-    {page.backlinks.length > 0 && <><p class="label">Backlinks</p><ul>{page.backlinks.map((id) => <li><a href={`/wiki/${id}`}>{id}</a></li>)}</ul></>}
-    {page.links.some((link) => link.status !== 'resolved') && <><p class="label">Link diagnostics</p><ul>{page.links.filter((link) => link.status !== 'resolved').map((link) => <li>{link.target}: {link.status}</li>)}</ul></>}
+    {page.backlinks.length > 0 && <><p class="label">{t(locale, 'backlinks')}</p><ul>{page.backlinks.map((id) => <li><a href={withLocale(`/wiki/${id}`, locale)}>{id}</a></li>)}</ul></>}
+    {page.links.some((link) => link.status !== 'resolved') && <><p class="label">{t(locale, 'linkDiagnostics')}</p><ul>{page.links.filter((link) => link.status !== 'resolved').map((link) => <li>{link.target}: {t(locale, link.status === 'ambiguous' ? 'linkAmbiguous' : 'linkUnresolved')}</li>)}</ul></>}
   </div>
 </Layout>
