@@ -61,99 +61,26 @@ publisher. It can help maintain shared knowledge, while people retain the
 final publication decision and the repository preserves attribution and
 history.
 
-## Video plan — target length 2:40
+## Video plan — source of truth
 
-Record one continuous task in English. Keep the browser zoom high enough that
-tool names, page IDs, citations, and revision values are readable. Prepare a
-signed-in session before recording, but begin the video with the public read
-flow. Use a harmless, pre-approved one-line clarification for the edit step.
+The final video is governed by the recorded-course artifacts in
+[`docs/submission/video-flow/`](video-flow/). The machine-authoritative paper
+edit is [`paper-edit.json`](video-flow/paper-edit.json); its generated human
+review is [`generated/paper-edit.md`](video-flow/generated/paper-edit.md).
 
-### 0:00–0:15 — Hook
+The 2:40 video is a compressed eight-chapter course flow with one outcome:
 
-**Screen:** HatWiki home page. Hold long enough to show the product name and
-the knowledge graph.
+> A human correction becomes shared, cited, Git-backed memory that a new
+> browser-agent session can read through WebMCP.
 
-**Voiceover:**
+The required story is: human-facing Wiki → `search_wiki` → `read_page` → agent
+proposal → explicit human approval → `edit_page` → Git revision → fresh agent
+session reads the corrected page.
 
-> Agent conversations are useful, but their context is temporary. HatWiki is a
-> shared memory layer where people and browser agents can maintain knowledge
-> together.
-
-**Proof to show:** The live HatWiki URL and the human-facing Wiki experience.
-
-### 0:15–0:35 — The human surface
-
-**Screen:** Open the Wiki index, search for `agent`, and open the Agent2UCB
-page. Show the source link, citations, and table of contents without scrolling
-through the whole article.
-
-**Voiceover:**
-
-> A person can browse the same knowledge as a normal Wiki. Pages keep their
-> source links, citations, and relationships instead of becoming anonymous
-> chat text.
-
-### 0:35–1:10 — Agent discovery through WebMCP
-
-**Screen:** In ChatGPT with WebMCP enabled, ask:
-
-> Find the HatWiki page about Agent2UCB. Use HatWiki's tools, then return the
-> canonical page ID and its source.
-
-Show `search_wiki` being selected and the concise result with `pageId`, title,
-and snippet. Then ask:
-
-> Read that page and summarize its evidence boundary in three bullets.
-
-Show `read_page` and briefly highlight the returned citations, links, and
-revision. Do not leave the full raw result on screen for more than a few
-seconds.
-
-**Voiceover:**
-
-> WebMCP makes the browser page's capabilities discoverable to the agent. The
-> agent searches first, then reads the canonical page instead of guessing from
-> temporary conversation context.
-
-### 1:10–1:45 — Prepare, but do not publish
-
-**Screen:** Ask:
-
-> Propose one sentence that clarifies the evidence boundary. Do not publish
-> anything until I explicitly approve the exact text.
-
-Show the proposed sentence and the agent stopping before the write tool.
-
-**Voiceover:**
-
-> HatWiki separates assistance from publication. The agent can prepare a
-> useful correction, but it cannot silently write to the shared knowledge base.
-
-### 1:45–2:20 — Explicit authorization and durable revision
-
-**Screen:** Say:
-
-> I approve this exact sentence. Publish it to HatWiki using edit_page.
-
-Show `edit_page`, the authorization field, the success receipt or revision, and
-then refresh the page. Briefly show the resulting GitHub revision or the updated
-revision on the page.
-
-**Voiceover:**
-
-> After explicit human approval, the authenticated write path validates the
-> change and records a durable Git-backed revision. This is a shared memory
-> update with attribution and history, not an invisible chat mutation.
-
-### 2:20–2:40 — Close
-
-**Screen:** End on the updated page, then return to the graph or home page.
-
-**Voiceover:**
-
-> HatWiki demonstrates a practical WebMCP pattern: agents help maintain shared
-> knowledge, people control publication, and every public result remains
-> inspectable.
+The paper edit remains `proposed` until the visible authenticated write flow and
+fresh-session readback are captured as real evidence. Do not record a final
+master, call planned footage evidence, or publish a cut-list as Resolve-ready
+before those gates pass.
 
 ## Recording checklist
 

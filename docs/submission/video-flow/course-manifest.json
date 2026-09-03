@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "project": "hatwiki-webmcp-challenge",
+  "pipeline": "recorded-course",
+  "build_state": "state/build-state.json",
+  "paper_edit": {
+    "source": "paper-edit.json",
+    "markdown": "generated/paper-edit.md",
+    "resolve_cutlist": "generated/cutlist.json"
+  },
+  "stages": [
+    {
+      "id": "paper-edit",
+      "depends_on": [],
+      "inputs": ["paper-edit.json"],
+      "outputs": ["generated/paper-edit.md", "generated/cutlist.json"],
+      "heavy": false,
+      "gate": {
+        "status": "pending",
+        "owner": "HatWiki team",
+        "decided_at": "",
+        "evidence": "Awaiting human approval of the proposed editorial beats."
+      }
+    }
+  ]
+}

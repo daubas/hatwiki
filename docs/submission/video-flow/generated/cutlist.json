@@ -1,0 +1,52 @@
+{
+  "assets": [],
+  "items": [
+    {
+      "duration": "00:00:10",
+      "name": "beat-00: English opening pickup (planned)",
+      "type": "gap"
+    },
+    {
+      "duration": "00:00:15",
+      "name": "beat-01: English product promise pickup (planned)",
+      "type": "gap"
+    },
+    {
+      "duration": "00:00:15",
+      "name": "beat-02: English task setup pickup (planned)",
+      "type": "gap"
+    },
+    {
+      "duration": "00:00:25",
+      "name": "beat-03: English WebMCP explanation pickup (planned)",
+      "type": "gap"
+    },
+    {
+      "duration": "00:00:25",
+      "name": "beat-04: English authorization boundary pickup (planned)",
+      "type": "gap"
+    },
+    {
+      "duration": "00:00:25",
+      "name": "beat-05: English write-path pickup (planned)",
+      "type": "gap"
+    },
+    {
+      "duration": "00:00:25",
+      "name": "beat-06: English fresh-session validation pickup (planned)",
+      "type": "gap"
+    },
+    {
+      "duration": "00:00:20",
+      "name": "beat-07: English closing pickup (planned)",
+      "type": "gap"
+    }
+  ],
+  "timeline": {
+    "fps": 30,
+    "height": 1080,
+    "name": "hatwiki-webmcp-demo",
+    "width": 1920
+  },
+  "version": "0.1-proposal"
+}
