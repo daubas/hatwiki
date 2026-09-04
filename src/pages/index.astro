@@ -39,10 +39,31 @@ const locale = getLocale(Astro.url);
       <p class="loom-hint">{t(locale, 'homeMapHint')}</p>
     </section>
 
+    <section class="collaborate" aria-labelledby="collaborate-title">
+      <div class="collaborate-copy">
+        <p class="overline">{t(locale, 'homeCollaborateOverline')}</p>
+        <h2 id="collaborate-title">{t(locale, 'homeCollaborateTitle')}</h2>
+        <p>{t(locale, 'homeCollaborateBody')}</p>
+        <a class="primary-action" href={withLocale('/sources/new', locale)}>{t(locale, 'homeCollaborateAction')} <span aria-hidden="true">↗</span></a>
+      </div>
+      <div class="collaborate-flow">
+        <p class="flow-status"><span aria-hidden="true"></span>{t(locale, 'homeCollaborateStatus')}</p>
+        <ol>
+          <li><span>01</span>{t(locale, 'homeCollaborateStep1')}</li>
+          <li><span>02</span>{t(locale, 'homeCollaborateStep2')}</li>
+          <li><span>03</span>{t(locale, 'homeCollaborateStep3')}</li>
+        </ol>
+      </div>
+    </section>
+
     <section class="public-pages" aria-labelledby="public-pages-title">
-      <div><p class="overline">{t(locale, 'homeBrowseOverline')}</p><h2 id="public-pages-title">{t(locale, 'homeBrowseTitle')}</h2></div>
+      <div class="public-pages-heading">
+        <p class="overline">{t(locale, 'homeBrowseOverline')}</p>
+        <h2 id="public-pages-title">{t(locale, 'homeBrowseTitle')}</h2>
+        <a href={withLocale('/wiki', locale)}>{t(locale, 'homeBrowseAll')} →</a>
+      </div>
       <ul>
-        {pages.map((page) => <li><a href={withLocale(`/wiki/${page.id}`, locale)}><strong>{page.data.title}</strong><span>{page.data.description}</span></a></li>)}
+        {pages.slice(0, 6).map((page) => <li><a href={withLocale(`/wiki/${page.id}`, locale)}><strong>{page.data.title}</strong><span>{page.data.description}</span></a></li>)}
       </ul>
     </section>
   </section>
@@ -71,7 +92,21 @@ const locale = getLocale(Astro.url);
   .loom-meta p { display:grid; margin:0; color:var(--text); font-size:1.55rem; font-weight:800; line-height:1; }
   .loom-meta span { margin-top:5px; color:var(--muted); font-size:.68rem; font-weight:600; letter-spacing:.04em; }
   .loom-hint { justify-self:end; margin:0; color:var(--muted); font-size:.78rem; }
+  .collaborate { grid-column:1 / -1; display:grid; grid-template-columns:minmax(0,.75fr) minmax(320px,1fr); gap:clamp(28px,5vw,72px); margin-top:34px; padding:clamp(24px,4vw,42px); border:1px solid var(--line); background:linear-gradient(135deg,rgb(138 230 255 / .08),rgb(214 255 74 / .06)); }
+  .collaborate-copy { display:grid; justify-items:start; align-content:start; }
+  .collaborate h2 { margin:8px 0 14px; font-size:clamp(1.8rem,3.8vw,3.2rem); letter-spacing:-.055em; line-height:1.05; }
+  .collaborate-copy > p:not(.overline) { max-width:600px; margin:0; color:var(--muted); }
+  .collaborate .primary-action { display:inline-flex; align-items:center; justify-content:space-between; gap:28px; min-height:48px; margin-top:24px; padding:10px 14px; background:var(--lime); color:#09111a; font-size:.9rem; font-weight:850; text-decoration:none; }
+  .collaborate-flow { align-self:stretch; padding:20px; border:1px solid var(--line); background:var(--panel); }
+  .flow-status { display:flex; align-items:center; gap:8px; margin:0 0 16px; color:var(--muted); font-size:.74rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+  .flow-status span { width:8px; height:8px; border-radius:50%; background:var(--lime); box-shadow:0 0 14px var(--lime); }
+  .collaborate-flow ol { display:grid; gap:0; margin:0; padding:0; list-style:none; counter-reset:none; }
+  .collaborate-flow li { display:flex; align-items:center; gap:18px; min-height:64px; border-top:1px solid var(--line); color:var(--text); font-weight:800; }
+  .collaborate-flow li span { color:var(--cobalt); font-size:.75rem; letter-spacing:.08em; }
   .public-pages { grid-column:1 / -1; display:grid; grid-template-columns:minmax(210px,.42fr) 1fr; gap:clamp(28px,5vw,72px); margin-top:34px; border-top:1px solid var(--line); padding-top:34px; }
+  .public-pages-heading { display:grid; justify-items:start; align-content:start; }
+  .public-pages-heading > a { margin-top:20px; color:var(--text); font-size:.85rem; font-weight:800; text-decoration:none; }
+  .public-pages-heading > a:hover { color:var(--cobalt); }
   .public-pages ul { display:grid; gap:10px; margin:0; padding:0; list-style:none; }
   .public-pages a { display:flex; justify-content:space-between; gap:18px; padding:15px 0; border-bottom:1px solid var(--line); color:var(--text); text-decoration:none; }
   .public-pages a:hover strong { color:var(--cobalt); }
@@ -80,10 +115,10 @@ const locale = getLocale(Astro.url);
   @media (max-width:760px) {
     .home { grid-template-columns:minmax(0,1fr); gap:54px; }
     .home-copy { position:static; }
-    .home-copy, .loom, .loom-heading, .loom-heading > div, .public-pages { min-width:0; }
+    .home-copy, .loom, .loom-heading, .loom-heading > div, .collaborate, .public-pages { min-width:0; }
     .home-copy .overline { margin-top:38px; }
     .home-copy h1 { font-size:clamp(2.75rem,14vw,4rem); }
-    .loom-heading, .public-pages { display:grid; grid-template-columns:minmax(0,1fr); gap:9px; }
+    .loom-heading, .collaborate, .public-pages { display:grid; grid-template-columns:minmax(0,1fr); gap:24px; }
     .loom-heading h2 { max-width:100%; overflow-wrap:anywhere; }
     .loom-meta { margin-top:8px; }
     .loom-hint { justify-self:start; }

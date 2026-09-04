@@ -1,8 +1,10 @@
 ---
+import { getCollection } from 'astro:content';
 import Layout from '../../components/Layout.astro';
 import { getLocale, withLocale } from '../../lib/i18n.ts';
 
 const locale = getLocale(Astro.url);
+const pages = (await getCollection('wiki')).filter((entry) => entry.data.visibility !== 'private');
 const copy = locale === 'en' ? {
   title: 'Add source material', intro: 'Store one text source privately, then let your Agent merge supported material into an existing Wiki page.',
   sourceTitle: 'Source title', target: 'Target page ID', content: 'Source text', confirm: 'I confirm I may provide this material and publish supported material derived from it.',
@@ -23,7 +25,7 @@ const copy = locale === 'en' ? {
     </header>
     <form id="source-form" data-login-url={withLocale('/auth/login', locale)} data-stored={copy.stored} data-failed={copy.failed}>
       <label>{copy.sourceTitle}<input name="title" required maxlength="160" /></label>
-      <label>{copy.target}<input name="targetPageId" required value="concepts/agent2ucb-agentic-geo" /></label>
+      <label>{copy.target}<select name="targetPageId" required>{pages.map((page) => <option value={page.id}>{page.data.title}</option>)}</select></label>
       <label>{copy.content}<textarea name="content" required maxlength="100000" rows="14"></textarea></label>
       <label class="confirmation"><input name="authorizationConfirmed" type="checkbox" required /> <span>{copy.confirm}</span></label>
       <div class="actions"><button type="submit">{copy.submit}</button><a href={withLocale('/auth/login', locale)}>{copy.login}</a></div>
@@ -79,7 +81,7 @@ const copy = locale === 'en' ? {
   .kicker { margin:0; color:var(--accent); font-size:.74rem; font-weight:900; letter-spacing:.12em; }
   form { display:grid; gap:18px; padding:24px; border:2px solid var(--line); background:var(--panel); box-shadow:6px 6px 0 var(--line); }
   label:not(.confirmation) { display:grid; gap:8px; font-weight:800; }
-  input, textarea { width:100%; padding:12px; border:2px solid var(--line); background:var(--bg); color:var(--text); font:inherit; }
+  input, select, textarea { width:100%; padding:12px; border:2px solid var(--line); background:var(--bg); color:var(--text); font:inherit; }
   textarea { resize:vertical; line-height:1.6; }
   .confirmation { display:flex; align-items:flex-start; gap:10px; line-height:1.5; }
   .confirmation input { flex:0 0 auto; width:20px; height:20px; margin-top:2px; accent-color:var(--accent); }

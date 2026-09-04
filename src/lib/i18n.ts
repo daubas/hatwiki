@@ -42,8 +42,17 @@ export interface UiMessages {
   publicPages: string;
   wikiLinks: string;
   homeMapHint: string;
+  homeCollaborateOverline: string;
+  homeCollaborateTitle: string;
+  homeCollaborateBody: string;
+  homeCollaborateAction: string;
+  homeCollaborateStatus: string;
+  homeCollaborateStep1: string;
+  homeCollaborateStep2: string;
+  homeCollaborateStep3: string;
   homeBrowseOverline: string;
   homeBrowseTitle: string;
+  homeBrowseAll: string;
   graphRevision: string;
   graphHeading: string;
   graphDescription: string;
@@ -148,8 +157,17 @@ export const ui: Record<Locale, UiMessages> = {
     publicPages: '公開頁面',
     wikiLinks: 'WikiLinks',
     homeMapHint: '拖曳探索 · 點擊節點閱讀',
+    homeCollaborateOverline: '共同編輯',
+    homeCollaborateTitle: '從一份資料，開始一起整理。',
+    homeCollaborateBody: '先把文字資料私密保存，再由你的 Agent 整理進既有 Wiki 頁面；你可以檢查差異後再發布。',
+    homeCollaborateAction: '加入文字資料',
+    homeCollaborateStatus: '目前可用流程',
+    homeCollaborateStep1: '保存來源',
+    homeCollaborateStep2: '整理草稿',
+    homeCollaborateStep3: '檢查並發布',
     homeBrowseOverline: '瀏覽 Wiki',
     homeBrowseTitle: '從一個節點開始',
+    homeBrowseAll: '查看所有頁面',
     graphRevision: '版本',
     graphHeading: 'Wiki 圖譜',
     graphDescription: '每個節點是一頁 Wiki；連線來自頁面中的 WikiLink 或標準 Markdown 連結。',
@@ -252,8 +270,17 @@ export const ui: Record<Locale, UiMessages> = {
     publicPages: 'public pages',
     wikiLinks: 'WikiLinks',
     homeMapHint: 'Drag to explore · Select a node to read',
+    homeCollaborateOverline: 'COLLABORATIVE EDITING',
+    homeCollaborateTitle: 'Start together from one source.',
+    homeCollaborateBody: 'Store a text source privately, let your Agent organize it into an existing Wiki page, then review the diff before publishing.',
+    homeCollaborateAction: 'Add a text source',
+    homeCollaborateStatus: 'Available now',
+    homeCollaborateStep1: 'Store source',
+    homeCollaborateStep2: 'Shape the draft',
+    homeCollaborateStep3: 'Review and publish',
     homeBrowseOverline: 'BROWSE THE WIKI',
     homeBrowseTitle: 'Start from one node',
+    homeBrowseAll: 'View all pages',
     graphRevision: 'Revision',
     graphHeading: 'Wiki graph',
     graphDescription: 'Each node is a Wiki page. Links come from WikiLinks and standard Markdown links.',
