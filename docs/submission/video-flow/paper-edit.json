@@ -1,13 +1,13 @@
 {
   "schema_version": 2,
-  "version": "0.2-proposal",
+  "version": "0.5-proposal",
   "status": "proposed",
   "metadata": {
     "competition": "Open WebMCP Challenge",
-    "purpose": "Prove that a human correction becomes shared memory for a new browser agent session.",
-    "learner_outcome": "By the end, the viewer can verify the WebMCP search/read flow, human authorization, Git revision, and fresh-session readback.",
+    "purpose": "Prove that an authorized source can become cited shared memory for a new browser agent session.",
+    "learner_outcome": "By the end, the viewer can verify the GitHub-session WebMCP source, status, search, read, inspection, and edit flow; a Git commit receipt plus public R2 snapshot readback; and a fresh-session read without exposing a private source body.",
     "narration_language": "English",
-    "source_policy": "Use real deployed UI and real tool operations as evidence; use no fabricated UI.",
+    "source_policy": "Use real deployed UI and real tool operations as evidence; operational acceptance does not replace recorded evidence, and no fabricated UI may be used.",
     "publication_target": "Public YouTube demo under three minutes with clear audio."
   },
   "duration": {
@@ -30,14 +30,14 @@
       "chapter_id": "00",
       "chapter_title": "Outcome and environment",
       "teaching_purpose": "Establish the live product and the single result the viewer will verify.",
-      "spoken_content": "This is HatWiki, a live Git-native Wiki where people and browser agents maintain shared knowledge together. In this short demo, a human correction becomes readable to a new agent session through WebMCP.",
+      "spoken_content": "This is HatWiki, a live Git-native Wiki where people and browser agents maintain shared knowledge together. In this short demo, an authorized source becomes a cited correction that a new agent session can read through WebMCP.",
       "narration_spine": {
         "name": "English opening and outcome pickup",
         "availability": "planned",
         "role": "illustration",
         "production_method": "Record a human voiceover after the live URL and WebMCP host are verified.",
         "duration": "00:00:20",
-        "acceptance": "The opening names HatWiki, the live environment, and the concrete outcome without introducing unused features."
+        "acceptance": "The opening names HatWiki, the live environment, and the concrete source-to-fresh-session outcome without introducing unused features."
       },
       "source_ranges": [],
       "visual_slots": [
@@ -57,27 +57,27 @@
     {
       "id": "beat-01",
       "chapter_id": "01",
-      "chapter_title": "Task and human surface",
-      "teaching_purpose": "Show the existing page and define the human-facing task before the Agent acts.",
-      "spoken_content": "Our task is to improve an existing human-written research page, preserve its evidence boundary, and make the corrected result available to a new agent session. A person can browse the same page as a normal Wiki, with citations and related links.",
+      "chapter_title": "Authorized source and human surface",
+      "teaching_purpose": "Show the existing page, the signed-in participant's source declaration, and the human-facing task before the Agent acts.",
+      "spoken_content": "Our task is to improve an existing human-written research page without exposing a private source body. A GitHub-signed-in participant provides one small authorized plain-text source for the existing page, then reviews the same cited Wiki page a normal reader can browse.",
       "narration_spine": {
-        "name": "English task setup pickup",
+        "name": "English source and task setup pickup",
         "availability": "planned",
         "role": "illustration",
-        "production_method": "Record a concise task statement over the selected Wiki page and its source context.",
+        "production_method": "Record a concise task statement over the selected Wiki page, source declaration, and task receipt while redacting source text and account details.",
         "duration": "00:00:25",
-        "acceptance": "The existing page, source context, and fresh-session success condition are all understandable."
+        "acceptance": "The existing page, source declaration, privacy boundary, and fresh-session success condition are all understandable."
       },
       "source_ranges": [],
       "visual_slots": [
         {
           "id": "visual-01",
-          "name": "Agent2UCB page and citation context",
+          "name": "Agent2UCB page, source declaration, and citation context",
           "availability": "planned",
           "role": "illustration",
-          "production_method": "Capture the public Wiki index, Agent2UCB page, citation, and table of contents.",
+          "production_method": "Capture the public Wiki index, Agent2UCB page, source declaration, citation, and table of contents without showing the source body.",
           "duration": "00:00:25",
-          "acceptance": "The selected page is visibly existing and source-aware, not a generated placeholder."
+          "acceptance": "The selected page is visibly existing and source-aware, while private source text and account details remain absent or redacted."
         }
       ],
       "duration": "00:00:25",
@@ -86,27 +86,27 @@
     {
       "id": "beat-02",
       "chapter_id": "02",
-      "chapter_title": "Agent discovery through WebMCP",
-      "teaching_purpose": "Prove that the browser Agent discovers and reads the page through the WebMCP surface.",
-      "spoken_content": "Find the existing Agent2UCB page using HatWiki's tools. Then read it and summarize its evidence boundary in three bullets. WebMCP lets the Agent search first and read the canonical page instead of guessing from temporary conversation context.",
+      "chapter_title": "Agent discovery and source handoff",
+      "teaching_purpose": "Prove that the signed-in browser Agent uses the WebMCP source, status, search, and read tools before proposing a cited change.",
+      "spoken_content": "The Agent uses add_source to create the authorized private task, then get_ingestion_status to read its owner-scoped, untrusted text. It uses search_wiki and read_page to find the existing Agent2UCB page and its evidence boundary instead of guessing from temporary conversation context.",
       "narration_spine": {
-        "name": "English WebMCP explanation pickup",
+        "name": "English WebMCP source-handoff pickup",
         "availability": "planned",
         "role": "illustration",
-        "production_method": "Record human narration after a real WebMCP host completes search_wiki followed by read_page.",
+        "production_method": "Record human narration after a real signed-in WebMCP host completes add_source, get_ingestion_status, search_wiki, and read_page without exposing the source body.",
         "duration": "00:00:35",
-        "acceptance": "The recording visibly proves both tool calls and shows the page ID, short search result, citations, and revision."
+        "acceptance": "The recording visibly proves all four tool calls, the page ID, bounded search result, citations, and revision while source text remains redacted."
       },
       "source_ranges": [],
       "visual_slots": [
         {
           "id": "visual-02",
-          "name": "WebMCP search and read evidence",
+          "name": "WebMCP source, status, search, and read evidence",
           "availability": "planned",
           "role": "illustration",
-          "production_method": "Capture the real external Agent host and redact private session details.",
+          "production_method": "Capture the real external Agent host and redact private session details and all source text.",
           "duration": "00:00:35",
-          "acceptance": "search_wiki and read_page names, inputs, and bounded results are readable."
+          "acceptance": "add_source, get_ingestion_status, search_wiki, and read_page names and bounded public results are readable."
         }
       ],
       "duration": "00:00:35",
@@ -115,38 +115,38 @@
     {
       "id": "beat-03",
       "chapter_id": "03",
-      "chapter_title": "Human approval and durable publish",
-      "teaching_purpose": "Make the safety boundary, approved write, and durable revision visible in one continuous sequence.",
-      "spoken_content": "Propose one small clarification, but do not publish until I approve the exact text. I approve this exact sentence. Publish it to HatWiki using edit_page. After approval, the authenticated server validates the change and records a Git-backed revision.",
+      "chapter_title": "Inspect, authorize, and durable publish",
+      "teaching_purpose": "Make the pre-write inspection, publication declaration, cited write, and durable revision visible in one continuous sequence.",
+      "spoken_content": "Use inspect_changes to review the affected page, citations, WikiLinks, and unresolved markers before submitting anything. Propose one small clarification, then show the participant's explicit declaration that they may publish it. edit_page submits the cited change; the server validates it, returns a Git commit receipt, and makes the committed content available in the public R2 snapshot. Repeating the same request returns its original receipt instead of another write.",
       "narration_spine": {
-        "name": "English approval and write-path pickup",
+        "name": "English inspection, authorization, and write-path pickup",
         "availability": "planned",
         "role": "illustration",
-        "production_method": "Record the agent proposal, explicit human approval, authenticated edit_page call, and result in one controlled take.",
+        "production_method": "Record the agent proposal, inspect_changes result, explicit publication declaration, authenticated edit_page call, idempotent replay, and result in one controlled take.",
         "duration": "00:00:45",
-        "acceptance": "The agent stops before the write, the approval is explicit, and the result status, revision, and Git commit or diff are visible."
+        "acceptance": "The inspection and declaration are explicit, the edit has a visible source citation, and the Git commit receipt, public snapshot, Git commit or diff, and idempotent replay are visible."
       },
       "source_ranges": [],
       "visual_slots": [
         {
           "id": "visual-03",
-          "name": "Proposed clarification, edit_page, and Git revision",
+          "name": "inspect_changes, edit_page, Git commit, and R2 snapshot",
           "availability": "planned",
           "role": "illustration",
-          "production_method": "Capture the real authenticated write flow, then show public readback and the GitHub revision without exposing credentials.",
+          "production_method": "Capture the real authenticated inspection and write flow, then show GitHub and R2 readback without exposing credentials or private source text.",
           "duration": "00:00:45",
-          "acceptance": "The result is verifiable as committed, not merely a success message fabricated in the video."
+          "acceptance": "The Git commit or diff and public R2 snapshot show the committed content; they are not presented as the same revision identifier."
         }
       ],
       "duration": "00:00:45",
       "unresolved_work": [
         {
-          "name": "Gate A write-flow evidence",
+          "name": "Recorded Gate C write-flow evidence",
           "availability": "gap",
           "role": "evidence",
-          "production_method": "Complete and test the visible authenticated edit flow, including preview or minimal diff and committed/conflict/approval_required result.",
+          "production_method": "Capture the completed external-host inspection, declaration, cited edit, GitHub and R2 readback, and idempotent replay as a redacted raw take.",
           "duration": "00:00:05",
-          "acceptance": "A real external WebMCP host can complete the write using the same signed-in session."
+          "acceptance": "The raw take proves the real external-host operation without displaying credentials, account details, or the private source body."
         }
       ]
     },
@@ -155,14 +155,14 @@
       "chapter_id": "04",
       "chapter_title": "Fresh-session validation and close",
       "teaching_purpose": "Prove that the new state is shared memory rather than context hidden in the first Agent session.",
-      "spoken_content": "Now I open a fresh agent session. It can read the corrected page, its citation, and the new revision without inheriting the previous conversation. The shared memory is the Wiki and Git history, not the chat transcript.",
+      "spoken_content": "Now I open a fresh agent session. It can read the corrected page, its citation, and the new revision without inheriting the previous conversation or private source body. The shared memory is the public Wiki and Git history, not the chat transcript.",
       "narration_spine": {
         "name": "English fresh-session validation and closing pickup",
         "availability": "planned",
         "role": "illustration",
-        "production_method": "Record a new browser-Agent session reading the updated public page, then close on the updated page and Knowledge Loom.",
+        "production_method": "Record a new browser-Agent session reading the updated public page, then close on the updated page and Knowledge Loom without sharing the first session's context.",
         "duration": "00:00:35",
-        "acceptance": "The fresh session reads the corrected sentence and reports the current revision and source; the close states the human/Agent boundary."
+        "acceptance": "The fresh session reads the corrected sentence and current revision without accessing the private source body; the close states the human/Agent boundary."
       },
       "source_ranges": [],
       "visual_slots": [
@@ -171,20 +171,20 @@
           "name": "Fresh-session readback and final Knowledge Loom",
           "availability": "planned",
           "role": "illustration",
-          "production_method": "Capture a genuinely new session and the updated public page after commit, GitHub readback, and R2 publication.",
+          "production_method": "Capture a genuinely new session and the updated public page after commit, GitHub readback, and R2 publication, with session details redacted.",
           "duration": "00:00:35",
-          "acceptance": "The second session visibly reads the new state without relying on the first session's transcript."
+          "acceptance": "The second session visibly reads the new public state without relying on the first session's transcript or private source body."
         }
       ],
       "duration": "00:00:35",
       "unresolved_work": [
         {
-          "name": "Gate C fresh-session evidence",
+          "name": "Recorded fresh-session evidence",
           "availability": "gap",
           "role": "evidence",
-          "production_method": "Run the complete write, public readback, and fresh WebMCP session against the deployed revision.",
+          "production_method": "Capture the already verified fresh-session readback against the deployed revision as a redacted raw take.",
           "duration": "00:00:08",
-          "acceptance": "The updated page, citation, and revision are available to a new session."
+          "acceptance": "The raw take shows a new session reading the updated page, citation, and revision without private context."
         }
       ]
     }

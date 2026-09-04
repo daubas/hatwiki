@@ -14,9 +14,8 @@ type ModelContext = {
 
 type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 
-function pageUrl(pageId: unknown) {
-  return `/api/pages/${String(pageId ?? '').split('/').map(encodeURIComponent).join('/')}`;
-}
+const encodedPageId = (pageId: unknown) => String(pageId ?? '').split('/').map(encodeURIComponent).join('/');
+const pageUrl = (pageId: unknown) => `/api/pages/${encodedPageId(pageId)}`;
 
 async function json(response: Response) {
   if (!response.ok) throw new Error(`HatWiki request failed: ${response.status}`);
@@ -55,7 +54,12 @@ export async function registerBrowserReadTools(
         additionalProperties: false,
       },
       annotations,
-      execute: async ({ pageId }) => json(await fetcher(pageUrl(pageId))),
+      execute: async ({ pageId }) => {
+        const page = await json(await fetcher(pageUrl(pageId)));
+        if (session === 'anonymous') return page;
+        const editable = await json(await fetcher(`/api/edit-source/${encodedPageId(pageId)}`));
+        return { ...page, sourceMarkdown: editable.content, baseSha: editable.baseSha };
+      },
     },
   ];
   if (session === 'authenticated') tools.push({

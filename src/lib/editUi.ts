@@ -13,6 +13,19 @@ export type EditUiResult = {
   error?: string;
 };
 
+export type EditRequestState = {
+  input: string;
+  requestId: string;
+};
+
+export function editRequestForInput(
+  input: string,
+  previous: EditRequestState | undefined,
+  createRequestId: () => string,
+): EditRequestState {
+  return previous?.input === input ? previous : { input, requestId: createRequestId() };
+}
+
 export function editResultMessage(result: EditUiResult, labels: EditUiLabels): string {
   if (result.ok) {
     return `${labels.completed}：${labels.status[result.status ?? ''] ?? labels.unknownStatus}`;

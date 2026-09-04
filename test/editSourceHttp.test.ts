@@ -8,7 +8,7 @@ test('returns the canonical GitHub content and blob sha only to a signed-in acto
   const read = async (pageId: string) => {
     reads += 1;
     assert.equal(pageId, 'concepts/hatwiki');
-    return { sha: 'blob-123', content: '---\ntitle: HatWiki\n---\n\n# HatWiki' };
+    return { sha: 'blob-123', content: '---\ntype: Concept\ntitle: HatWiki\n---\n\n# HatWiki' };
   };
 
   const isPublic = async (pageId: string) => pageId === 'concepts/hatwiki';
@@ -19,7 +19,7 @@ test('returns the canonical GitHub content and blob sha only to a signed-in acto
   assert.deepEqual(await signedIn.json(), {
     pageId: 'concepts/hatwiki',
     baseSha: 'blob-123',
-    content: '---\ntitle: HatWiki\n---\n\n# HatWiki',
+    content: '---\ntype: Concept\ntitle: HatWiki\n---\n\n# HatWiki',
   });
   assert.equal(reads, 1);
 });
@@ -53,4 +53,18 @@ test('does not expose canonical repository files outside the public projection',
 
   assert.equal(response.status, 404);
   assert.equal(reads, 0);
+});
+
+test('does not expose a repository page that became private after the public snapshot', async () => {
+  const response = await handleEditSourceRequest(
+    { userId: 7, login: 'octo' },
+    'concepts/hatwiki',
+    async () => true,
+    async () => ({
+      sha: 'private-revision',
+      content: '---\ntype: Concept\ntitle: HatWiki\nvisibility: private\n---\n\nprivate update',
+    }),
+  );
+
+  assert.equal(response.status, 404);
 });

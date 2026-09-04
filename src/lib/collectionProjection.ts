@@ -30,6 +30,13 @@ function isPublicEntry(pageId: string, visibility: unknown): boolean {
     && String(visibility || '').trim().toLowerCase() !== 'private';
 }
 
+export function isPublicMarkdown(pageId: string, content: string): boolean {
+  const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/.exec(content)?.[1];
+  if (!frontmatter) return false;
+  const field = (name: string) => frontmatter.match(new RegExp(`^${name}:\\s*["']?(.+?)["']?\\s*$`, 'mi'))?.[1].trim();
+  return Boolean(field('type') && field('title')) && isPublicEntry(pageId, field('visibility'));
+}
+
 function publicCitations(sources: unknown): Array<{ id: string; resource: string; title?: string }> | undefined {
   if (!Array.isArray(sources)) return undefined;
 

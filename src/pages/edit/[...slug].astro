@@ -9,6 +9,15 @@ if (!page) return new Response(t(locale, 'notFound'), { status: 404 });
 const loginUrl = withLocale('/auth/login', locale);
 const sourceUrl = withLocale(`/api/edit-source/${page.pageId.split('/').map(encodeURIComponent).join('/')}`, locale);
 const sourceTaskId = Astro.url.searchParams.get('sourceTask') ?? '';
+const retryErrorCopy = locale === 'en' ? {
+  requestConflict: 'This edit conflicts with an earlier request. Change the content and try again.',
+  requestInProgress: 'This edit is still being processed. Please wait and try again.',
+  recoveryHeadAdvanced: 'The page changed while recovering this edit. Reload and try again.',
+} : {
+  requestConflict: '這次修改與先前的請求衝突，請修改內容後再試。',
+  requestInProgress: '這次修改仍在處理中，請稍後再試。',
+  recoveryHeadAdvanced: '復原這次修改時頁面已更新，請重新載入後再試。',
+};
 ---
 
 <Layout title={`${t(locale, 'edit')} ${page.title}`}>
@@ -44,6 +53,9 @@ const sourceTaskId = Astro.url.searchParams.get('sourceTask') ?? '';
       data-error-source-mismatch={t(locale, 'editErrorSourceMismatch')}
       data-error-source-citation={t(locale, 'editErrorSourceCitation')}
       data-error-source-used={t(locale, 'editErrorSourceUsed')}
+      data-error-request-conflict={retryErrorCopy.requestConflict}
+      data-error-request-in-progress={retryErrorCopy.requestInProgress}
+      data-error-recovery-head-advanced={retryErrorCopy.recoveryHeadAdvanced}
       data-error-app-not-configured={t(locale, 'editErrorAppNotConfigured')}
       data-error-network={t(locale, 'editNetworkError')}
       data-error-unknown={t(locale, 'editErrorUnknown')}
@@ -90,7 +102,7 @@ const sourceTaskId = Astro.url.searchParams.get('sourceTask') ?? '';
 </Layout>
 
 <script>
-  import { editDiff, editResultMessage } from '../../lib/editUi.ts';
+  import { editDiff, editRequestForInput, editResultMessage, type EditRequestState } from '../../lib/editUi.ts';
 
   const form = document.querySelector<HTMLFormElement>('#edit-form');
   const result = document.querySelector<HTMLElement>('#result');
@@ -103,7 +115,7 @@ const sourceTaskId = Astro.url.searchParams.get('sourceTask') ?? '';
   const submit = document.querySelector<HTMLButtonElement>('.submit-edit');
   const login = document.querySelector<HTMLElement>('.login');
   let originalContent = content?.value ?? '';
-  const editRequestId = crypto.randomUUID();
+  let editRequest: EditRequestState | undefined;
   const labels = {
     completed: form?.dataset.completed || 'Completed',
     unableToSubmit: form?.dataset.unable || 'Unable to submit',
@@ -123,9 +135,9 @@ const sourceTaskId = Astro.url.searchParams.get('sourceTask') ?? '';
       source_citation_missing: form?.dataset.errorSourceCitation || 'Source citation is required',
       source_already_used: form?.dataset.errorSourceUsed || 'Source task was already used',
       source_state_conflict: form?.dataset.errorSourceUsed || 'Source task state changed',
-      request_conflict: form?.dataset.errorSourceUsed || 'Request ID was already used',
-      request_in_progress: form?.dataset.errorSourceUsed || 'This request is already in progress',
-      recovery_head_advanced: form?.dataset.errorSourceUsed || 'The page advanced while recovering this request',
+      request_conflict: form?.dataset.errorRequestConflict || 'This edit conflicts with an earlier request. Change the content and try again.',
+      request_in_progress: form?.dataset.errorRequestInProgress || 'This edit is still being processed. Please wait and try again.',
+      recovery_head_advanced: form?.dataset.errorRecoveryHeadAdvanced || 'The page changed while recovering this edit. Reload and try again.',
       github_app_not_configured: form?.dataset.errorAppNotConfigured || 'The GitHub App is not configured',
       network_error: form?.dataset.errorNetwork || 'Network error',
     },
@@ -167,12 +179,20 @@ const sourceTaskId = Astro.url.searchParams.get('sourceTask') ?? '';
       result.dataset.state = 'pending';
       result.textContent = '';
     }
+    const input = JSON.stringify([
+      form.dataset.pageId,
+      form.dataset.baseSha,
+      data.get('content'),
+      data.get('reason'),
+      data.get('sourceTaskId') || '',
+    ]);
+    editRequest = editRequestForInput(input, editRequest, () => crypto.randomUUID());
     try {
       const response = await fetch('/api/edit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          requestId: editRequestId,
+          requestId: editRequest.requestId,
           pageId: form.dataset.pageId,
           baseSha: form.dataset.baseSha,
           content: data.get('content'),

@@ -8,7 +8,7 @@ test('overlays R2 edits onto the bundled public snapshot', async () => {
     ['published/revision.json', { revision: 'commit-2' }],
     ['published/pages/concepts/hatwiki.json', {
       pageId: 'concepts/hatwiki',
-      content: '---\ntitle: Better HatWiki\n---\n\n# Updated',
+      content: '---\ntype: Concept\ntitle: Better HatWiki\n---\n\n# Updated',
       revision: 'commit-2',
       baseSha: 'blob-2',
     }],
@@ -26,7 +26,7 @@ test('overlays R2 edits onto the bundled public snapshot', async () => {
   assert.deepEqual(await projection.readSnapshot(), {
     revision: await overlayRevision('fixture', [{
       pageId: 'concepts/hatwiki',
-      content: '---\ntitle: Better HatWiki\n---\n\n# Updated',
+      content: '---\ntype: Concept\ntitle: Better HatWiki\n---\n\n# Updated',
       revision: 'commit-2',
       baseSha: 'blob-2',
     }]),
@@ -34,8 +34,6 @@ test('overlays R2 edits onto the bundled public snapshot', async () => {
       pageId: 'concepts/hatwiki',
       title: 'Better HatWiki',
       markdown: '\n# Updated',
-      sourceMarkdown: '---\ntitle: Better HatWiki\n---\n\n# Updated',
-      baseSha: 'blob-2',
     }],
   });
 });
@@ -53,4 +51,21 @@ test('ignores malformed or mismatched R2 page objects', async () => {
   assert.deepEqual(await projection.readSnapshot(), {
     revision: 'fixture', pages: [{ pageId: 'safe', title: 'Safe', markdown: '# Safe' }],
   });
+});
+
+test('does not overlay a page whose latest content is private', async () => {
+  const original = { pageId: 'concepts/hatwiki', title: 'HatWiki', markdown: '# Public' };
+  const projection = createR2OverlayProjection({
+    readSnapshot: async () => ({ revision: 'fixture', pages: [original] }),
+  }, {
+    list: async () => ({ objects: [{ key: 'published/pages/concepts/hatwiki.json' }] }),
+    get: async () => ({ json: async () => ({
+      pageId: 'concepts/hatwiki',
+      content: '---\ntype: Concept\ntitle: HatWiki\nvisibility: private\n---\n\nprivate update',
+      revision: 'private-revision',
+      baseSha: 'private-blob',
+    }) }),
+  });
+
+  assert.deepEqual(await projection.readSnapshot(), { revision: 'fixture', pages: [original] });
 });

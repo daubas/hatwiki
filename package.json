@@ -12,7 +12,10 @@
     "build": "astro build",
     "preview": "astro preview",
     "deploy": "astro build && wrangler deploy",
-    "cf-types": "wrangler types src/env.d.ts"
+    "cf-types": "wrangler types src/env.d.ts",
+    "fetch-wiki": "./scripts/fetch-wiki.sh",
+    "build:external": "npm run fetch-wiki && HATWIKI_WIKI_DIR=.wiki-external astro build",
+    "deploy:external": "npm run fetch-wiki && HATWIKI_WIKI_DIR=.wiki-external astro build && wrangler deploy"
   },
   "dependencies": {
     "@astrojs/cloudflare": "14.2.6",

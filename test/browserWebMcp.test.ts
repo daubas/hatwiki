@@ -62,6 +62,27 @@ test('registers edit_page as an authorization-gated write through the session AP
   }]);
 });
 
+test('authenticated read_page includes the canonical markdown and blob sha needed by edit_page', async () => {
+  const registered: any[] = [];
+  const modelContext = { registerTool: async (tool: any) => registered.push(tool) };
+  const fetchJson = async (url: string) => ({
+    ok: true,
+    json: async () => url.startsWith('/api/edit-source/')
+      ? { pageId: 'concepts/example', baseSha: 'blob-1', content: '# Canonical' }
+      : { pageId: 'concepts/example', title: 'Example', markdown: '# Public' },
+  }) as Response;
+
+  await registerBrowserReadTools(modelContext, fetchJson, 'authenticated');
+
+  assert.deepEqual(await registered.find(({ name }) => name === 'read_page').execute({ pageId: 'concepts/example' }), {
+    pageId: 'concepts/example',
+    title: 'Example',
+    markdown: '# Public',
+    sourceMarkdown: '# Canonical',
+    baseSha: 'blob-1',
+  });
+});
+
 test('registers the Gate B source tools only for authenticated sessions', async () => {
   const registered: any[] = [];
   const requests: Array<{ url: string; init?: RequestInit }> = [];

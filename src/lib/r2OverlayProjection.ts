@@ -1,4 +1,5 @@
 import type { PublicPage, PublicProjection } from './contracts.ts';
+import { isPublicMarkdown } from './collectionProjection.ts';
 import type { PublishedPage } from './r2Publisher.ts';
 
 type R2Like = {
@@ -13,6 +14,7 @@ function valid(page: unknown, key: string): page is PublishedPage {
     && key === `published/pages/${value.pageId}.json`
     && !value.pageId.split('/').some((part) => !part || part === '.' || part === '..')
     && typeof value.content === 'string'
+    && isPublicMarkdown(value.pageId, value.content)
     && typeof value.revision === 'string'
     && typeof value.baseSha === 'string';
 }
@@ -24,8 +26,6 @@ function project(page: PublishedPage): PublicPage {
     pageId: page.pageId,
     title,
     markdown: frontmatter?.[2] ?? page.content,
-    sourceMarkdown: page.content,
-    baseSha: page.baseSha,
   };
 }
 
