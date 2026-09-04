@@ -18,8 +18,9 @@ const encodedPageId = (pageId: unknown) => String(pageId ?? '').split('/').map(e
 const pageUrl = (pageId: unknown) => `/api/pages/${encodedPageId(pageId)}`;
 
 async function json(response: Response) {
-  if (!response.ok) throw new Error(`HatWiki request failed: ${response.status}`);
-  return response.json();
+  const body = await response.json() as { error?: string };
+  if (!response.ok) throw new Error(body.error || `HatWiki request failed: ${response.status}`);
+  return body;
 }
 
 export async function registerBrowserReadTools(
@@ -109,6 +110,29 @@ export async function registerBrowserReadTools(
       },
       annotations: { readOnlyHint: true, untrustedContentHint: true },
       execute: async ({ taskId }) => json(await fetcher(`/api/ingestions/${encodeURIComponent(String(taskId ?? ''))}`)),
+    }, {
+      name: 'get_workspace',
+      description: 'Read one owned collaboration workspace, including its private untrusted source and latest draft.',
+      inputSchema: {
+        type: 'object', properties: { taskId: { type: 'string' } }, required: ['taskId'], additionalProperties: false,
+      },
+      annotations: { readOnlyHint: true, untrustedContentHint: true },
+      execute: async ({ taskId }) => json(await fetcher(`/api/workspaces/${encodeURIComponent(String(taskId ?? ''))}`)),
+    }, {
+      name: 'save_draft',
+      description: 'Save a versioned draft in an owned collaboration workspace. This does not publish to the Wiki.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          taskId: { type: 'string' }, baseSha: { type: 'string' }, content: { type: 'string' }, feedback: { type: 'string' }, expectedVersion: { type: 'integer', minimum: 0 },
+        },
+        required: ['taskId', 'baseSha', 'content', 'feedback', 'expectedVersion'],
+        additionalProperties: false,
+      },
+      annotations: { readOnlyHint: false, untrustedContentHint: true },
+      execute: async ({ taskId, ...draft }) => json(await fetcher(`/api/workspaces/${encodeURIComponent(String(taskId ?? ''))}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft),
+      })),
     }, {
       name: 'inspect_changes',
       description: 'Summarize the affected page, citations, WikiLinks, and unresolved markers before an edit is submitted.',

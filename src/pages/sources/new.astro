@@ -59,12 +59,11 @@ const copy = locale === 'en' ? {
       if (!response.ok) throw new Error(payload.error);
       if (result) result.textContent = form.dataset.stored || 'Source stored.';
       if (next) {
-        const pageId = String(data.get('targetPageId') || '').split('/').map(encodeURIComponent).join('/');
-        const url = new URL(`/edit/${pageId}`, location.origin);
-        url.searchParams.set('sourceTask', payload.taskId);
+        const url = new URL(`/workbench/${encodeURIComponent(payload.taskId)}`, location.origin);
         if (new URL(location.href).searchParams.get('lang') === 'en') url.searchParams.set('lang', 'en');
         next.href = `${url.pathname}${url.search}`;
         next.hidden = false;
+        location.assign(next.href);
       }
     } catch {
       if (result) result.textContent = form.dataset.failed || 'Unable to store source.';

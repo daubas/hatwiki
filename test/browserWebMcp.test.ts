@@ -93,19 +93,24 @@ test('registers the Gate B source tools only for authenticated sessions', async 
   };
 
   await registerBrowserReadTools(modelContext, fetchJson, 'authenticated');
-  assert.deepEqual(registered.map(({ name }) => name), ['search_wiki', 'read_page', 'edit_page', 'add_source', 'get_ingestion_status', 'inspect_changes']);
+  assert.deepEqual(registered.map(({ name }) => name), ['search_wiki', 'read_page', 'edit_page', 'add_source', 'get_ingestion_status', 'get_workspace', 'save_draft', 'inspect_changes']);
   assert.equal(registered[2].inputSchema.properties.sourceTaskId.type, 'string');
   const addInput = { requestId: 'source-1', title: 'Note', content: 'Body', targetPageId: 'concepts/hatwiki', authorizationConfirmed: true };
   assert.deepEqual(await registered[3].execute(addInput), { url: '/api/sources' });
   assert.deepEqual(await registered[4].execute({ taskId: 'task-1' }), { url: '/api/ingestions/task-1' });
-  assert.deepEqual(await registered[5].execute({ pageId: 'concepts/hatwiki', content: '[[concepts/shared]]' }), {
+  assert.deepEqual(await registered[5].execute({ taskId: 'task-1' }), { url: '/api/workspaces/task-1' });
+  const draftInput = { taskId: 'task-1', baseSha: 'blob-1', content: '# Draft', feedback: 'Review', expectedVersion: 0 };
+  assert.deepEqual(await registered[6].execute(draftInput), { url: '/api/workspaces/task-1' });
+  assert.deepEqual(await registered[7].execute({ pageId: 'concepts/hatwiki', content: '[[concepts/shared]]' }), {
     affectedPages: ['concepts/hatwiki'], citations: [], wikiLinks: ['concepts/shared'], unresolved: [],
   });
   assert.equal(registered[3].annotations.readOnlyHint, false);
   assert.equal(registered[4].annotations.untrustedContentHint, true);
-  assert.deepEqual(requests.slice(-2), [
+  assert.deepEqual(requests.slice(-4), [
     { url: '/api/sources', init: { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(addInput) } },
     { url: '/api/ingestions/task-1', init: undefined },
+    { url: '/api/workspaces/task-1', init: undefined },
+    { url: '/api/workspaces/task-1', init: { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ baseSha: 'blob-1', content: '# Draft', feedback: 'Review', expectedVersion: 0 }) } },
   ]);
 });
 
@@ -113,4 +118,15 @@ test('does nothing in browsers without WebMCP', async () => {
   const registration = await registerBrowserReadTools(undefined, fetch);
   assert.equal(registration.supported, false);
   registration.dispose();
+});
+
+test('write tools preserve actionable API error codes', async () => {
+  const registered: any[] = [];
+  await registerBrowserReadTools({ registerTool: async (tool: any) => { registered.push(tool); } }, async () => ({
+    ok: false, status: 409, json: async () => ({ error: 'workspace_stale' }),
+  } as Response), 'authenticated');
+  await assert.rejects(
+    registered.find(({ name }) => name === 'save_draft').execute({ taskId: 'task-1', baseSha: 'blob-1', content: '# Draft', feedback: '', expectedVersion: 1 }),
+    /workspace_stale/,
+  );
 });

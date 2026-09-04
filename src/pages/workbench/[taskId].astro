@@ -1,0 +1,200 @@
+---
+import Layout from '../../components/Layout.astro';
+import { getLocale, withLocale } from '../../lib/i18n.ts';
+
+const locale = getLocale(Astro.url);
+const taskId = Astro.params.taskId ?? '';
+const copy = locale === 'en' ? {
+  title: 'Collaboration workbench', back: 'Add another source', loading: 'Loading your private source and the latest Wiki page…',
+  source: 'Private source', draft: 'Shared draft', feedback: 'Notes for your Agent', feedbackHint: 'Record what should be checked or improved next.',
+  citation: 'Required source citation', preview: 'Changes from the current Wiki page', noChanges: 'No changes yet.',
+  save: 'Save draft', publish: 'Publish to Wiki', reload: 'Reload', authorization: 'I confirm this draft may be published to the public Wiki.',
+  saved: 'Draft saved.', stale: 'This draft changed elsewhere. Reload before saving again.', published: 'Published to the Wiki.', conflict: 'Saved as a conflict candidate; it is not public yet.', approval: 'Submitted for approval; it is not public yet.', citationMissing: 'Add the displayed source citation to the draft before publishing.', discard: 'Discard unsaved changes and reload?', openResult: 'Open result', failed: 'Unable to complete this action.',
+} : {
+  title: '共同編輯台', back: '再加入一份資料', loading: '正在載入你的私密來源與 Wiki 最新版本…',
+  source: '私密來源', draft: '共同草稿', feedback: '給 Agent 的整理意見', feedbackHint: '記下下一步要查證或改善的地方。',
+  citation: '發布時必須保留的來源引用', preview: '相對目前 Wiki 的修改', noChanges: '目前沒有修改。',
+  save: '保存草稿', publish: '發布到 Wiki', reload: '重新載入', authorization: '我確認這份草稿可以發布到公開 Wiki。',
+  saved: '草稿已保存。', stale: '草稿已在別處更新，請重新載入後再保存。', published: '已發布到 Wiki。', conflict: '已保存為衝突候選，尚未公開。', approval: '已送交核准，尚未公開。', citationMissing: '發布前，請把畫面顯示的來源引用加入草稿。', discard: '要放棄尚未保存的修改並重新載入嗎？', openResult: '開啟處理結果', failed: '這次操作沒有完成。',
+};
+---
+
+<Layout title={copy.title}>
+  <article class="workbench" data-task-id={taskId} data-login-url={withLocale('/auth/login', locale)} data-saved={copy.saved} data-stale={copy.stale} data-published={copy.published} data-conflict={copy.conflict} data-approval={copy.approval} data-citation-missing={copy.citationMissing} data-discard={copy.discard} data-open-result={copy.openResult} data-failed={copy.failed}>
+    <header>
+      <a href={withLocale('/sources/new', locale)}>← {copy.back}</a>
+      <p>CHANGE WORKSPACE / {taskId}</p>
+      <h1>{copy.title}</h1>
+    </header>
+    <p id="notice" class="notice" role="status" aria-live="polite">{copy.loading} <a id="result-link" hidden></a></p>
+
+    <div class="workspace-grid">
+      <aside class="source-card" aria-labelledby="source-title">
+        <p class="kicker">{copy.source}</p>
+        <h2 id="source-title">—</h2>
+        <pre id="source-content"></pre>
+        <div class="citation"><strong>{copy.citation}</strong><code id="citation-id">—</code></div>
+      </aside>
+
+      <form id="workspace-form">
+        <fieldset disabled>
+          <label>{copy.draft}<textarea name="content" rows="24" required></textarea></label>
+          <label>{copy.feedback}<textarea name="feedback" rows="3" maxlength="2000" placeholder={copy.feedbackHint}></textarea></label>
+          <section class="diff-panel"><h2>{copy.preview}</h2><pre id="diff-preview">{copy.noChanges}</pre></section>
+          <label class="confirmation"><input name="authorizationConfirmed" type="checkbox" /> <span>{copy.authorization}</span></label>
+          <div class="actions">
+            <button name="save" type="submit">{copy.save}</button>
+            <button name="publish" type="button">{copy.publish}</button>
+            <button name="reload" type="button">{copy.reload}</button>
+          </div>
+        </fieldset>
+      </form>
+    </div>
+  </article>
+</Layout>
+
+<script>
+  import { editDiff, editRequestForInput, type EditRequestState } from '../../lib/editUi.ts';
+
+  const root = document.querySelector<HTMLElement>('.workbench');
+  const form = document.querySelector<HTMLFormElement>('#workspace-form');
+  const fields = form?.querySelector<HTMLFieldSetElement>('fieldset');
+  const content = form?.elements.namedItem('content') as HTMLTextAreaElement | null;
+  const feedback = form?.elements.namedItem('feedback') as HTMLTextAreaElement | null;
+  const authorization = form?.elements.namedItem('authorizationConfirmed') as HTMLInputElement | null;
+  const publish = form?.elements.namedItem('publish') as HTMLButtonElement | null;
+  const notice = document.querySelector<HTMLElement>('#notice');
+  const preview = document.querySelector<HTMLElement>('#diff-preview');
+  const resultLink = document.querySelector<HTMLAnchorElement>('#result-link');
+  let version = 0;
+  let baseSha = '';
+  let pageId = '';
+  let citationId = '';
+  let originalContent = '';
+  let dirty = false;
+  let editRequest: EditRequestState | undefined;
+
+  const message = (key: 'saved' | 'stale' | 'published' | 'conflict' | 'approval' | 'citationMissing' | 'failed') => root?.dataset[key] || key;
+  const setNotice = (value: string, error = false) => {
+    if (notice) { notice.firstChild!.textContent = `${value} `; notice.dataset.state = error ? 'error' : 'ok'; }
+    if (resultLink) resultLink.hidden = true;
+  };
+  const updateDiff = () => { if (preview) preview.textContent = editDiff(originalContent, content?.value ?? '') || preview.dataset.empty || 'No changes yet.'; };
+
+  async function load() {
+    if (!root) return;
+    if (dirty && !confirm(root.dataset.discard || 'Discard unsaved changes and reload?')) return;
+    if (fields) fields.disabled = true;
+    const workspaceResponse = await fetch(`/api/workspaces/${encodeURIComponent(root.dataset.taskId || '')}`);
+    if (workspaceResponse.status === 401) return location.assign(root.dataset.loginUrl || '/auth/login');
+    const workspace = await workspaceResponse.json();
+    if (!workspaceResponse.ok) throw new Error(workspace.error);
+    pageId = workspace.source.targetPageId;
+    citationId = workspace.source.citationId;
+    const canonicalResponse = await fetch(`/api/edit-source/${pageId.split('/').map(encodeURIComponent).join('/')}`);
+    const canonical = await canonicalResponse.json();
+    if (!canonicalResponse.ok) throw new Error(canonical.error);
+    originalContent = String(canonical.content || '');
+    baseSha = String(workspace.draft?.baseSha || canonical.baseSha || '');
+    version = Number(workspace.draft?.version || 0);
+    if (content) content.value = String(workspace.draft?.content || originalContent);
+    if (feedback) feedback.value = String(workspace.draft?.feedback || '');
+    const title = document.querySelector<HTMLElement>('#source-title');
+    const source = document.querySelector<HTMLElement>('#source-content');
+    const citation = document.querySelector<HTMLElement>('#citation-id');
+    if (title) title.textContent = workspace.source.title;
+    if (source) source.textContent = workspace.source.content;
+    if (citation) citation.textContent = `[^${citationId}]`;
+    if (fields) fields.disabled = workspace.status !== 'stored';
+    dirty = false;
+    updateDiff();
+    setNotice(workspace.status === 'stored' ? (version ? message('saved') : 'Ready.') : workspace.status);
+  }
+
+  async function saveDraft(snapshot: { content: string; feedback: string; version: number }) {
+    if (!root || !content || !feedback) throw new Error('invalid_input');
+    const response = await fetch(`/api/workspaces/${encodeURIComponent(root.dataset.taskId || '')}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ baseSha, content: snapshot.content, feedback: snapshot.feedback, expectedVersion: snapshot.version }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error);
+    version = payload.draft.version;
+    return payload;
+  }
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!content || !feedback || !fields) return;
+    const snapshot = { content: content.value, feedback: feedback.value, version };
+    fields.disabled = true;
+    try { await saveDraft(snapshot); dirty = false; setNotice(message('saved')); }
+    catch (error) { setNotice(error instanceof Error && error.message === 'workspace_stale' ? message('stale') : message('failed'), true); }
+    finally { fields.disabled = false; }
+  });
+  content?.addEventListener('input', () => { dirty = true; updateDiff(); });
+  feedback?.addEventListener('input', () => { dirty = true; });
+  form?.elements.namedItem('reload')?.addEventListener('click', () => load().catch(() => setNotice(message('failed'), true)));
+  publish?.addEventListener('click', async () => {
+    if (!root || !content || !feedback || !authorization?.checked) return setNotice(message('failed'), true);
+    const snapshot = { content: content.value, feedback: feedback.value, version };
+    if (fields) fields.disabled = true;
+    try {
+      await saveDraft(snapshot);
+      dirty = false;
+      const serialized = JSON.stringify([pageId, baseSha, snapshot.content, root.dataset.taskId]);
+      editRequest = editRequestForInput(serialized, editRequest, () => crypto.randomUUID());
+      const response = await fetch('/api/edit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        requestId: editRequest.requestId, pageId, baseSha, content: snapshot.content, reason: 'Merge source into Wiki',
+        sourceTaskId: root.dataset.taskId, authorizationConfirmed: true,
+      }) });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      const status = String(payload.status || '');
+      setNotice(status === 'committed' ? message('published') : status === 'conflict' ? message('conflict') : message('approval'));
+      if (resultLink && (payload.revisionUrl || payload.pageUrl)) {
+        resultLink.href = payload.revisionUrl || payload.pageUrl;
+        resultLink.textContent = root.dataset.openResult || 'Open result';
+        resultLink.hidden = false;
+      }
+    } catch (error) {
+      const code = error instanceof Error ? error.message : '';
+      setNotice(code === 'workspace_stale' ? message('stale') : code === 'source_citation_missing' ? message('citationMissing') : message('failed'), true);
+      if (fields) fields.disabled = false;
+    }
+  });
+  if (preview) preview.dataset.empty = preview.textContent || '';
+  load().catch(() => setNotice(message('failed'), true));
+</script>
+
+<style>
+  .workbench { display:grid; gap:24px; min-width:0; }
+  header { border-bottom:2px solid var(--line); padding-bottom:22px; }
+  header a { color:var(--accent); font-weight:800; text-decoration:none; }
+  header p, .kicker { margin:24px 0 8px; color:var(--accent); font-size:.72rem; font-weight:900; letter-spacing:.12em; overflow-wrap:anywhere; }
+  header h1 { margin:0; font-size:clamp(2.3rem,7vw,5rem); letter-spacing:-.06em; }
+  .notice { margin:0; padding:14px; border:2px solid var(--accent); background:var(--soft); }
+  .notice[data-state="error"] { border-color:#b42318; color:#b42318; }
+  .workspace-grid { display:grid; grid-template-columns:minmax(240px,.7fr) minmax(0,1.3fr); gap:22px; align-items:start; }
+  .source-card, fieldset { min-width:0; border:2px solid var(--line); background:var(--panel); box-shadow:5px 5px 0 var(--line); }
+  .source-card { padding:18px; }
+  .source-card .kicker { margin:0 0 8px; }
+  .source-card h2 { margin:0 0 14px; font-size:1.35rem; }
+  .source-card > pre { max-height:520px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font:0.86rem/1.6 ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .citation { display:grid; gap:7px; margin-top:18px; padding-top:14px; border-top:2px solid var(--line); font-size:.82rem; }
+  .citation code { color:var(--accent); overflow-wrap:anywhere; }
+  fieldset { display:grid; gap:18px; margin:0; padding:20px; }
+  label:not(.confirmation) { display:grid; gap:8px; font-weight:850; }
+  textarea { width:100%; min-width:0; padding:12px; border:2px solid var(--line); background:var(--bg); color:var(--text); font:inherit; line-height:1.55; resize:vertical; }
+  textarea[name="content"] { min-height:420px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .diff-panel { min-width:0; border:2px solid var(--line); background:var(--bg); }
+  .diff-panel h2 { margin:0; padding:10px 12px; border-bottom:2px solid var(--line); font-size:.86rem; }
+  .diff-panel pre { max-height:260px; margin:0; padding:12px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font:0.8rem/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; }
+  .confirmation { display:flex; gap:10px; align-items:flex-start; line-height:1.5; }
+  .confirmation input { width:20px; height:20px; flex:0 0 auto; accent-color:var(--accent); }
+  .actions { display:flex; flex-wrap:wrap; gap:10px; }
+  button { min-height:46px; padding:10px 14px; border:2px solid var(--line); background:var(--panel); color:var(--text); font:inherit; font-weight:850; cursor:pointer; }
+  button[name="publish"] { background:var(--accent); color:var(--panel); box-shadow:3px 3px 0 var(--line); }
+  @media (max-width:760px) { .workspace-grid { grid-template-columns:1fr; } .source-card > pre { max-height:260px; } }
+  @media (max-width:520px) { fieldset { padding:14px; } .actions { display:grid; } button { width:100%; } }
+</style>
