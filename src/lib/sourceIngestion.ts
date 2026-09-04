@@ -65,7 +65,7 @@ export function createSourceIngestionService(
       }
 
       const task: IngestionTask = {
-        taskId: (options.createId ?? crypto.randomUUID)(),
+        taskId: options.createId?.() ?? crypto.randomUUID(),
         requestId: input.requestId,
         userId: actor.userId,
         login: actor.login,
