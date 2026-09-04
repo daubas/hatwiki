@@ -6,8 +6,8 @@ import { getSiteWiki } from '../../lib/siteWiki.ts';
 const locale = getLocale(Astro.url);
 const page = await (await getSiteWiki()).readPage(Astro.params.slug ?? '');
 if (!page) return new Response(t(locale, 'notFound'), { status: 404 });
-const editable = Boolean(page.baseSha);
 const loginUrl = withLocale('/auth/login', locale);
+const sourceUrl = withLocale(`/api/edit-source/${page.pageId.split('/').map(encodeURIComponent).join('/')}`, locale);
 ---
 
 <Layout title={`${t(locale, 'edit')} ${page.title}`}>
@@ -19,13 +19,14 @@ const loginUrl = withLocale('/auth/login', locale);
       <div class="page-meta"><span>{t(locale, 'graphRevision')} {page.revision}</span></div>
     </header>
 
-    {!editable && <p id="edit-readonly" class="notice" role="status">{t(locale, 'editReadOnly')}</p>}
+    <p id="edit-notice" class="notice" role="status">{t(locale, 'editLoading')}</p>
 
     <form
       id="edit-form"
       class="edit-form"
       data-page-id={page.pageId}
-      data-base-sha={page.baseSha ?? ''}
+      data-base-sha=""
+      data-source-url={sourceUrl}
       data-login-url={loginUrl}
       data-completed={t(locale, 'completed')}
       data-unable={t(locale, 'unableToSubmit')}
@@ -41,10 +42,15 @@ const loginUrl = withLocale('/auth/login', locale);
       data-error-app-not-configured={t(locale, 'editErrorAppNotConfigured')}
       data-error-network={t(locale, 'editNetworkError')}
       data-error-unknown={t(locale, 'editErrorUnknown')}
+      data-ready={t(locale, 'editReady')}
+      data-read-only={t(locale, 'editReadOnly')}
+      data-no-changes={t(locale, 'editNoChanges')}
+      data-view-wiki={t(locale, 'viewWiki')}
+      data-view-commit={t(locale, 'viewCommit')}
       aria-describedby="edit-form-hint"
     >
       <p id="edit-form-hint" class="form-intro">{t(locale, 'editContentHint')}</p>
-      <fieldset disabled={!editable}>
+      <fieldset id="edit-fields" disabled>
         <legend class="sr-only">{t(locale, 'editFormLegend')}</legend>
         <div class="field">
           <label for="content">{t(locale, 'editContent')}</label>
@@ -57,21 +63,34 @@ const loginUrl = withLocale('/auth/login', locale);
           <p id="reason-hint" class="field-hint">{t(locale, 'editReasonHint')}</p>
         </div>
         <label class="confirmation"><input name="authorizationConfirmed" type="checkbox" required aria-describedby="authorization-hint" /> <span id="authorization-hint">{t(locale, 'publishAuthorization')}</span></label>
+        <section class="diff-panel" aria-labelledby="diff-title">
+          <h2 id="diff-title">{t(locale, 'editPreview')}</h2>
+          <pre id="diff-preview">{t(locale, 'editNoChanges')}</pre>
+        </section>
         <div class="edit-actions">
           <button class="submit-edit" type="submit">{t(locale, 'submitEdit')}</button>
           <a class="login" href={loginUrl}>{t(locale, 'signInFirst')}</a>
         </div>
       </fieldset>
       <p id="result" class="edit-result" role="status" aria-live="polite"></p>
+      <p id="result-links" class="edit-result-links" hidden></p>
     </form>
   </article>
 </Layout>
 
 <script>
-  import { editResultMessage } from '../../lib/editUi.ts';
+  import { editDiff, editResultMessage } from '../../lib/editUi.ts';
 
   const form = document.querySelector<HTMLFormElement>('#edit-form');
   const result = document.querySelector<HTMLElement>('#result');
+  const resultLinks = document.querySelector<HTMLElement>('#result-links');
+  const notice = document.querySelector<HTMLElement>('#edit-notice');
+  const fields = document.querySelector<HTMLFieldSetElement>('#edit-fields');
+  const content = document.querySelector<HTMLTextAreaElement>('#content');
+  const preview = document.querySelector<HTMLElement>('#diff-preview');
+  const submit = document.querySelector<HTMLButtonElement>('.submit-edit');
+  const login = document.querySelector<HTMLElement>('.login');
+  let originalContent = content?.value ?? '';
   const labels = {
     completed: form?.dataset.completed || 'Completed',
     unableToSubmit: form?.dataset.unable || 'Unable to submit',
@@ -93,6 +112,31 @@ const loginUrl = withLocale('/auth/login', locale);
     unknownError: form?.dataset.errorUnknown || 'Please try again later',
   };
 
+  const updatePreview = () => {
+    const diff = editDiff(originalContent, content?.value ?? '');
+    if (preview) preview.textContent = diff || form?.dataset.noChanges || 'No changes yet.';
+    if (submit) submit.disabled = !diff;
+  };
+
+  if (form) {
+    fetch(form.dataset.sourceUrl || '')
+      .then(async (response) => ({ response, payload: await response.json() }))
+      .then(({ response, payload }) => {
+        if (!response.ok) throw new Error(payload?.error || 'source_unavailable');
+        originalContent = String(payload.content || '');
+        if (content) content.value = originalContent;
+        form.dataset.baseSha = String(payload.baseSha || '');
+        if (fields) fields.disabled = false;
+        if (notice) notice.textContent = form.dataset.ready || 'Ready to edit.';
+        if (login) login.hidden = true;
+        updatePreview();
+      })
+      .catch(() => {
+        if (notice) notice.textContent = form.dataset.readOnly || 'This page is read-only.';
+      });
+  }
+  content?.addEventListener('input', updatePreview);
+
   form?.addEventListener('submit', async (event) => {
     event.preventDefault();
     const data = new FormData(form);
@@ -113,10 +157,21 @@ const loginUrl = withLocale('/auth/login', locale);
           authorizationConfirmed: data.get('authorizationConfirmed') === 'on',
         }),
       });
-      const receipt = await response.json() as { status?: string; error?: string };
+      const receipt = await response.json() as { status?: string; error?: string; pageUrl?: string; revisionUrl?: string };
       if (result) {
         result.dataset.state = response.ok ? 'success' : 'error';
         result.textContent = editResultMessage({ ok: response.ok, status: receipt.status, error: receipt.error }, labels);
+      }
+      if (response.ok && resultLinks) {
+        resultLinks.replaceChildren();
+        for (const [url, label] of [[receipt.pageUrl, form.dataset.viewWiki], [receipt.revisionUrl, form.dataset.viewCommit]]) {
+          if (!url) continue;
+          const link = document.createElement('a');
+          link.href = url;
+          link.textContent = label || url;
+          resultLinks.append(link);
+        }
+        resultLinks.hidden = resultLinks.childElementCount === 0;
       }
       if (response.status === 401) location.href = form.dataset.loginUrl || '/auth/login';
     } catch {
@@ -151,6 +206,9 @@ const loginUrl = withLocale('/auth/login', locale);
   .field-hint { margin:0; color:var(--muted); font-size:.78rem; line-height:1.5; }
   .confirmation { display:flex; align-items:flex-start; gap:10px; min-width:0; color:var(--text); line-height:1.5; }
   .confirmation input { flex:0 0 auto; width:20px; height:20px; margin:2px 0 0; accent-color:var(--accent); }
+  .diff-panel { min-width:0; border:2px solid var(--line); background:var(--bg); }
+  .diff-panel h2 { margin:0; padding:10px 12px; border-bottom:2px solid var(--line); font-size:.86rem; }
+  .diff-panel pre { max-height:280px; margin:0; padding:14px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; font:0.82rem/1.55 ui-monospace,SFMono-Regular,Menlo,monospace; }
   .edit-actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
   .submit-edit, .login { display:inline-flex; align-items:center; justify-content:center; min-height:46px; padding:10px 15px; border:2px solid var(--line); border-radius:0; font:inherit; font-weight:850; text-decoration:none; }
   .submit-edit { background:var(--accent); color:var(--panel); cursor:pointer; box-shadow:3px 3px 0 var(--line); }
@@ -161,6 +219,8 @@ const loginUrl = withLocale('/auth/login', locale);
   .edit-result { min-height:1.6em; margin:0; color:var(--muted); line-height:1.6; }
   .edit-result[data-state="success"] { color:var(--text); }
   .edit-result[data-state="error"] { color:#b42318; }
+  .edit-result-links { display:flex; flex-wrap:wrap; gap:14px; margin:0; }
+  .edit-result-links[hidden] { display:none; }
   .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
   @media (max-width:560px) {
     fieldset { padding:16px; }

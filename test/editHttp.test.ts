@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { handleEditRequest } from '../src/lib/editHttp.ts';
+import { handleEditRequest, withEditLinks } from '../src/lib/editHttp.ts';
 
 const body = {
   requestId: 'request-web-1',
@@ -106,4 +106,17 @@ test('rejects a cross-origin edit before parsing it', async () => {
 
   assert.equal(response.status, 403);
   assert.equal(calls, 0);
+});
+
+test('adds public page and GitHub revision links to edit receipts', () => {
+  assert.deepEqual(
+    withEditLinks({ requestId: 'r1', status: 'conflict', candidateRevision: 'commit-1' }, 'concepts/hat wiki', 'https://hatwiki.test/api/edit'),
+    {
+      requestId: 'r1',
+      status: 'conflict',
+      candidateRevision: 'commit-1',
+      pageUrl: 'https://hatwiki.test/wiki/concepts/hat%20wiki',
+      revisionUrl: 'https://github.com/daubas/hatwiki/commit/commit-1',
+    },
+  );
 });

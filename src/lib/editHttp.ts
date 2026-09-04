@@ -6,6 +6,15 @@ function json(value: unknown, status = 200): Response {
   return Response.json(value, { status, headers: { 'Cache-Control': 'no-store' } });
 }
 
+export function withEditLinks(receipt: EditReceipt, pageId: string, requestUrl: string): EditReceipt {
+  const revision = receipt.revision ?? receipt.candidateRevision;
+  return {
+    ...receipt,
+    pageUrl: `${new URL(requestUrl).origin}/wiki/${pageId.split('/').map(encodeURIComponent).join('/')}`,
+    ...(revision ? { revisionUrl: `https://github.com/daubas/hatwiki/commit/${encodeURIComponent(revision)}` } : {}),
+  };
+}
+
 export async function handleEditRequest(request: Request, actor: EditActor | null, edit: Edit): Promise<Response> {
   if (!actor) return json({ error: 'authentication_required' }, 401);
   const origin = request.headers.get('Origin');

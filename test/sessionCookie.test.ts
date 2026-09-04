@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createSessionCookie, readSessionCookie } from '../src/lib/sessionCookie.ts';
+import { clearSessionCookie, createSessionCookie, readSessionCookie } from '../src/lib/sessionCookie.ts';
 
 test('round-trips a signed GitHub identity in a secure cookie', async () => {
   const cookie = await createSessionCookie(
@@ -29,4 +29,8 @@ test('rejects tampered, expired, and weakly configured sessions', async () => {
   assert.equal(await readSessionCookie(secret, cookie, new Date('2026-09-04T13:00:01Z')), null);
   assert.equal(await readSessionCookie(secret, 'other=value', new Date('2026-09-03T13:00:00Z')), null);
   await assert.rejects(createSessionCookie('short', { userId: 7, login: 'octo' }), /invalid_secret/);
+});
+
+test('clears the host-only session cookie without exposing it to scripts', () => {
+  assert.equal(clearSessionCookie, '__Host-hatwiki_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax');
 });

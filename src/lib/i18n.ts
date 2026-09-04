@@ -8,6 +8,8 @@ export interface UiMessages {
   wiki: string;
   graph: string;
   login: string;
+  logout: string;
+  signedInAs: string;
   language: string;
   primaryNavigation: string;
   home: string;
@@ -56,6 +58,12 @@ export interface UiMessages {
   edit: string;
   editBack: string;
   editReadOnly: string;
+  editLoading: string;
+  editReady: string;
+  editPreview: string;
+  editNoChanges: string;
+  viewWiki: string;
+  viewCommit: string;
   editFormLegend: string;
   editContent: string;
   editContentHint: string;
@@ -96,6 +104,8 @@ export const ui: Record<Locale, UiMessages> = {
     wiki: 'Wiki',
     graph: '圖譜',
     login: '登入',
+    logout: '登出',
+    signedInAs: '已登入',
     language: '語言',
     primaryNavigation: '主要導覽',
     home: 'HatWiki 首頁',
@@ -144,6 +154,12 @@ export const ui: Record<Locale, UiMessages> = {
     edit: '編輯',
     editBack: '回到頁面',
     editReadOnly: '這一頁尚未同步 Git revision，現在只能閱讀。',
+    editLoading: '正在從 GitHub 取得最新版本…',
+    editReady: '已取得 GitHub 最新版本，可以開始修改。',
+    editPreview: '送出前差異',
+    editNoChanges: '目前沒有修改。',
+    viewWiki: '開啟 Wiki 頁面',
+    viewCommit: '查看 Git commit',
     editFormLegend: '編輯 Wiki 頁面',
     editContent: 'Markdown 內容',
     editContentHint: '保留 Markdown 語法；送出前請確認內容可以公開。',
@@ -182,6 +198,8 @@ export const ui: Record<Locale, UiMessages> = {
     wiki: 'Wiki',
     graph: 'Graph',
     login: 'Log in',
+    logout: 'Log out',
+    signedInAs: 'Signed in',
     language: 'Language',
     primaryNavigation: 'Primary navigation',
     home: 'HatWiki homepage',
@@ -230,6 +248,12 @@ export const ui: Record<Locale, UiMessages> = {
     edit: 'Edit',
     editBack: 'Back to page',
     editReadOnly: 'This page has not synced a Git revision yet and is currently read-only.',
+    editLoading: 'Loading the latest version from GitHub…',
+    editReady: 'The latest GitHub version is ready to edit.',
+    editPreview: 'Changes before publishing',
+    editNoChanges: 'No changes yet.',
+    viewWiki: 'Open Wiki page',
+    viewCommit: 'View Git commit',
     editFormLegend: 'Edit Wiki page',
     editContent: 'Markdown content',
     editContentHint: 'Keep Markdown syntax; make sure the content is safe to publish.',

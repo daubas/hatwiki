@@ -2,12 +2,13 @@ import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 
 import { createD1ReceiptStore } from '../../lib/d1ReceiptStore.ts';
-import { handleEditRequest } from '../../lib/editHttp.ts';
+import { handleEditRequest, withEditLinks } from '../../lib/editHttp.ts';
 import { createEditPageService } from '../../lib/editPageService.ts';
 import { createGitHubAppAuth } from '../../lib/githubAppAuth.ts';
 import { createGitHubRepository } from '../../lib/githubRepository.ts';
 import { createR2Publisher } from '../../lib/r2Publisher.ts';
 import { readSessionCookie } from '../../lib/sessionCookie.ts';
+import { getSiteWiki } from '../../lib/siteWiki.ts';
 
 export const POST: APIRoute = async ({ request }) => {
   const actor = env.SESSION_SECRET ? await readSessionCookie(env.SESSION_SECRET, request.headers.get('Cookie')) : null;
@@ -30,5 +31,9 @@ export const POST: APIRoute = async ({ request }) => {
     publisher: createR2Publisher(env.HATWIKI_PUBLIC),
     policy: { protectedPaths: ['policies/**'], largeEditThreshold: 50_000 },
   });
-  return handleEditRequest(request, actor, service.edit);
+  const wiki = await getSiteWiki();
+  return handleEditRequest(request, actor, async (editActor, input) => {
+    if (!await wiki.readPage(input.pageId)) throw new Error('page_not_found');
+    return withEditLinks(await service.edit(editActor, input), input.pageId, request.url);
+  });
 };

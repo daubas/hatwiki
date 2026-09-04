@@ -28,6 +28,8 @@ export type EditReceipt = {
   status: 'committed' | 'conflict' | 'approval_required';
   revision?: string;
   candidateRevision?: string;
+  pageUrl?: string;
+  revisionUrl?: string;
 };
 
 export interface WikiRepository {

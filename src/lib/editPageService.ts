@@ -39,7 +39,7 @@ function isNonBlank(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
-function isCanonicalPageId(pageId: unknown): pageId is string {
+export function isCanonicalPageId(pageId: unknown): pageId is string {
   return isTrimmedNonEmpty(pageId)
     && !pageId.startsWith('/')
     && !/\.md$/i.test(pageId)

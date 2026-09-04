@@ -16,8 +16,8 @@ tags:
   - evidence-boundary
 status: draft
 generated:
-  by: xdxd-geo/gpt-5.6-luna
-  at: 2026-09-01T04:42:12.935252Z
+  by: codex/gpt-5.6-sol
+  at: 2026-09-03T17:47:39Z
 sources:
   - id: arxiv-agent2ucb
     resource: /raw/arxiv-agent2ucb-2026-09-01.md
@@ -26,13 +26,34 @@ sources:
     last_modified: 2026-09-01
 ---
 
-# 核心觀察
+## 這是什麼
+
+Agent2UCB 是一套讓 AI 依每份內容的實際評估結果，自行選擇下一種 GEO 改寫方法的研究系統。
+
+## 簡單想像
+
+像一位編輯面前有一盒改稿工具：它不會每次都照固定順序使用，而是一邊嘗試、一邊記住哪些工具對目前這份內容較有效，再決定下一步。
+
+## 三個重點
+
+- 系統把候選改寫策略視為可反覆選擇的工具，逐次比較結果。
+- dual-UCB controller 結合 LLM 的初始判斷與線上 visibility reward，在探索新工具和沿用有效工具之間取捨。
+- 論文報告的是指定 GEO-Bench／模擬流程結果，不能直接當成公開 AI Search 排名、引用或流量提升的證明。
+
+## 相關頁面
+
+- [Google 生成式 AI 搜尋的 GEO 研究基線](/concepts/google-search-generative-ai-optimization.md)
+- [生成式搜尋的證據利用與上下文預算配置](/methods/generative-search-evidence-utilization.md)
+
+## 詳細研究
+
+### 核心觀察
 
 Agent2UCB 是一個把 GEO 改寫工具選擇做成逐內容項目 agentic optimization 的原始研究系統。來源描述的輸入是 query 與多個網站 URL；系統抽取頁面文字，讓 LLM evaluator 以候選頁面回答 query，並以頁面被引用的頻率與位置形成來源自有的 GEO score，再對目標頁面執行 EEAT-R（Experience、Expertise、Authoritativeness、Trustworthiness、Readability）分析與改寫。[^arxiv-agent2ucb]
 
 來源文字稱每個 content item 評估九種 GEO strategies，並將工具視為 bandit arms。Agent2UCB 的 dual-UCB controller 把 tool-selection agent 的 LLM prior 與線上 visibility reward 結合，用於在探索與利用之間選擇下一個改寫工具。正文列出 authoritative rewriting、evidence injection、quote and citation、readability tuning 與 SEO-friendly structuring；圖 2 還出現 `credible_sources`、`fluent_quotes`、`technical_terms`、`authoritative`、`simple_language`、`original_stats`、`unique_words`、`seo_optimize` 等標籤。來源快照沒有把「九種」與所有可見名稱整理成完整 mapping，因此工具總表維持部分支持／部分 unresolved。[^arxiv-agent2ucb]
 
-## 來源報告的 benchmark／simulation 結果
+### 來源報告的 benchmark／simulation 結果
 
 Figure 2 的 rendered chart 標示平均 GEO score：category `23.0`、naive prompting `22.4`、agentic `32.3`、Agent2UCB `35.1`；圖中另有相對 baseline 的百分比註記。論文文字稱 dual-UCB 約在 15 iterations 內收斂，約比 exhaustive search 少 10 倍 LLM calls，同時達到 comparable or higher score。這些數值是來源指定 GEO-Bench／demo protocol 的 observational evidence，沒有 xdxd reproduction，也沒有公開引擎 live trace、完整 candidate pool、分母與不確定性資料。[^arxiv-agent2ucb]
 
@@ -49,11 +70,11 @@ Table I 的 text-only SEO readiness comparison 如下；這是來源自有 analy
 
 來源把結果解讀為 Agent2UCB 在該設定下提高整體 SEO score 與 EEAT credibility，但 readability 相對下降，topical coverage 高於 original 而低於 category baseline；這個解讀仍受來源的模型、prompt、資料、評分器與 benchmark protocol 限制。[^arxiv-agent2ucb]
 
-## xdxd 的 draft 研究用途
+### xdxd 的 draft 研究用途
 
 這份研究可補上[生成式搜尋的證據利用與上下文預算配置](/methods/generative-search-evidence-utilization.md)中「intervention selector」的候選設計：固定 query／candidate URLs／content snapshot 後，將每個改寫工具視為 arm，保存 LLM prior、每次 action、reward、tool output、content hash、GEO evaluator version 與 SEO side-effect vector，並以 unedited、category baseline、exhaustive-search、placebo／frozen arms 比較。若要測量公開 Web，還需把 `crawled`、`indexed`、`retrieved`、`used_in_answer`、`claim_supported`、`citation_entails`、`cited`、`shown`、`source_page_opened`、`referral` 與 `clicked` 分開保存。以上是依來源建立的 draft protocol inference，不是來源或平台正式規格。[^arxiv-agent2ucb]
 
-## Evidence boundary
+### Evidence boundary
 
 本頁是 `arXiv:2608.29063v1` 的 draft compiled finding。來源的 GEO evaluator 是以 LLM 在候選頁面上模擬回答與頁面 citation／visibility measurement，並非公開 Google AI Overviews、Perplexity、ChatGPT 或其他 AI Search 的內部 crawler、index、retrieval、ranking、citation entailment、source presentation、UI shown、referral 或 click measurement。來源的 GEO-Bench 數值、約 15 iterations、約 10× calls、SEO table 與「可部署」語言都不能直接轉成 xdxd 的公開 GEO uplift、流量、轉換、可靠性或安全性承諾。[^arxiv-agent2ucb]
 

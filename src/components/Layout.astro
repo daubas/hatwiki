@@ -29,7 +29,16 @@ const locale = getLocale(Astro.url);
         <nav class="language-switch" aria-label={t(locale, 'language')}>
           {LOCALES.map((item) => <a href={switchLocaleUrl(Astro.url, item)} aria-current={item === locale ? 'page' : undefined}>{item === 'zh-Hant' ? '繁' : 'EN'}</a>)}
         </nav>
-        <a class="account" href={withLocale('/auth/login', locale)}><span class="account-long">GitHub&nbsp;</span>{t(locale, 'login')} <span aria-hidden="true">↗</span></a>
+        <a
+          id="account-link"
+          class="account"
+          href={withLocale('/auth/login', locale)}
+          data-login-url={withLocale('/auth/login', locale)}
+          data-logout-url={withLocale('/auth/logout', locale)}
+          data-login-label={`GitHub ${t(locale, 'login')}`}
+          data-signed-in-label={t(locale, 'signedInAs')}
+          data-logout-label={t(locale, 'logout')}
+        ><span id="account-label"><span class="account-long">GitHub&nbsp;</span>{t(locale, 'login')}</span> <span aria-hidden="true">↗</span></a>
       </div>
     </header>
     <div class:list={['shell', { 'shell--with-aside': hasAside }]}>
@@ -38,6 +47,23 @@ const locale = getLocale(Astro.url);
     </div>
   </body>
 </html>
+
+<script>
+  const accountLink = document.querySelector<HTMLAnchorElement>('#account-link');
+  const accountLabel = document.querySelector<HTMLElement>('#account-label');
+  if (accountLink && accountLabel) {
+    fetch('/api/session')
+      .then((response) => response.json())
+      .then(({ actor }) => {
+        if (!actor?.login) return;
+        accountLink.href = accountLink.dataset.logoutUrl || '/auth/logout';
+        accountLink.title = accountLink.dataset.logoutLabel || 'Log out';
+        accountLink.dataset.authenticated = 'true';
+        accountLabel.textContent = `${accountLink.dataset.signedInLabel || 'Signed in'} · @${actor.login}`;
+      })
+      .catch(() => {});
+  }
+</script>
 
 <style is:global>
   :root { color-scheme:light; --bg:#f8f2e4; --panel:#fffdf7; --text:#171715; --muted:#635f56; --line:#171715; --accent:#2156df; --lime:#c8ff2d; --cobalt:#2156df; --soft:#e8e0d1; }

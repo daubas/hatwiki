@@ -3,6 +3,8 @@ import type { EditActor } from './editContracts.ts';
 const COOKIE_NAME = '__Host-hatwiki_session';
 const MAX_AGE = 24 * 60 * 60;
 
+export const clearSessionCookie = `${COOKIE_NAME}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`;
+
 function base64url(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
 }
