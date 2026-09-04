@@ -6,12 +6,12 @@ function json(value: unknown, status = 200): Response {
   return Response.json(value, { status, headers: { 'Cache-Control': 'no-store' } });
 }
 
-export function withEditLinks(receipt: EditReceipt, pageId: string, requestUrl: string): EditReceipt {
+export function withEditLinks(receipt: EditReceipt, pageId: string, requestUrl: string, repository: string): EditReceipt {
   const revision = receipt.revision ?? receipt.candidateRevision;
   return {
     ...receipt,
     pageUrl: `${new URL(requestUrl).origin}/wiki/${pageId.split('/').map(encodeURIComponent).join('/')}`,
-    ...(revision ? { revisionUrl: `https://github.com/daubas/hatwiki/commit/${encodeURIComponent(revision)}` } : {}),
+    ...(revision ? { revisionUrl: `https://github.com/${repository}/commit/${encodeURIComponent(revision)}` } : {}),
   };
 }
 

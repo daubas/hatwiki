@@ -112,13 +112,13 @@ test('rejects a cross-origin edit before parsing it', async () => {
 
 test('adds public page and GitHub revision links to edit receipts', () => {
   assert.deepEqual(
-    withEditLinks({ requestId: 'r1', status: 'conflict', candidateRevision: 'commit-1' }, 'concepts/hat wiki', 'https://hatwiki.test/api/edit'),
+    withEditLinks({ requestId: 'r1', status: 'conflict', candidateRevision: 'commit-1' }, 'concepts/hat wiki', 'https://hatwiki.test/api/edit', 'daubas/webmcp-okf'),
     {
       requestId: 'r1',
       status: 'conflict',
       candidateRevision: 'commit-1',
       pageUrl: 'https://hatwiki.test/wiki/concepts/hat%20wiki',
-      revisionUrl: 'https://github.com/daubas/hatwiki/commit/commit-1',
+      revisionUrl: 'https://github.com/daubas/webmcp-okf/commit/commit-1',
     },
   );
 });

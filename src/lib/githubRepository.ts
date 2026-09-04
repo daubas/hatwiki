@@ -11,6 +11,7 @@ export type GitHubRepositoryOptions = {
   owner: string;
   repo: string;
   branch: string;
+  contentRoot?: string;
   token: string;
   fetcher: GitHubFetcher;
 };
@@ -34,12 +35,12 @@ function wikiFileSegments(pageId: string): string[] {
   return [...segments, `${last}.md`];
 }
 
-function wikiPath(pageId: string): string {
-  return `contents/wiki/${encodeSegments(wikiFileSegments(pageId))}`;
+function wikiPath(pageId: string, contentRoot: string): string {
+  return `contents/${contentRoot ? `${encodeSegments(contentRoot.split('/'))}/` : ''}${encodeSegments(wikiFileSegments(pageId))}`;
 }
 
-function wikiRelativePath(pageId: string): string {
-  return `wiki/${wikiFileSegments(pageId).join('/')}`;
+function wikiRelativePath(pageId: string, contentRoot: string): string {
+  return `${contentRoot ? `${contentRoot}/` : ''}${wikiFileSegments(pageId).join('/')}`;
 }
 
 function candidateSegments(pageId: string, requestId: string): string[] {
@@ -160,9 +161,10 @@ export function createGitHubRepository(options: GitHubRepositoryOptions): WikiRe
     return null;
   };
 
+  const contentRoot = options.contentRoot ?? 'wiki';
   return {
     async readPage(pageId: string, ref = options.branch): Promise<RepositoryPage | null> {
-      const url = `${apiBase}/${wikiPath(pageId)}?ref=${encodeURIComponent(ref)}`;
+      const url = `${apiBase}/${wikiPath(pageId, contentRoot)}?ref=${encodeURIComponent(ref)}`;
       let response: GitHubResponse;
       try {
         response = await fetcher(url, { method: 'GET', headers });
@@ -193,7 +195,7 @@ export function createGitHubRepository(options: GitHubRepositoryOptions): WikiRe
     },
 
     async findRequestRevision(pageId: string, requestId: string, identity) {
-      const pagePath = wikiRelativePath(pageId);
+      const pagePath = wikiRelativePath(pageId, contentRoot);
       const candidateFilePath = candidateRelativePath(pageId, requestId);
       const pageRevision = await findCommitRevision(pagePath, requestId, identity);
       if (pageRevision) return { kind: 'page' as const, revision: pageRevision };
@@ -203,7 +205,7 @@ export function createGitHubRepository(options: GitHubRepositoryOptions): WikiRe
     },
 
     async commitPage(input: { pageId: string; baseSha: string; content: string; message: string }) {
-      return putContent(fetcher, `${apiBase}/${wikiPath(input.pageId)}`, headers, {
+      return putContent(fetcher, `${apiBase}/${wikiPath(input.pageId, contentRoot)}`, headers, {
         message: input.message,
         content: encodeBase64Utf8(input.content),
         branch: options.branch,

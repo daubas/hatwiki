@@ -6,6 +6,11 @@
   "observability": {
     "enabled": true
   },
+  "vars": {
+    "WIKI_REPO": "daubas/webmcp-okf",
+    "WIKI_REF": "main",
+    "WIKI_ROOT": "."
+  },
   "d1_databases": [{
     "binding": "HATWIKI_STATE",
     "database_name": "hatwiki-state",

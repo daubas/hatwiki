@@ -45,6 +45,27 @@ test('readPage returns null for a missing GitHub file', async () => {
   assert.equal(await repository.readPage('missing/page'), null);
 });
 
+test('reads and writes a knowledge bundle at the repository root', async () => {
+  const requestedUrls: string[] = [];
+  const repository = createGitHubRepository({
+    owner: 'acme', repo: 'knowledge', branch: 'main', contentRoot: '', token: 'secret-token',
+    fetcher: async (url, init) => {
+      requestedUrls.push(url);
+      return init.method === 'GET'
+        ? new Response(JSON.stringify({ sha: 'page-sha', content: 'SGVsbG8=' }), { status: 200 })
+        : new Response(JSON.stringify({ commit: { sha: 'commit-sha' } }), { status: 201 });
+    },
+  });
+
+  await repository.readPage('concepts/webmcp');
+  await repository.commitPage({ pageId: 'concepts/webmcp', baseSha: 'page-sha', content: 'Updated', message: 'Update' });
+
+  assert.deepEqual(requestedUrls, [
+    'https://api.github.com/repos/acme/knowledge/contents/concepts/webmcp.md?ref=main',
+    'https://api.github.com/repos/acme/knowledge/contents/concepts/webmcp.md',
+  ]);
+});
+
 test('commitPage writes the canonical wiki file with its base SHA', async () => {
   const calls: Array<{ url: string; init: RequestInit }> = [];
   const repository = createGitHubRepository({
