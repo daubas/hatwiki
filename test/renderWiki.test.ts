@@ -48,3 +48,14 @@ test('renders private source citations as non-clickable references', async () =>
   assert.match(html, /<span class="source-unavailable">\[source-task-1\]<\/span>/);
   assert.doesNotMatch(html, /href="Private note/);
 });
+
+test('renders OKF source footnotes as readable references instead of raw Markdown', async () => {
+  const html = await renderWiki(
+    'HatWiki is Git-native.[^hatwiki-readme]\n\n[^hatwiki-readme]: [HatWiki README](https://github.com/daubas/hatwiki/blob/main/README.md).',
+  );
+
+  assert.match(html, /class="citation-ref"/);
+  assert.match(html, /class="citation-definition"/);
+  assert.match(html, /href="https:\/\/github\.com\/daubas\/hatwiki\/blob\/main\/README\.md"/);
+  assert.doesNotMatch(html, /\[\^hatwiki-readme\]/);
+});

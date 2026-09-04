@@ -9,6 +9,39 @@ const marked = new Marked({
   },
   extensions: [
     {
+      name: 'citationDefinition',
+      level: 'block',
+      start: (source) => source.search(/^\[\^(?!source-)[A-Za-z0-9_-]+\]:/m),
+      tokenizer(source) {
+        const match = /^\[\^((?!source-)[A-Za-z0-9_-]+)\]:[ \t]*(.+)(?:\n|$)/.exec(source);
+        if (!match) return undefined;
+        return {
+          type: 'citationDefinition',
+          raw: match[0],
+          citationId: match[1],
+          tokens: this.lexer.inlineTokens(match[2]),
+        };
+      },
+      renderer(token) {
+        const citationId = String(token.citationId);
+        return `<p class="citation-definition"><strong>[${citationId}]</strong> ${this.parser.parseInline(token.tokens)}</p>\n`;
+      },
+    },
+    {
+      name: 'citationReference',
+      level: 'inline',
+      start: (source) => source.indexOf('[^'),
+      tokenizer(source) {
+        const match = /^\[\^((?!source-)[A-Za-z0-9_-]+)\](?!:)/.exec(source);
+        if (!match) return undefined;
+        return { type: 'citationReference', raw: match[0], citationId: match[1] };
+      },
+      renderer(token) {
+        const citationId = String(token.citationId);
+        return `<sup class="citation-ref">[${citationId}]</sup>`;
+      },
+    },
+    {
       name: 'privateSourceCitation',
       level: 'inline',
       start: (source) => source.indexOf('[^source-'),
@@ -69,7 +102,9 @@ export async function renderWiki(markdown: string, pageId?: string): Promise<str
     allowedAttributes: {
       a: ['href'],
       img: ['src', 'alt', 'title'],
+      p: ['class'],
       span: ['class'],
+      sup: ['class'],
     },
     allowedSchemes: ['http', 'https', 'mailto'],
     disallowedTagsMode: 'escape',

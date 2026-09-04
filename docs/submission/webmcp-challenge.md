@@ -84,7 +84,7 @@ history.
 The final video is governed by the recorded-course artifacts in
 [`docs/submission/video-flow/`](video-flow/). The machine-authoritative paper
 edit is [`paper-edit.json`](video-flow/paper-edit.json); its generated human
-review is [`generated/v0.5-paper-edit.md`](video-flow/generated/v0.5-paper-edit.md).
+review is [`generated/v0.6-paper-edit.md`](video-flow/generated/v0.6-paper-edit.md).
 
 The 2:40 video is a compact five-beat course flow with one outcome:
 
@@ -149,5 +149,5 @@ exist.
 HatWiki began as a Git-native Wiki experiment. The competition-period work
 extends it with browser-native WebMCP registration, public projection and read
 APIs, GitHub-session-bound editing, private D1 text-source handoff,
-revision-safe Git/R2 publication, the interactive graph, and the GEO knowledge
-demo.
+revision-safe Git/R2 publication, the interactive graph, and the current WebMCP
+knowledge demo.

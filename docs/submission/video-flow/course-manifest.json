@@ -5,15 +5,15 @@
   "build_state": "state/build-state.json",
   "paper_edit": {
     "source": "paper-edit.json",
-    "markdown": "generated/v0.5-paper-edit.md",
-    "resolve_cutlist": "generated/v0.5-cutlist.json"
+    "markdown": "generated/v0.6-paper-edit.md",
+    "resolve_cutlist": "generated/v0.6-cutlist.json"
   },
   "stages": [
     {
       "id": "paper-edit",
       "depends_on": [],
       "inputs": ["paper-edit.json"],
-      "outputs": ["generated/v0.5-paper-edit.md", "generated/v0.5-cutlist.json"],
+      "outputs": ["generated/v0.6-paper-edit.md", "generated/v0.6-cutlist.json"],
       "heavy": false,
       "gate": {
         "status": "pending",

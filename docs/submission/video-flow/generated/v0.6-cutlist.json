@@ -1,0 +1,37 @@
+{
+  "assets": [],
+  "items": [
+    {
+      "duration": "00:00:20",
+      "name": "beat-00: English opening and outcome pickup (planned)",
+      "type": "gap"
+    },
+    {
+      "duration": "00:00:25",
+      "name": "beat-01: English source and task setup pickup (planned)",
+      "type": "gap"
+    },
+    {
+      "duration": "00:00:35",
+      "name": "beat-02: English WebMCP source-handoff pickup (planned)",
+      "type": "gap"
+    },
+    {
+      "duration": "00:00:45",
+      "name": "beat-03: English inspection, authorization, and write-path pickup (planned)",
+      "type": "gap"
+    },
+    {
+      "duration": "00:00:35",
+      "name": "beat-04: English fresh-session validation and closing pickup (planned)",
+      "type": "gap"
+    }
+  ],
+  "timeline": {
+    "fps": 30,
+    "height": 1080,
+    "name": "hatwiki-webmcp-demo",
+    "width": 1920
+  },
+  "version": "0.6-proposal"
+}

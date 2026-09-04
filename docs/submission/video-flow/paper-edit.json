@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "version": "0.5-proposal",
+  "version": "0.6-proposal",
   "status": "proposed",
   "metadata": {
     "competition": "Open WebMCP Challenge",
@@ -72,10 +72,10 @@
       "visual_slots": [
         {
           "id": "visual-01",
-          "name": "Agent2UCB page, source declaration, and citation context",
+          "name": "HatWiki page, source declaration, and citation context",
           "availability": "planned",
           "role": "illustration",
-          "production_method": "Capture the public Wiki index, Agent2UCB page, source declaration, citation, and table of contents without showing the source body.",
+          "production_method": "Capture the public Wiki index, HatWiki page, source declaration, citation, and table of contents without showing the source body.",
           "duration": "00:00:25",
           "acceptance": "The selected page is visibly existing and source-aware, while private source text and account details remain absent or redacted."
         }
@@ -88,7 +88,7 @@
       "chapter_id": "02",
       "chapter_title": "Agent discovery and source handoff",
       "teaching_purpose": "Prove that the signed-in browser Agent uses the WebMCP source, status, search, and read tools before proposing a cited change.",
-      "spoken_content": "The Agent uses add_source to create the authorized private task, then get_ingestion_status to read its owner-scoped, untrusted text. It uses search_wiki and read_page to find the existing Agent2UCB page and its evidence boundary instead of guessing from temporary conversation context.",
+      "spoken_content": "The Agent uses add_source to create the authorized private task, then get_ingestion_status to read its owner-scoped, untrusted text. It uses search_wiki and read_page to find the existing HatWiki page and its publication boundary instead of guessing from temporary conversation context.",
       "narration_spine": {
         "name": "English WebMCP source-handoff pickup",
         "availability": "planned",
