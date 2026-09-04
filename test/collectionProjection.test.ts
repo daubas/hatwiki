@@ -7,7 +7,7 @@ test('projects a public collection entry into a public snapshot', async () => {
     {
       id: 'guides/overview',
       body: '# Overview',
-      data: { title: 'Overview' },
+      data: { title: 'Overview', description: 'A plain-language overview.' },
     },
   ]);
 
@@ -17,6 +17,7 @@ test('projects a public collection entry into a public snapshot', async () => {
       {
         pageId: 'guides/overview',
         title: 'Overview',
+        description: 'A plain-language overview.',
         markdown: '# Overview',
       },
     ],

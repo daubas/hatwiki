@@ -7,11 +7,11 @@ type R2Like = {
   get(key: string): Promise<{ json<T>(): Promise<T> } | null>;
 };
 
-function valid(page: unknown, key: string): page is PublishedPage {
+function valid(page: unknown, key: string, prefix: string): page is PublishedPage {
   if (!page || typeof page !== 'object') return false;
   const value = page as Record<string, unknown>;
   return typeof value.pageId === 'string'
-    && key === `published/pages/${value.pageId}.json`
+    && key === `${prefix}${value.pageId}.json`
     && !value.pageId.split('/').some((part) => !part || part === '.' || part === '..')
     && typeof value.content === 'string'
     && isPublicMarkdown(value.pageId, value.content)
@@ -22,9 +22,11 @@ function valid(page: unknown, key: string): page is PublishedPage {
 function project(page: PublishedPage): PublicPage {
   const frontmatter = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)([\s\S]*)$/.exec(page.content);
   const title = frontmatter?.[1].match(/^title:\s*["']?(.+?)["']?\s*$/m)?.[1] || page.pageId;
+  const description = frontmatter?.[1].match(/^description:\s*["']?(.+?)["']?\s*$/m)?.[1];
   return {
     pageId: page.pageId,
     title,
+    ...(description ? { description } : {}),
     markdown: frontmatter?.[2] ?? page.content,
   };
 }
@@ -36,18 +38,19 @@ export async function overlayRevision(baseRevision: string, pages: PublishedPage
   return `r2-${[...new Uint8Array(digest)].slice(0, 8).map((byte) => byte.toString(16).padStart(2, '0')).join('')}`;
 }
 
-export function createR2OverlayProjection(base: PublicProjection, bucket: R2Like): PublicProjection {
+export function createR2OverlayProjection(base: PublicProjection, bucket: R2Like, namespace = ''): PublicProjection {
+  const prefix = namespace ? `published/${encodeURIComponent(namespace)}/pages/` : 'published/pages/';
   return {
     async readSnapshot() {
       const snapshot = await base.readSnapshot();
       // ponytail: one R2 list page supports the first 1,000 overrides; paginate when a Wiki reaches that size.
-      const listed = await bucket.list({ prefix: 'published/pages/', limit: 1000 });
+      const listed = await bucket.list({ prefix, limit: 1000 });
       const pages = new Map(snapshot.pages.map((page) => [page.pageId, page]));
       const published: PublishedPage[] = [];
       for (const { key } of listed.objects) {
         const object = await bucket.get(key);
         const value = object ? await object.json<unknown>() : null;
-        if (valid(value, key)) {
+        if (valid(value, key, prefix) && pages.has(value.pageId)) {
           pages.set(value.pageId, project(value));
           published.push(value);
         }

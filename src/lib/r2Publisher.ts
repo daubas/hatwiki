@@ -22,16 +22,18 @@ function canonical(pageId: string): boolean {
     && pageId.split('/').every((part) => part !== '' && part !== '.' && part !== '..');
 }
 
-export async function readR2Page(bucket: R2ReaderLike, pageId: string): Promise<PublishedPage | null> {
+export async function readR2Page(bucket: R2ReaderLike, pageId: string, namespace = ''): Promise<PublishedPage | null> {
   if (!canonical(pageId)) return null;
-  const object = await bucket.get(`published/pages/${pageId}.json`);
+  const prefix = namespace ? `published/${encodeURIComponent(namespace)}/pages/` : 'published/pages/';
+  const object = await bucket.get(`${prefix}${pageId}.json`);
   return object ? object.json<PublishedPage>() : null;
 }
 
-export function createR2Publisher(bucket: R2BucketLike): PublicPublisher {
+export function createR2Publisher(bucket: R2BucketLike, namespace = ''): PublicPublisher {
+  const prefix = namespace ? `published/${encodeURIComponent(namespace)}/pages/` : 'published/pages/';
   return {
     async publish({ revision, previousSha, baseSha, pageId, content }) {
-      const pageKey = `published/pages/${pageId}.json`;
+      const pageKey = `${prefix}${pageId}.json`;
       const currentObject = await bucket.get(pageKey);
       const current = currentObject ? await currentObject.json<PublishedPage>() : null;
       if (current?.revision === revision && current.baseSha === baseSha && current.content === content) return { revision };
@@ -44,7 +46,7 @@ export function createR2Publisher(bucket: R2BucketLike): PublicPublisher {
         customMetadata: { revision },
       });
       if (!written) throw new Error('publisher_conflict');
-      const readback = await readR2Page(bucket, pageId);
+      const readback = await readR2Page(bucket, pageId, namespace);
       if (!readback
         || readback.pageId !== pageId
         || readback.revision !== revision

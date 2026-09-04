@@ -42,9 +42,29 @@ const marked = new Marked({
   ],
 });
 
-export async function renderWiki(markdown: string): Promise<string> {
+function routeRelativeMarkdownLinks(html: string, pageId?: string): string {
+  if (!pageId) return html;
+  const base = pageId.split('/').slice(0, -1);
+
+  return html.replace(/(<a href=")([^"?#]+\.md)([?#][^"]*)?("[^>]*>)/g, (match, before, href, suffix = '', after) => {
+    if (href.startsWith('/') || /^[a-z][a-z\d+.-]*:/i.test(href) || href.startsWith('//')) return match;
+    const segments = [...base];
+    for (const segment of href.split('/')) {
+      if (!segment || segment === '.') continue;
+      if (segment === '..') {
+        if (!segments.pop()) return match;
+      } else {
+        segments.push(segment);
+      }
+    }
+    segments[segments.length - 1] = segments.at(-1)!.replace(/\.md$/i, '');
+    return `${before}/wiki/${segments.map(encodeURIComponent).join('/')}${suffix}${after}`;
+  });
+}
+
+export async function renderWiki(markdown: string, pageId?: string): Promise<string> {
   const rendered = await marked.parse(markdown);
-  return sanitizeHtml(rendered, {
+  return routeRelativeMarkdownLinks(sanitizeHtml(rendered, {
     allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img']),
     allowedAttributes: {
       a: ['href'],
@@ -53,7 +73,7 @@ export async function renderWiki(markdown: string): Promise<string> {
     },
     allowedSchemes: ['http', 'https', 'mailto'],
     disallowedTagsMode: 'escape',
-  }).replace(/<a href="\/wiki\/raw\/[^"]*">([\s\S]*?)<\/a>/g, '<span class="source-unavailable">$1</span>');
+  }), pageId).replace(/<a href="\/wiki\/(?:raw|extracted)\/[^"]*">([\s\S]*?)<\/a>/g, '<span class="source-unavailable">$1</span>');
 }
 
 export function hasVisiblePrivateSourceCitation(markdown: string, citationId: string): boolean {

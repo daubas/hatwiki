@@ -17,12 +17,12 @@ test('publish stores the page with a conditional write and returns the same revi
     },
   };
 
-  const publisher = createR2Publisher(bucket);
+  const publisher = createR2Publisher(bucket, 'daubas/webmcp-okf');
 
   assert.deepEqual(await publisher.publish({ revision: 'rev-1', previousSha: 'blob-before', baseSha: 'blob-1', pageId: 'concepts/hatwiki', content: '# HatWiki' }), { revision: 'rev-1' });
   assert.deepEqual(calls, [
     {
-      key: 'published/pages/concepts/hatwiki.json',
+      key: 'published/daubas%2Fwebmcp-okf/pages/concepts/hatwiki.json',
       value: JSON.stringify({ pageId: 'concepts/hatwiki', content: '# HatWiki', revision: 'rev-1', baseSha: 'blob-1' }),
       options: {
         onlyIf: { etagDoesNotMatch: '*' },
@@ -59,10 +59,10 @@ test('reads an edited page from the public projection', async () => {
     },
   };
 
-  assert.deepEqual(await readR2Page(bucket, 'concepts/hatwiki'), {
+  assert.deepEqual(await readR2Page(bucket, 'concepts/hatwiki', 'daubas/webmcp-okf'), {
     pageId: 'concepts/hatwiki', content: '# HatWiki', revision: 'rev-1', baseSha: 'blob-1',
   });
-  assert.deepEqual(keys, ['published/pages/concepts/hatwiki.json']);
+  assert.deepEqual(keys, ['published/daubas%2Fwebmcp-okf/pages/concepts/hatwiki.json']);
   assert.equal(await readR2Page({ get: async () => null }, 'missing'), null);
   assert.equal(await readR2Page({ get: async () => { throw new Error('unexpected'); } }, '../secret'), null);
 });

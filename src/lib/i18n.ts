@@ -13,6 +13,7 @@ export interface UiMessages {
   signedInAs: string;
   language: string;
   primaryNavigation: string;
+  breadcrumbs: string;
   home: string;
   tagline: string;
   wikiIndexTitle: string;
@@ -118,6 +119,7 @@ export const ui: Record<Locale, UiMessages> = {
     signedInAs: '已登入',
     language: '語言',
     primaryNavigation: '主要導覽',
+    breadcrumbs: '麵包屑導覽',
     home: 'HatWiki 首頁',
     tagline: '人與 Agent 共同編織',
     wikiIndexTitle: 'Wiki 索引',
@@ -221,6 +223,7 @@ export const ui: Record<Locale, UiMessages> = {
     signedInAs: 'Signed in',
     language: 'Language',
     primaryNavigation: 'Primary navigation',
+    breadcrumbs: 'Breadcrumb',
     home: 'HatWiki homepage',
     tagline: 'Humans and Agents Together',
     wikiIndexTitle: 'Wiki index',

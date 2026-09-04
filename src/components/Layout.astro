@@ -88,6 +88,7 @@ const locale = getLocale(Astro.url);
   .shell--with-aside { display:grid; width:min(calc(100% - 48px), 1120px); grid-template-columns:minmax(0,1fr) 230px; gap:48px; }
   .home-page .shell, .graph-page .shell { width:min(calc(100% - 48px), 1320px); }
   body.home-page { --bg:#09111a; --panel:#101c27; --text:#f5f2e8; --muted:#a8b2b8; --line:#40505c; --accent:#8ae6ff; --cobalt:#8ae6ff; --lime:#d6ff4a; --soft:#182733; background-image:linear-gradient(rgb(138 230 255 / .055) 1px,transparent 1px),linear-gradient(90deg,rgb(138 230 255 / .055) 1px,transparent 1px); background-size:40px 40px; }
+  body.reading-page { background-image:none; }
   .home-page .site-header { border-color:var(--line); background:rgb(9 17 26 / .92); backdrop-filter:blur(14px); }
   .home-page .account { border-color:var(--lime); background:transparent; color:var(--lime); box-shadow:none; }
   .graph-page .shell { padding-top:38px; }
@@ -102,14 +103,14 @@ const locale = getLocale(Astro.url);
   .tags { display:flex; flex-wrap:wrap; gap:6px; margin:16px 0; }
   .tags span { border:1px solid var(--line); background:var(--lime); border-radius:0; padding:4px 9px; font-size:.78rem; }
   @media (max-width:760px) {
-    .site-header { grid-template-columns:minmax(0,1fr) auto; gap:10px; padding:11px 16px 14px; }
-    .brand { grid-column:1; grid-row:1; }
+    .site-header { display:block; padding:11px 16px 14px; }
+    .brand { min-height:46px; }
     .tagline { display:none; }
-    .primary-nav { grid-column:1 / -1; grid-row:2; display:grid; width:100%; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
-    .header-actions { grid-column:2; grid-row:1; }
+    .primary-nav { display:grid; width:100%; min-width:0; margin-top:10px; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
+    .header-actions { position:absolute; top:11px; right:16px; }
     .account { min-width:72px; padding-inline:8px; }
     .account-long { display:none; }
-    .primary-nav a, .account { min-height:46px; }
+    .primary-nav a, .account { min-height:46px; padding-inline:7px; }
     .shell, .shell--with-aside, .home-page .shell, .graph-page .shell { display:block; width:min(calc(100% - 32px), 1320px); padding:30px 0 56px; }
     aside { margin-top:36px; border-top:2px solid var(--line); border-left:0; padding:20px 0 0; }
   }

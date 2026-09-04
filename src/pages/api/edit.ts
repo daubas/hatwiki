@@ -37,7 +37,7 @@ export const POST: APIRoute = async ({ request }) => {
   const service = createEditPageService({
     repository: createGitHubRepository({ ...repositoryConfig, token: installation.token, fetcher: fetch }),
     receipts: createD1ReceiptStore(env.HATWIKI_STATE),
-    publisher: createR2Publisher(env.HATWIKI_PUBLIC),
+    publisher: createR2Publisher(env.HATWIKI_PUBLIC, env.WIKI_REPO),
     policy: { protectedPaths: ['policies/**'], largeEditThreshold: 50_000 },
   });
   const wiki = await getSiteWiki();

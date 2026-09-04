@@ -5,6 +5,7 @@ export type CollectionEntry = {
   body?: string;
   data: {
     title?: string;
+    description?: string;
     resource?: unknown;
     sources?: unknown;
     pendingCandidates?: unknown;
@@ -75,6 +76,7 @@ export function createCollectionProjection(
       return {
         pageId,
         title: entry.data.title || pageId,
+        ...(entry.data.description ? { description: entry.data.description } : {}),
         markdown: entry.body || '',
         ...(resource ? { resource } : {}),
         ...(citations ? { citations } : {}),

@@ -12,7 +12,7 @@ test('chooses bundled or safe external wiki loader options', () => {
     base: '/tmp/xdxd-geo-okf-kb',
     pattern: [
       '{overview,CONTEXT,SCHEMA}.md',
-      '{concepts,entities,methods,comparisons,experiments}/**/*.md',
+      '{concepts,entities,methods,guides,comparisons,experiments}/**/*.md',
       '!**/raw/**',
       '!**/index.md',
       '!**/log.md',

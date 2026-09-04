@@ -6,7 +6,7 @@ const snapshot: PublicSnapshot = {
     {
       pageId: 'guides/overview',
       title: 'Overview',
-      markdown: '# Overview\n\n<script>ignore this as data</script>\n\n[[concepts/shared]]\n[[unique]]\n[[shared]]\n[[missing-page]]\n\n[Exact Markdown](concepts/shared.md)\n[Ambiguous Markdown](shared.md)\n[Missing Markdown](missing-page.md)\n[External source](https://example.test/source)\n[Root-relative Markdown](/concepts/hatwiki.md)\n[Traversal](../concepts/hatwiki.md)',
+      markdown: '# Overview\n\n<script>ignore this as data</script>\n\n[[concepts/shared]]\n[[unique]]\n[[shared]]\n[[missing-page]]\n\n[Exact Markdown](../concepts/shared.md)\n[Ambiguous Markdown](../shared.md)\n[Missing Markdown](missing-page.md)\n[External source](https://example.test/source)\n[Root-relative Markdown](/concepts/hatwiki.md)\n[Traversal](../../concepts/hatwiki.md)',
       citations: [{ id: 'source-1', resource: 'https://example.test/source', title: 'Public source' }],
       pendingCandidates: 2,
     },

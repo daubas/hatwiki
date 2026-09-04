@@ -14,18 +14,26 @@ function resolveLink(target: string, pages: PublicPage[]): LinkResolution {
   return { target, status: 'unresolved' };
 }
 
-function normalizeMarkdownTarget(target: string): string | null {
+function normalizeMarkdownTarget(target: string, pageId: string): string | null {
   const path = target.split(/[?#]/, 1)[0];
   if (!path || /^[a-z][a-z\d+.-]*:/i.test(path) || path.startsWith('//')) return null;
-  if (path.split('/').includes('..')) return null;
-  const normalized = path.replace(/^\/+/, '').replace(/\.md$/i, '');
+  const segments = path.startsWith('/') ? [] : pageId.split('/').slice(0, -1);
+  for (const segment of path.replace(/^\/+/, '').split('/')) {
+    if (!segment || segment === '.') continue;
+    if (segment === '..') {
+      if (!segments.pop()) return null;
+    } else {
+      segments.push(segment);
+    }
+  }
+  const normalized = segments.join('/').replace(/\.md$/i, '');
   if (normalized === 'raw' || normalized.startsWith('raw/') || normalized === 'extracted' || normalized.startsWith('extracted/')) return null;
   return normalized;
 }
 
 function linksFor(page: PublicPage, pages: PublicPage[]): LinkResolution[] {
   return [...page.markdown.matchAll(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]|(?<!!)\[[^\]]*\]\(([^)\s]+)\)/g)]
-    .map((match) => match[1]?.trim() ?? normalizeMarkdownTarget(match[2] ?? ''))
+    .map((match) => match[1]?.trim() ?? normalizeMarkdownTarget(match[2] ?? '', page.pageId))
     .filter((target): target is string => target !== null)
     .map((target) => resolveLink(target, pages));
 }
@@ -63,6 +71,11 @@ export function createPublicWiki(projection: PublicProjection) {
       if (!page) return null;
 
       const links = linksFor(page, snapshot.pages);
+      const linkedPages = [...new Set(links.flatMap((link) => link.status === 'resolved' && link.pageId ? [link.pageId] : []))]
+        .flatMap((linkedPageId) => {
+          const linkedPage = snapshot.pages.find((candidate) => candidate.pageId === linkedPageId);
+          return linkedPage ? [{ pageId: linkedPage.pageId, title: linkedPage.title }] : [];
+        });
       // ponytail: scans the current snapshot; add a per-revision link index if public wikis grow large.
       const backlinkPages = snapshot.pages
         .filter((candidate) => candidate.pageId !== pageId)
@@ -70,7 +83,7 @@ export function createPublicWiki(projection: PublicProjection) {
         .map((candidate) => ({ pageId: candidate.pageId, title: candidate.title }));
       const backlinks = backlinkPages.map((candidate) => candidate.pageId);
 
-      return { ...page, revision: snapshot.revision, links, backlinks, backlinkPages };
+      return { ...page, revision: snapshot.revision, links, linkedPages, backlinks, backlinkPages };
     },
   };
 }

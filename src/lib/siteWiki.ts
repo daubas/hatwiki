@@ -7,7 +7,7 @@ import { createR2OverlayProjection } from './r2OverlayProjection.ts';
 
 async function getProjection() {
   const entries = await getCollection('wiki');
-  return createR2OverlayProjection(createCollectionProjection('local-fixture', entries), env.HATWIKI_PUBLIC);
+  return createR2OverlayProjection(createCollectionProjection('local-fixture', entries), env.HATWIKI_PUBLIC, env.WIKI_REPO);
 }
 
 export async function getSiteWiki() {

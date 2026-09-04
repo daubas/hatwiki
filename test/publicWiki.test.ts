@@ -13,6 +13,7 @@ test('readPage returns a canonical page with its revision, citations, candidates
   assert.deepEqual(page.citations, [{ id: 'source-1', resource: 'https://example.test/source', title: 'Public source' }]);
   assert.equal(page.pendingCandidates, 2);
   assert.deepEqual(page.links[0], { target: 'concepts/shared', status: 'resolved', pageId: 'concepts/shared' });
+  assert.deepEqual(page.linkedPages[0], { pageId: 'concepts/shared', title: 'Shared concept' });
 });
 
 test('readPage resolves a bare WikiLink only when its basename is unique', async () => {
@@ -87,7 +88,7 @@ test('readPage normalizes internal Markdown paths and applies the WikiLink ambig
   assert.deepEqual(markdownLinks[0], { target: 'concepts/shared', status: 'resolved', pageId: 'concepts/shared' });
   assert.equal(markdownLinks[1].status, 'ambiguous');
   assert.deepEqual([...markdownLinks[1].candidates ?? []].sort(), ['archive/shared', 'concepts/shared']);
-  assert.deepEqual(markdownLinks[2], { target: 'missing-page', status: 'unresolved' });
+  assert.deepEqual(markdownLinks[2], { target: 'guides/missing-page', status: 'unresolved' });
   assert.equal(markdownLinks.some((link) => link.target === 'https://example.test/source'), false);
 });
 
