@@ -118,7 +118,11 @@ export function createGitHubRepository(options: GitHubRepositoryOptions): WikiRe
     'X-GitHub-Api-Version': '2022-11-28',
   };
 
-  const findCommitRevision = async (relativePath: string, requestId: string): Promise<string | null> => {
+  const findCommitRevision = async (
+    relativePath: string,
+    requestId: string,
+    identity?: { actorUserId: number; sourceTaskId?: string },
+  ): Promise<string | null> => {
     const url = `${apiBase}/commits?path=${encodeURIComponent(relativePath)}&sha=${encodeURIComponent(options.branch)}&per_page=100`;
     let response: GitHubResponse;
     try {
@@ -138,14 +142,17 @@ export function createGitHubRepository(options: GitHubRepositoryOptions): WikiRe
       throw new Error('GitHub response was invalid');
     }
     if (!Array.isArray(payload)) throw new Error('GitHub response was invalid');
-    const trailer = `HatWiki-Request-ID: ${requestId}`;
+    const trailers = [`HatWiki-Request-ID: ${requestId}`];
+    if (identity) trailers.push(`HatWiki-User-ID: ${identity.actorUserId}`);
+    if (identity?.sourceTaskId) trailers.push(`HatWiki-Source-Task: ${identity.sourceTaskId}`);
     for (const entry of payload) {
       if (
         entry && typeof entry === 'object' &&
         typeof (entry as { sha?: unknown }).sha === 'string' &&
         (entry as { commit?: unknown }).commit &&
         typeof (entry as { commit: { message?: unknown } }).commit.message === 'string' &&
-        (entry as { commit: { message: string } }).commit.message.split(/\r?\n/).includes(trailer)
+        trailers.every((trailer) => (entry as { commit: { message: string } }).commit.message.split(/\r?\n/).includes(trailer))
+        && (!identity || identity.sourceTaskId !== undefined || !(entry as { commit: { message: string } }).commit.message.split(/\r?\n/).some((line) => line.startsWith('HatWiki-Source-Task: ')))
       ) {
         return (entry as { sha: string }).sha;
       }
@@ -185,12 +192,12 @@ export function createGitHubRepository(options: GitHubRepositoryOptions): WikiRe
       return { sha: file.sha, content: decodeBase64Utf8(file.content) };
     },
 
-    async findRequestRevision(pageId: string, requestId: string) {
+    async findRequestRevision(pageId: string, requestId: string, identity) {
       const pagePath = wikiRelativePath(pageId);
       const candidateFilePath = candidateRelativePath(pageId, requestId);
-      const pageRevision = await findCommitRevision(pagePath, requestId);
+      const pageRevision = await findCommitRevision(pagePath, requestId, identity);
       if (pageRevision) return { kind: 'page' as const, revision: pageRevision };
-      const candidateRevision = await findCommitRevision(candidateFilePath, requestId);
+      const candidateRevision = await findCommitRevision(candidateFilePath, requestId, identity);
       if (candidateRevision) return { kind: 'candidate' as const, revision: candidateRevision };
       return null;
     },

@@ -202,6 +202,18 @@ test('findRequestRevision returns the first page commit with an exact request tr
   assert.equal(calls[0].init.headers && (calls[0].init.headers as Record<string, string>)['X-GitHub-Api-Version'], '2022-11-28');
 });
 
+test('findRequestRevision recovery requires the exact actor and source task trailers', async () => {
+  const repository = createGitHubRepository({
+    owner: 'acme', repo: 'hatwiki', branch: 'main', token: 'secret-token',
+    fetcher: async () => new Response(JSON.stringify([
+      { sha: 'wrong-actor', commit: { message: 'Edit\n\nHatWiki-User-ID: 99\nHatWiki-Request-ID: request-1\nHatWiki-Source-Task: task-1' } },
+      { sha: 'missing-source', commit: { message: 'Edit\n\nHatWiki-User-ID: 7\nHatWiki-Request-ID: request-1' } },
+      { sha: 'exact', commit: { message: 'Edit\n\nHatWiki-User-ID: 7\nHatWiki-Request-ID: request-1\nHatWiki-Source-Task: task-1' } },
+    ]), { status: 200 }),
+  });
+  assert.deepEqual(await repository.findRequestRevision('concepts/hatwiki', 'request-1', { actorUserId: 7, sourceTaskId: 'task-1' }), { kind: 'page', revision: 'exact' });
+});
+
 test('findRequestRevision falls back to the deterministic candidate path', async () => {
   const calls: Array<{ url: string; init: RequestInit }> = [];
   const repository = createGitHubRepository({

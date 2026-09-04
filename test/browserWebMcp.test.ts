@@ -62,6 +62,32 @@ test('registers edit_page as an authorization-gated write through the session AP
   }]);
 });
 
+test('registers the Gate B source tools only for authenticated sessions', async () => {
+  const registered: any[] = [];
+  const requests: Array<{ url: string; init?: RequestInit }> = [];
+  const modelContext = { registerTool: async (tool: any) => registered.push(tool) };
+  const fetchJson = async (url: string, init?: RequestInit) => {
+    requests.push({ url, init });
+    return { ok: true, json: async () => ({ url }) } as Response;
+  };
+
+  await registerBrowserReadTools(modelContext, fetchJson, 'authenticated');
+  assert.deepEqual(registered.map(({ name }) => name), ['search_wiki', 'read_page', 'edit_page', 'add_source', 'get_ingestion_status', 'inspect_changes']);
+  assert.equal(registered[2].inputSchema.properties.sourceTaskId.type, 'string');
+  const addInput = { requestId: 'source-1', title: 'Note', content: 'Body', targetPageId: 'concepts/hatwiki', authorizationConfirmed: true };
+  assert.deepEqual(await registered[3].execute(addInput), { url: '/api/sources' });
+  assert.deepEqual(await registered[4].execute({ taskId: 'task-1' }), { url: '/api/ingestions/task-1' });
+  assert.deepEqual(await registered[5].execute({ pageId: 'concepts/hatwiki', content: '[[concepts/shared]]' }), {
+    affectedPages: ['concepts/hatwiki'], citations: [], wikiLinks: ['concepts/shared'], unresolved: [],
+  });
+  assert.equal(registered[3].annotations.readOnlyHint, false);
+  assert.equal(registered[4].annotations.untrustedContentHint, true);
+  assert.deepEqual(requests.slice(-2), [
+    { url: '/api/sources', init: { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(addInput) } },
+    { url: '/api/ingestions/task-1', init: undefined },
+  ]);
+});
+
 test('does nothing in browsers without WebMCP', async () => {
   const registration = await registerBrowserReadTools(undefined, fetch);
   assert.equal(registration.supported, false);

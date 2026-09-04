@@ -24,6 +24,7 @@ const locale = getLocale(Astro.url);
       <nav class="primary-nav" aria-label={t(locale, 'primaryNavigation')}>
         <a href={withLocale('/wiki', locale)} aria-current={pathname.startsWith('/wiki') ? 'page' : undefined}>{t(locale, 'wiki')}</a>
         <a href={withLocale('/graph', locale)} aria-current={pathname === '/graph' ? 'page' : undefined}>{t(locale, 'graph')}</a>
+        <a href={withLocale('/sources/new', locale)} aria-current={pathname === '/sources/new' ? 'page' : undefined}>{t(locale, 'addSource')}</a>
       </nav>
       <div class="header-actions">
         <nav class="language-switch" aria-label={t(locale, 'language')}>
@@ -104,7 +105,7 @@ const locale = getLocale(Astro.url);
     .site-header { grid-template-columns:minmax(0,1fr) auto; gap:10px; padding:11px 16px 14px; }
     .brand { grid-column:1; grid-row:1; }
     .tagline { display:none; }
-    .primary-nav { grid-column:1 / -1; grid-row:2; display:grid; width:100%; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+    .primary-nav { grid-column:1 / -1; grid-row:2; display:grid; width:100%; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
     .header-actions { grid-column:2; grid-row:1; }
     .account { min-width:72px; padding-inline:8px; }
     .account-long { display:none; }

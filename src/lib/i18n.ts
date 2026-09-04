@@ -7,6 +7,7 @@ export interface UiMessages {
   metaDescription: string;
   wiki: string;
   graph: string;
+  addSource: string;
   login: string;
   logout: string;
   signedInAs: string;
@@ -64,6 +65,10 @@ export interface UiMessages {
   editNoChanges: string;
   viewWiki: string;
   viewCommit: string;
+  changeAffected: string;
+  changeCitations: string;
+  changeLinks: string;
+  changeUnresolved: string;
   editFormLegend: string;
   editContent: string;
   editContentHint: string;
@@ -84,6 +89,10 @@ export interface UiMessages {
   editErrorAuthorization: string;
   editErrorInvalidInput: string;
   editErrorNotFound: string;
+  editErrorSourceNotFound: string;
+  editErrorSourceMismatch: string;
+  editErrorSourceCitation: string;
+  editErrorSourceUsed: string;
   editErrorAppNotConfigured: string;
   editErrorUnknown: string;
   editNetworkError: string;
@@ -103,6 +112,7 @@ export const ui: Record<Locale, UiMessages> = {
     metaDescription: '人與 Agent 共同編織的開放知識庫。',
     wiki: 'Wiki',
     graph: '圖譜',
+    addSource: '加入資料',
     login: '登入',
     logout: '登出',
     signedInAs: '已登入',
@@ -160,6 +170,10 @@ export const ui: Record<Locale, UiMessages> = {
     editNoChanges: '目前沒有修改。',
     viewWiki: '開啟 Wiki 頁面',
     viewCommit: '查看 Git commit',
+    changeAffected: '更新頁面',
+    changeCitations: '引用',
+    changeLinks: 'WikiLinks',
+    changeUnresolved: '待確認',
     editFormLegend: '編輯 Wiki 頁面',
     editContent: 'Markdown 內容',
     editContentHint: '保留 Markdown 語法；送出前請確認內容可以公開。',
@@ -180,6 +194,10 @@ export const ui: Record<Locale, UiMessages> = {
     editErrorAuthorization: '需要確認發佈權限',
     editErrorInvalidInput: '內容或欄位格式無效',
     editErrorNotFound: '找不到頁面',
+    editErrorSourceNotFound: '找不到這筆資料任務，或它不屬於目前帳號',
+    editErrorSourceMismatch: '這筆資料指定的是另一個 Wiki 頁面',
+    editErrorSourceCitation: '修改內容必須保留這筆資料的引用編號',
+    editErrorSourceUsed: '這筆資料已由另一個修改請求處理',
     editErrorAppNotConfigured: 'GitHub App 尚未設定完成',
     editErrorUnknown: '請稍後再試',
     editNetworkError: '網路連線失敗，請稍後再試',
@@ -197,6 +215,7 @@ export const ui: Record<Locale, UiMessages> = {
     metaDescription: 'An open knowledge base woven together by humans and agents.',
     wiki: 'Wiki',
     graph: 'Graph',
+    addSource: 'Add source',
     login: 'Log in',
     logout: 'Log out',
     signedInAs: 'Signed in',
@@ -254,6 +273,10 @@ export const ui: Record<Locale, UiMessages> = {
     editNoChanges: 'No changes yet.',
     viewWiki: 'Open Wiki page',
     viewCommit: 'View Git commit',
+    changeAffected: 'Affected pages',
+    changeCitations: 'Citations',
+    changeLinks: 'WikiLinks',
+    changeUnresolved: 'Unresolved',
     editFormLegend: 'Edit Wiki page',
     editContent: 'Markdown content',
     editContentHint: 'Keep Markdown syntax; make sure the content is safe to publish.',
@@ -274,6 +297,10 @@ export const ui: Record<Locale, UiMessages> = {
     editErrorAuthorization: 'Publishing authorization is required',
     editErrorInvalidInput: 'Invalid input',
     editErrorNotFound: 'Page not found',
+    editErrorSourceNotFound: 'This source task was not found or belongs to another account',
+    editErrorSourceMismatch: 'This source task targets another Wiki page',
+    editErrorSourceCitation: 'The edit must include this source task’s citation ID',
+    editErrorSourceUsed: 'Another edit request already used this source task',
     editErrorAppNotConfigured: 'The GitHub App is not configured',
     editErrorUnknown: 'Please try again later',
     editNetworkError: 'Network error. Please try again later.',

@@ -8,6 +8,7 @@ const page = await (await getSiteWiki()).readPage(Astro.params.slug ?? '');
 if (!page) return new Response(t(locale, 'notFound'), { status: 404 });
 const loginUrl = withLocale('/auth/login', locale);
 const sourceUrl = withLocale(`/api/edit-source/${page.pageId.split('/').map(encodeURIComponent).join('/')}`, locale);
+const sourceTaskId = Astro.url.searchParams.get('sourceTask') ?? '';
 ---
 
 <Layout title={`${t(locale, 'edit')} ${page.title}`}>
@@ -39,6 +40,10 @@ const sourceUrl = withLocale(`/api/edit-source/${page.pageId.split('/').map(enco
       data-error-authorization={t(locale, 'editErrorAuthorization')}
       data-error-invalid-input={t(locale, 'editErrorInvalidInput')}
       data-error-not-found={t(locale, 'editErrorNotFound')}
+      data-error-source-not-found={t(locale, 'editErrorSourceNotFound')}
+      data-error-source-mismatch={t(locale, 'editErrorSourceMismatch')}
+      data-error-source-citation={t(locale, 'editErrorSourceCitation')}
+      data-error-source-used={t(locale, 'editErrorSourceUsed')}
       data-error-app-not-configured={t(locale, 'editErrorAppNotConfigured')}
       data-error-network={t(locale, 'editNetworkError')}
       data-error-unknown={t(locale, 'editErrorUnknown')}
@@ -47,9 +52,14 @@ const sourceUrl = withLocale(`/api/edit-source/${page.pageId.split('/').map(enco
       data-no-changes={t(locale, 'editNoChanges')}
       data-view-wiki={t(locale, 'viewWiki')}
       data-view-commit={t(locale, 'viewCommit')}
+      data-change-affected={t(locale, 'changeAffected')}
+      data-change-citations={t(locale, 'changeCitations')}
+      data-change-links={t(locale, 'changeLinks')}
+      data-change-unresolved={t(locale, 'changeUnresolved')}
       aria-describedby="edit-form-hint"
     >
       <p id="edit-form-hint" class="form-intro">{t(locale, 'editContentHint')}</p>
+      <input name="sourceTaskId" type="hidden" value={sourceTaskId} />
       <fieldset id="edit-fields" disabled>
         <legend class="sr-only">{t(locale, 'editFormLegend')}</legend>
         <div class="field">
@@ -74,6 +84,7 @@ const sourceUrl = withLocale(`/api/edit-source/${page.pageId.split('/').map(enco
       </fieldset>
       <p id="result" class="edit-result" role="status" aria-live="polite"></p>
       <p id="result-links" class="edit-result-links" hidden></p>
+      <pre id="result-changes" class="result-changes" hidden></pre>
     </form>
   </article>
 </Layout>
@@ -84,6 +95,7 @@ const sourceUrl = withLocale(`/api/edit-source/${page.pageId.split('/').map(enco
   const form = document.querySelector<HTMLFormElement>('#edit-form');
   const result = document.querySelector<HTMLElement>('#result');
   const resultLinks = document.querySelector<HTMLElement>('#result-links');
+  const resultChanges = document.querySelector<HTMLElement>('#result-changes');
   const notice = document.querySelector<HTMLElement>('#edit-notice');
   const fields = document.querySelector<HTMLFieldSetElement>('#edit-fields');
   const content = document.querySelector<HTMLTextAreaElement>('#content');
@@ -91,6 +103,7 @@ const sourceUrl = withLocale(`/api/edit-source/${page.pageId.split('/').map(enco
   const submit = document.querySelector<HTMLButtonElement>('.submit-edit');
   const login = document.querySelector<HTMLElement>('.login');
   let originalContent = content?.value ?? '';
+  const editRequestId = crypto.randomUUID();
   const labels = {
     completed: form?.dataset.completed || 'Completed',
     unableToSubmit: form?.dataset.unable || 'Unable to submit',
@@ -105,6 +118,14 @@ const sourceUrl = withLocale(`/api/edit-source/${page.pageId.split('/').map(enco
       authorization_required: form?.dataset.errorAuthorization || 'Publishing authorization is required',
       invalid_input: form?.dataset.errorInvalidInput || 'Invalid input',
       page_not_found: form?.dataset.errorNotFound || 'Page not found',
+      source_not_found: form?.dataset.errorSourceNotFound || 'Source task not found',
+      source_target_mismatch: form?.dataset.errorSourceMismatch || 'Source task targets another page',
+      source_citation_missing: form?.dataset.errorSourceCitation || 'Source citation is required',
+      source_already_used: form?.dataset.errorSourceUsed || 'Source task was already used',
+      source_state_conflict: form?.dataset.errorSourceUsed || 'Source task state changed',
+      request_conflict: form?.dataset.errorSourceUsed || 'Request ID was already used',
+      request_in_progress: form?.dataset.errorSourceUsed || 'This request is already in progress',
+      recovery_head_advanced: form?.dataset.errorSourceUsed || 'The page advanced while recovering this request',
       github_app_not_configured: form?.dataset.errorAppNotConfigured || 'The GitHub App is not configured',
       network_error: form?.dataset.errorNetwork || 'Network error',
     },
@@ -139,6 +160,8 @@ const sourceUrl = withLocale(`/api/edit-source/${page.pageId.split('/').map(enco
 
   form?.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (submit?.disabled) return;
+    if (submit) submit.disabled = true;
     const data = new FormData(form);
     if (result) {
       result.dataset.state = 'pending';
@@ -149,15 +172,16 @@ const sourceUrl = withLocale(`/api/edit-source/${page.pageId.split('/').map(enco
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          requestId: crypto.randomUUID(),
+          requestId: editRequestId,
           pageId: form.dataset.pageId,
           baseSha: form.dataset.baseSha,
           content: data.get('content'),
           reason: data.get('reason'),
+          ...(data.get('sourceTaskId') ? { sourceTaskId: String(data.get('sourceTaskId')) } : {}),
           authorizationConfirmed: data.get('authorizationConfirmed') === 'on',
         }),
       });
-      const receipt = await response.json() as { status?: string; error?: string; pageUrl?: string; revisionUrl?: string };
+      const receipt = await response.json() as { status?: string; error?: string; pageUrl?: string; revisionUrl?: string; changes?: { affectedPages?: string[]; citations?: string[]; wikiLinks?: string[]; unresolved?: string[] } };
       if (result) {
         result.dataset.state = response.ok ? 'success' : 'error';
         result.textContent = editResultMessage({ ok: response.ok, status: receipt.status, error: receipt.error }, labels);
@@ -173,12 +197,24 @@ const sourceUrl = withLocale(`/api/edit-source/${page.pageId.split('/').map(enco
         }
         resultLinks.hidden = resultLinks.childElementCount === 0;
       }
+      if (response.ok && receipt.changes && resultChanges) {
+        const rows = [
+          [form.dataset.changeAffected, receipt.changes.affectedPages],
+          [form.dataset.changeCitations, receipt.changes.citations],
+          [form.dataset.changeLinks, receipt.changes.wikiLinks],
+          [form.dataset.changeUnresolved, receipt.changes.unresolved],
+        ].filter(([, values]) => values?.length).map(([label, values]) => `${label}: ${values?.join(', ')}`);
+        resultChanges.textContent = rows.join('\n');
+        resultChanges.hidden = rows.length === 0;
+      }
       if (response.status === 401) location.href = form.dataset.loginUrl || '/auth/login';
+      if (!response.ok && submit) submit.disabled = false;
     } catch {
       if (result) {
         result.dataset.state = 'error';
         result.textContent = editResultMessage({ ok: false, error: 'network_error' }, labels);
       }
+      if (submit) submit.disabled = false;
     }
   });
 </script>
@@ -221,6 +257,8 @@ const sourceUrl = withLocale(`/api/edit-source/${page.pageId.split('/').map(enco
   .edit-result[data-state="error"] { color:#b42318; }
   .edit-result-links { display:flex; flex-wrap:wrap; gap:14px; margin:0; }
   .edit-result-links[hidden] { display:none; }
+  .result-changes { margin:0; padding:14px; border:2px solid var(--line); background:var(--bg); white-space:pre-wrap; overflow-wrap:anywhere; }
+  .result-changes[hidden] { display:none; }
   .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
   @media (max-width:560px) {
     fieldset { padding:16px; }

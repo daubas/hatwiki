@@ -1,0 +1,93 @@
+---
+import Layout from '../../components/Layout.astro';
+import { getLocale, withLocale } from '../../lib/i18n.ts';
+
+const locale = getLocale(Astro.url);
+const copy = locale === 'en' ? {
+  title: 'Add source material', intro: 'Store one text source privately, then let your Agent merge supported material into an existing Wiki page.',
+  sourceTitle: 'Source title', target: 'Target page ID', content: 'Source text', confirm: 'I confirm I may provide this material and publish supported material derived from it.',
+  submit: 'Store source', login: 'Sign in with GitHub first', stored: 'Source stored privately. Continue to the target page to review the Agent’s edit.', continue: 'Continue to page editor', failed: 'Unable to store this source.',
+} : {
+  title: '加入資料', intro: '先把一份文字資料私密保存，再讓你的 Agent 把有依據的內容合併進既有 Wiki 頁面。',
+  sourceTitle: '資料名稱', target: '要更新的頁面 ID', content: '原始文字', confirm: '我確認有權提供這份資料，並公開由它支持的整理內容。',
+  submit: '保存資料', login: '先用 GitHub 登入', stored: '資料已私密保存。接著到目標頁面檢查 Agent 的修改。', continue: '前往頁面編輯器', failed: '無法保存這份資料。',
+};
+---
+
+<Layout title={copy.title}>
+  <article class="source-page">
+    <header>
+      <p class="kicker">PRIVATE SOURCE / TEXT</p>
+      <h1>{copy.title}</h1>
+      <p>{copy.intro}</p>
+    </header>
+    <form id="source-form" data-login-url={withLocale('/auth/login', locale)} data-stored={copy.stored} data-failed={copy.failed}>
+      <label>{copy.sourceTitle}<input name="title" required maxlength="160" /></label>
+      <label>{copy.target}<input name="targetPageId" required value="concepts/agent2ucb-agentic-geo" /></label>
+      <label>{copy.content}<textarea name="content" required maxlength="100000" rows="14"></textarea></label>
+      <label class="confirmation"><input name="authorizationConfirmed" type="checkbox" required /> <span>{copy.confirm}</span></label>
+      <div class="actions"><button type="submit">{copy.submit}</button><a href={withLocale('/auth/login', locale)}>{copy.login}</a></div>
+      <p id="source-result" role="status" aria-live="polite"></p>
+      <a id="continue-edit" hidden>{copy.continue} →</a>
+    </form>
+  </article>
+</Layout>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('#source-form');
+  const result = document.querySelector<HTMLElement>('#source-result');
+  const next = document.querySelector<HTMLAnchorElement>('#continue-edit');
+  const requestId = crypto.randomUUID();
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (submit?.disabled) return;
+    if (submit) submit.disabled = true;
+    const data = new FormData(form);
+    try {
+      const response = await fetch('/api/sources', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId, title: data.get('title'), content: data.get('content'), targetPageId: data.get('targetPageId'),
+          authorizationConfirmed: data.get('authorizationConfirmed') === 'on',
+        }),
+      });
+      if (response.status === 401) return location.assign(form.dataset.loginUrl || '/auth/login');
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error);
+      if (result) result.textContent = form.dataset.stored || 'Source stored.';
+      if (next) {
+        const pageId = String(data.get('targetPageId') || '').split('/').map(encodeURIComponent).join('/');
+        const url = new URL(`/edit/${pageId}`, location.origin);
+        url.searchParams.set('sourceTask', payload.taskId);
+        if (new URL(location.href).searchParams.get('lang') === 'en') url.searchParams.set('lang', 'en');
+        next.href = `${url.pathname}${url.search}`;
+        next.hidden = false;
+      }
+    } catch {
+      if (result) result.textContent = form.dataset.failed || 'Unable to store source.';
+      if (submit) submit.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  .source-page { display:grid; gap:28px; }
+  header { border-bottom:2px solid var(--line); padding-bottom:24px; }
+  header h1 { margin:8px 0 12px; font-size:clamp(2.2rem,7vw,4.8rem); line-height:.95; letter-spacing:-.06em; }
+  header p:last-child { max-width:680px; margin:0; color:var(--muted); line-height:1.7; }
+  .kicker { margin:0; color:var(--accent); font-size:.74rem; font-weight:900; letter-spacing:.12em; }
+  form { display:grid; gap:18px; padding:24px; border:2px solid var(--line); background:var(--panel); box-shadow:6px 6px 0 var(--line); }
+  label:not(.confirmation) { display:grid; gap:8px; font-weight:800; }
+  input, textarea { width:100%; padding:12px; border:2px solid var(--line); background:var(--bg); color:var(--text); font:inherit; }
+  textarea { resize:vertical; line-height:1.6; }
+  .confirmation { display:flex; align-items:flex-start; gap:10px; line-height:1.5; }
+  .confirmation input { flex:0 0 auto; width:20px; height:20px; margin-top:2px; accent-color:var(--accent); }
+  .actions { display:flex; flex-wrap:wrap; align-items:center; gap:14px; }
+  button, .actions a, #continue-edit { display:inline-flex; min-height:46px; align-items:center; padding:10px 15px; border:2px solid var(--line); font:inherit; font-weight:850; text-decoration:none; }
+  button { background:var(--accent); color:var(--panel); box-shadow:3px 3px 0 var(--line); cursor:pointer; }
+  .actions a, #continue-edit { color:var(--accent); }
+  #source-result { margin:0; color:var(--muted); }
+  #continue-edit[hidden] { display:none; }
+  @media (max-width:560px) { form { padding:16px; } .actions { display:grid; } button, .actions a, #continue-edit { justify-content:center; width:100%; } }
+</style>

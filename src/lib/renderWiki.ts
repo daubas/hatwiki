@@ -9,6 +9,19 @@ const marked = new Marked({
   },
   extensions: [
     {
+      name: 'privateSourceCitation',
+      level: 'inline',
+      start: (source) => source.indexOf('[^source-'),
+      tokenizer(source) {
+        const match = /^\[\^(source-[A-Za-z0-9_-]+)\](?!:)/.exec(source);
+        if (!match) return undefined;
+        return { type: 'privateSourceCitation', raw: match[0], citationId: match[1] };
+      },
+      renderer(token) {
+        return `<span class="source-unavailable">[${String(token.citationId)}]</span>`;
+      },
+    },
+    {
       name: 'wikilink',
       level: 'inline',
       start: (source) => source.indexOf('[['),
@@ -36,8 +49,17 @@ export async function renderWiki(markdown: string): Promise<string> {
     allowedAttributes: {
       a: ['href'],
       img: ['src', 'alt', 'title'],
+      span: ['class'],
     },
     allowedSchemes: ['http', 'https', 'mailto'],
     disallowedTagsMode: 'escape',
   }).replace(/<a href="\/wiki\/raw\/[^"]*">([\s\S]*?)<\/a>/g, '<span class="source-unavailable">$1</span>');
+}
+
+export function hasVisiblePrivateSourceCitation(markdown: string, citationId: string): boolean {
+  let found = false;
+  marked.walkTokens(marked.lexer(markdown), (token) => {
+    if (token.type === 'privateSourceCitation' && String(token.citationId) === citationId) found = true;
+  });
+  return found;
 }

@@ -26,3 +26,9 @@ test('renders unpublished raw evidence references as non-clickable text', async 
   assert.match(html, /<span class="source-unavailable">Raw capture<\/span>/);
   assert.doesNotMatch(html, /<a /);
 });
+
+test('renders private source citations as non-clickable references', async () => {
+  const html = await renderWiki('Text[^source-task-1]\n\n[^source-task-1]: Private note.');
+  assert.match(html, /<span class="source-unavailable">\[source-task-1\]<\/span>/);
+  assert.doesNotMatch(html, /href="Private note/);
+});

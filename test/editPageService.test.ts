@@ -27,6 +27,7 @@ test('commits only after GitHub readback and the public projection confirm the s
       saveCandidate: async () => ({ revision: 'candidate-unused' }),
     },
     receipts: {
+      claim: async () => ({ status: 'claimed' as const, token: 'lease' }),
       get: async (requestId) => {
         calls.push(`receipt.get:${requestId}`);
         return null;
@@ -89,6 +90,7 @@ test('rejects malformed edit input before reading receipts or the repository', a
       saveCandidate: async () => ({ revision: 'unused' }),
     },
     receipts: {
+      claim: async () => ({ status: 'claimed' as const, token: 'lease' }),
       get: async () => {
         receiptReads += 1;
         return null;
@@ -146,6 +148,7 @@ test('rejects an invalid actor before reading receipts', async () => {
       saveCandidate: async () => ({ revision: 'unused' }),
     },
     receipts: {
+      claim: async () => ({ status: 'claimed' as const, token: 'lease' }),
       get: async () => {
         calls.push('receipt.get');
         return null;
@@ -196,6 +199,7 @@ test('routes an exactly protected path to a stored approval receipt without writ
       },
     },
     receipts: {
+      claim: async () => ({ status: 'claimed' as const, token: 'lease' }),
       get: async () => {
         calls.push('receipt.get');
         return null;
@@ -249,6 +253,7 @@ test('routes a path under a trailing /** protected prefix to approval', async ()
       },
     },
     receipts: {
+      claim: async () => ({ status: 'claimed' as const, token: 'lease' }),
       get: async () => {
         calls.push('receipt.get');
         return null;
@@ -300,6 +305,7 @@ test('routes a UTF-8 large edit to approval without committing', async () => {
       },
     },
     receipts: {
+      claim: async () => ({ status: 'claimed' as const, token: 'lease' }),
       get: async () => {
         calls.push('receipt.get');
         return null;
@@ -354,6 +360,7 @@ test('saves a stale edit as a conflict candidate instead of committing it', asyn
       },
     },
     receipts: {
+      claim: async () => ({ status: 'claimed' as const, token: 'lease' }),
       get: async () => {
         calls.push('receipt.get');
         return null;
@@ -409,10 +416,14 @@ test('saves a stale edit as a conflict candidate instead of committing it', asyn
 
 test('returns the original receipt on a retry without touching any writer', async () => {
   const calls: string[] = [];
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(['guides/overview', 'blob-before', 'Updated note', 'Clarify the note', ''])));
   const original = {
     requestId: 'request-retry',
     status: 'conflict' as const,
     candidateRevision: 'candidate-123',
+    actorUserId: 7,
+    pageId: 'guides/overview',
+    inputSha256: Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, '0')).join(''),
   };
   const service = createEditPageService({
     repository: {
@@ -431,6 +442,7 @@ test('returns the original receipt on a retry without touching any writer', asyn
       },
     },
     receipts: {
+      claim: async () => ({ status: 'claimed' as const, token: 'lease' }),
       get: async () => {
         calls.push('receipt.get');
         return original;
@@ -459,8 +471,34 @@ test('returns the original receipt on a retry without touching any writer', asyn
     },
   );
 
-  assert.equal(result, original);
+  assert.deepEqual(result, { requestId: 'request-retry', status: 'conflict', candidateRevision: 'candidate-123' });
   assert.deepEqual(calls, ['receipt.get']);
+});
+
+test('rejects a reused request id whose owner or edit payload differs', async () => {
+  const service = createEditPageService({
+    repository: { readPage: async () => null, findRequestRevision: async () => null, commitPage: async () => ({ revision: 'unused' }), saveCandidate: async () => ({ revision: 'unused' }) },
+    receipts: { get: async () => ({ requestId: 'same-id', status: 'committed', revision: 'old', actorUserId: 99, pageId: 'guides/overview', inputSha256: 'wrong' }), claim: async () => ({ status: 'claimed' as const, token: 'lease' }), put: async () => {} },
+    publisher: { publish: async () => ({ revision: 'unused' }) },
+    policy: { protectedPaths: [], largeEditThreshold: 1000 },
+  });
+  await assert.rejects(service.edit(
+    { userId: 7, login: 'octo' },
+    { requestId: 'same-id', pageId: 'guides/overview', baseSha: 'old', content: 'New', reason: 'Update' },
+  ), /request_conflict/);
+});
+
+test('does not overlap a request whose D1 lease is still active', async () => {
+  const service = createEditPageService({
+    repository: { readPage: async () => null, findRequestRevision: async () => null, commitPage: async () => ({ revision: 'unused' }), saveCandidate: async () => ({ revision: 'unused' }) },
+    receipts: { get: async () => null, claim: async () => ({ status: 'in_progress' as const }), put: async () => {} },
+    publisher: { publish: async () => ({ revision: 'unused' }) },
+    policy: { protectedPaths: [], largeEditThreshold: 1000 },
+  });
+  await assert.rejects(service.edit(
+    { userId: 7, login: 'octo' },
+    { requestId: 'same-id', pageId: 'guides/overview', baseSha: 'old', content: 'New', reason: 'Update' },
+  ), /request_in_progress/);
 });
 
 test('does not complete or publish when the committed revision reads back different bytes', async () => {
@@ -484,6 +522,7 @@ test('does not complete or publish when the committed revision reads back differ
       },
     },
     receipts: {
+      claim: async () => ({ status: 'claimed' as const, token: 'lease' }),
       get: async () => {
         calls.push('receipt.get');
         return null;
@@ -542,6 +581,7 @@ test('does not store a committed receipt when the publisher reports another revi
       },
     },
     receipts: {
+      claim: async () => ({ status: 'claimed' as const, token: 'lease' }),
       get: async () => {
         calls.push('receipt.get');
         return null;
@@ -605,6 +645,7 @@ test('recovers a Git-written page revision before attempting a new write', async
       },
     },
     receipts: {
+      claim: async () => ({ status: 'claimed' as const, token: 'lease' }),
       get: async (requestId) => {
         calls.push(`receipt.get:${requestId}`);
         return null;
@@ -654,7 +695,7 @@ test('recovers a Git-written page revision before attempting a new write', async
   }]);
 });
 
-test('does not republish a recovered revision after the page has advanced', async () => {
+test('does not acknowledge a recovered revision after the page has advanced', async () => {
   const calls: string[] = [];
   const service = createEditPageService({
     repository: {
@@ -669,6 +710,7 @@ test('does not republish a recovered revision after the page has advanced', asyn
       saveCandidate: async () => ({ revision: 'unexpected' }),
     },
     receipts: {
+      claim: async () => ({ status: 'claimed' as const, token: 'lease' }),
       get: async () => null,
       put: async ({ status }) => { calls.push(`receipt.put:${status}`); },
     },
@@ -681,14 +723,13 @@ test('does not republish a recovered revision after the page has advanced', asyn
     policy: { protectedPaths: [], largeEditThreshold: 1000 },
   });
 
-  assert.deepEqual(await service.edit(
+  await assert.rejects(service.edit(
     { userId: 7, login: 'octo' },
     { requestId: 'request-old', pageId: 'guides/overview', baseSha: 'blob-before-old', content: 'Recovered note', reason: 'Recover' },
-  ), { requestId: 'request-old', status: 'committed', revision: 'commit-old' });
+  ), /recovery_head_advanced/);
   assert.deepEqual(calls, [
     'repository.read:commit-old',
     'repository.read:head',
-    'receipt.put:committed',
   ]);
 });
 
@@ -715,6 +756,7 @@ test('recovers a Git-written candidate as a conflict without another write', asy
       },
     },
     receipts: {
+      claim: async () => ({ status: 'claimed' as const, token: 'lease' }),
       get: async (requestId) => {
         calls.push(`receipt.get:${requestId}`);
         return null;
@@ -777,6 +819,7 @@ test('preserves an edit as a candidate when Git detects a stale-write race', asy
       },
     },
     receipts: {
+      claim: async () => ({ status: 'claimed' as const, token: 'lease' }),
       get: async () => null,
       put: async ({ status }) => { calls.push(`receipt:${status}`); },
     },

@@ -9,6 +9,7 @@ const body = {
   baseSha: 'blob-before',
   content: '# Updated',
   reason: 'Clarify the page',
+  sourceTaskId: 'task-1',
   authorizationConfirmed: true,
 };
 
@@ -53,6 +54,7 @@ test('passes only the edit contract to the service and returns its receipt', asy
       baseSha: 'blob-before',
       content: '# Updated',
       reason: 'Clarify the page',
+      sourceTaskId: 'task-1',
     },
   ]);
 });
@@ -119,4 +121,12 @@ test('adds public page and GitHub revision links to edit receipts', () => {
       revisionUrl: 'https://github.com/daubas/hatwiki/commit/commit-1',
     },
   );
+});
+
+test('maps idempotency and source state conflicts to HTTP 409', async () => {
+  for (const code of ['request_conflict', 'request_in_progress', 'recovery_head_advanced', 'source_already_used', 'source_state_conflict', 'source_citation_missing']) {
+    const response = await handleEditRequest(new Request('https://hatwiki.test/api/edit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }), { userId: 7, login: 'octo' }, async () => { throw new Error(code); });
+    assert.equal(response.status, 409);
+    assert.deepEqual(await response.json(), { error: code });
+  }
 });

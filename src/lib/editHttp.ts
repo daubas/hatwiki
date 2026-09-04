@@ -30,10 +30,14 @@ export async function handleEditRequest(request: Request, actor: EditActor | nul
       baseSha: body.baseSha as string,
       content: body.content as string,
       reason: body.reason as string,
+      ...(typeof body.sourceTaskId === 'string' ? { sourceTaskId: body.sourceTaskId } : {}),
     }));
   } catch (error) {
     if (error instanceof SyntaxError || (error instanceof Error && error.message === 'invalid_input')) return json({ error: 'invalid_input' }, 400);
     if (error instanceof Error && error.message === 'page_not_found') return json({ error: 'page_not_found' }, 404);
+    if (error instanceof Error && error.message === 'source_not_found') return json({ error: 'source_not_found' }, 404);
+    if (error instanceof Error && error.message === 'source_target_mismatch') return json({ error: 'source_target_mismatch' }, 409);
+    if (error instanceof Error && ['request_conflict', 'request_in_progress', 'recovery_head_advanced', 'source_already_used', 'source_state_conflict', 'source_citation_missing'].includes(error.message)) return json({ error: error.message }, 409);
     throw error;
   }
 }

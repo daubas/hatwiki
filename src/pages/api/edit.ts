@@ -2,12 +2,14 @@ import type { APIRoute } from 'astro';
 import { env } from 'cloudflare:workers';
 
 import { createD1ReceiptStore } from '../../lib/d1ReceiptStore.ts';
+import { createD1IngestionStore } from '../../lib/d1IngestionStore.ts';
 import { handleEditRequest, withEditLinks } from '../../lib/editHttp.ts';
 import { createEditPageService } from '../../lib/editPageService.ts';
 import { createGitHubAppAuth } from '../../lib/githubAppAuth.ts';
 import { createGitHubRepository } from '../../lib/githubRepository.ts';
 import { createR2Publisher } from '../../lib/r2Publisher.ts';
 import { readSessionCookie } from '../../lib/sessionCookie.ts';
+import { completeSourceEdit } from '../../lib/sourceEdit.ts';
 import { getSiteWiki } from '../../lib/siteWiki.ts';
 
 export const POST: APIRoute = async ({ request }) => {
@@ -32,8 +34,9 @@ export const POST: APIRoute = async ({ request }) => {
     policy: { protectedPaths: ['policies/**'], largeEditThreshold: 50_000 },
   });
   const wiki = await getSiteWiki();
+  const ingestions = createD1IngestionStore(env.HATWIKI_STATE);
   return handleEditRequest(request, actor, async (editActor, input) => {
     if (!await wiki.readPage(input.pageId)) throw new Error('page_not_found');
-    return withEditLinks(await service.edit(editActor, input), input.pageId, request.url);
+    return withEditLinks(await completeSourceEdit(editActor, input, ingestions, service.edit), input.pageId, request.url);
   });
 };
