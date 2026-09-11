@@ -6,7 +6,7 @@ import { createGitHubAppAuth } from '../../../lib/githubAppAuth.ts';
 import { createGitHubRepository } from '../../../lib/githubRepository.ts';
 import { readSessionCookie } from '../../../lib/sessionCookie.ts';
 import { getSiteWiki } from '../../../lib/siteWiki.ts';
-import { getWikiRepositoryConfig } from '../../../lib/wikiRepositoryConfig.ts';
+import { contributorBranchFor, getWikiPublicRef, getWikiRepositoryConfig, isContributorBranchMode, isLiveBranchMode } from '../../../lib/wikiRepositoryConfig.ts';
 
 export const GET: APIRoute = async ({ request, params }) => {
   const actor = env.SESSION_SECRET ? await readSessionCookie(env.SESSION_SECRET, request.headers.get('Cookie')) : null;
@@ -30,6 +30,14 @@ export const GET: APIRoute = async ({ request, params }) => {
   });
   const installation = await auth.createInstallationToken(repositoryConfig.installationId, repositoryConfig.repositoryId);
   const repository = createGitHubRepository({ ...repositoryConfig, token: installation.token, fetcher: fetch });
+  const contributorBranch = isContributorBranchMode(env) ? contributorBranchFor(actor.userId, 'wiki') : undefined;
+  const liveRef = isLiveBranchMode(env) ? 'wiki-live' : undefined;
+  const publicRef = getWikiPublicRef(env);
+  const readPage = contributorBranch
+    ? async (pageId: string) => (await repository.readPage(pageId, contributorBranch)) ?? repository.readPage(pageId, publicRef)
+    : liveRef
+      ? async (pageId: string) => repository.readPage(pageId, liveRef)
+      : repository.readPage;
   const wiki = await getSiteWiki();
-  return handleEditSourceRequest(actor, params.pageId, async (pageId) => Boolean(await wiki.readPage(pageId)), repository.readPage);
+  return handleEditSourceRequest(actor, params.pageId, async (pageId) => Boolean(await wiki.readPage(pageId)), readPage);
 };

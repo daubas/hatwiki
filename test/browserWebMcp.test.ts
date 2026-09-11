@@ -83,6 +83,22 @@ test('authenticated read_page includes the canonical markdown and blob sha neede
   });
 });
 
+test('read_page can request a public live variant without changing the page route', async () => {
+  const registered: any[] = [];
+  const requests: string[] = [];
+  await registerBrowserReadTools(
+    { registerTool: async (tool: any) => registered.push(tool) },
+    async (url: string) => {
+      requests.push(url);
+      return { ok: true, json: async () => ({ pageId: 'concepts/example', variantId: 'alt-1' }) } as Response;
+    },
+  );
+
+  await registered.find(({ name }) => name === 'read_page').execute({ pageId: 'concepts/example', variantId: 'alt 1' });
+
+  assert.deepEqual(requests, ['/api/pages/concepts/example?variant=alt%201']);
+});
+
 test('registers the Gate B source tools only for authenticated sessions', async () => {
   const registered: any[] = [];
   const requests: Array<{ url: string; init?: RequestInit }> = [];

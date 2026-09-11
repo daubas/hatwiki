@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Fetch external wiki content from a public GitHub repo.
-# Usage: WIKI_REPO=daubas/webmcp-okf WIKI_REF=main ./scripts/fetch-wiki.sh
+# Usage: WIKI_REPO=daubas/webmcp-okf WIKI_PUBLIC_REF=wiki-live ./scripts/fetch-wiki.sh
 set -euo pipefail
 
 WIKI_REPO=${WIKI_REPO:-daubas/webmcp-okf}
-WIKI_REF=${WIKI_REF:-main}
+WIKI_REF=${WIKI_PUBLIC_REF:-${WIKI_REF:-main}}
 WIKI_DIR=${WIKI_DIR:-.wiki-external}
 
 echo "Fetching wiki from github.com/$WIKI_REPO@$WIKI_REF..."

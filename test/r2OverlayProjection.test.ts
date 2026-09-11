@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { createR2OverlayProjection, overlayRevision } from '../src/lib/r2OverlayProjection.ts';
+import { getWikiProjectionNamespace } from '../src/lib/wikiRepositoryConfig.ts';
 
 test('overlays R2 edits onto the bundled public snapshot', async () => {
   const objects = new Map<string, unknown>([
@@ -88,8 +89,11 @@ test('does not add an orphaned R2 page to the current Wiki', async () => {
   assert.deepEqual(await projection.readSnapshot(), { revision: 'fixture', pages: [original] });
 });
 
-test('lists only R2 pages for the current Wiki namespace', async () => {
+test('lists only R2 pages for the current public-ref namespace', async () => {
   const prefixes: string[] = [];
+  const namespace = getWikiProjectionNamespace({
+    WIKI_REPO: 'daubas/webmcp-okf', WIKI_REF: 'main', WIKI_PUBLIC_REF: 'wiki-live',
+  });
   const projection = createR2OverlayProjection({
     readSnapshot: async () => ({ revision: 'fixture', pages: [{ pageId: 'concepts/current', title: 'Current', markdown: '# Old' }] }),
   }, {
@@ -100,9 +104,12 @@ test('lists only R2 pages for the current Wiki namespace', async () => {
       revision: 'current-revision',
       baseSha: 'current-blob',
     }) }),
-  }, 'daubas/webmcp-okf');
+  }, namespace);
 
   const snapshot = await projection.readSnapshot();
-  assert.deepEqual(prefixes, ['published/daubas%2Fwebmcp-okf/pages/']);
+  assert.deepEqual(prefixes.sort(), [
+    'published/daubas%2Fwebmcp-okf%40wiki-live/pages/',
+    'published/daubas%2Fwebmcp-okf%40wiki-live/variants/',
+  ]);
   assert.equal(snapshot.pages[0].markdown, '\n# New');
 });

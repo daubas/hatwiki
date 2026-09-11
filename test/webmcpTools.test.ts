@@ -101,6 +101,23 @@ test('read_page rejects an invalid page ID without calling the reader', async ()
   assert.equal(calls, 0);
 });
 
+test('read_page passes an optional live variant ID to the public reader', async () => {
+  const calls: Array<[string, string | undefined]> = [];
+  const tools = createWebMcpTools({
+    searchWiki: async () => [],
+    readPage: async (pageId, variantId) => {
+      calls.push([pageId, variantId]);
+      return { pageId, title: 'Example', markdown: 'Variant', revision: 'r1', links: [], backlinks: [] };
+    },
+  });
+  const read = tools.find((tool) => tool.name === 'read_page');
+  assert.ok(read);
+
+  await read.execute({ pageId: 'concepts/example', variantId: 'alt-1' });
+
+  assert.deepEqual(calls, [['concepts/example', 'alt-1']]);
+});
+
 test('search_wiki rejects a non-string query without calling the searcher', async () => {
   let calls = 0;
   const tools = createWebMcpTools({

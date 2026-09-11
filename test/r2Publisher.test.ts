@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createR2Publisher, readR2Page } from '../src/lib/r2Publisher.ts';
+import { getWikiProjectionNamespace } from '../src/lib/wikiRepositoryConfig.ts';
 
 test('publish stores the page with a conditional write and returns the same revision', async () => {
   const calls: Array<{ key: string; value: string; options: Record<string, unknown> }> = [];
@@ -31,6 +32,21 @@ test('publish stores the page with a conditional write and returns the same revi
       },
     },
   ]);
+});
+
+test('publishes to the same public-ref namespace used by the site projection', async () => {
+  const keys: string[] = [];
+  const values = new Map<string, string>();
+  const namespace = getWikiProjectionNamespace({
+    WIKI_REPO: 'daubas/webmcp-okf', WIKI_REF: 'main', WIKI_PUBLIC_REF: 'wiki-live',
+  });
+  const publisher = createR2Publisher({
+    put: async (key, value) => { keys.push(key); values.set(key, value); return {}; },
+    get: async (key) => values.has(key) ? { json: async () => JSON.parse(values.get(key) as string) } : null,
+  }, namespace);
+
+  await publisher.publish({ revision: 'rev-1', previousSha: 'blob-before', baseSha: 'blob-1', pageId: 'concepts/hatwiki', content: '# HatWiki' });
+  assert.deepEqual(keys, ['published/daubas%2Fwebmcp-okf%40wiki-live/pages/concepts/hatwiki.json']);
 });
 
 test('does not acknowledge a publication that fails R2 readback', async () => {

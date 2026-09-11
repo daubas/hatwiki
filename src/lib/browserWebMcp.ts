@@ -15,7 +15,11 @@ type ModelContext = {
 type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 
 const encodedPageId = (pageId: unknown) => String(pageId ?? '').split('/').map(encodeURIComponent).join('/');
-const pageUrl = (pageId: unknown) => `/api/pages/${encodedPageId(pageId)}`;
+const pageUrl = (pageId: unknown, variantId?: unknown) => {
+  const url = `/api/pages/${encodedPageId(pageId)}`;
+  const variant = String(variantId ?? '').trim();
+  return variant ? `${url}?variant=${encodeURIComponent(variant)}` : url;
+};
 
 async function json(response: Response) {
   const body = await response.json() as { error?: string };
@@ -50,13 +54,16 @@ export async function registerBrowserReadTools(
       description: 'Read one public HatWiki page by canonical page ID.',
       inputSchema: {
         type: 'object',
-        properties: { pageId: { type: 'string', description: 'Bundle-relative page path without .md.' } },
+        properties: {
+          pageId: { type: 'string', description: 'Bundle-relative page path without .md.' },
+          variantId: { type: 'string', description: 'Optional public variant ID when the page has more than one live version.' },
+        },
         required: ['pageId'],
         additionalProperties: false,
       },
       annotations,
-      execute: async ({ pageId }) => {
-        const page = await json(await fetcher(pageUrl(pageId)));
+      execute: async ({ pageId, variantId }) => {
+        const page = await json(await fetcher(pageUrl(pageId, variantId)));
         if (session === 'anonymous') return page;
         const editable = await json(await fetcher(`/api/edit-source/${encodedPageId(pageId)}`));
         return { ...page, sourceMarkdown: editable.content, baseSha: editable.baseSha };

@@ -1,4 +1,5 @@
-import { StalePageError, type RepositoryPage, type WikiRepository } from './editContracts.ts';
+import { StalePageError, type RepositoryPage } from './editContracts.ts';
+import { isContributorBranch, isSafeBranch } from './wikiRepositoryConfig.ts';
 
 type GitHubResponse = {
   status: number;
@@ -71,6 +72,16 @@ function encodeBase64Utf8(value: string): string {
   return btoa(binary);
 }
 
+function refSha(payload: unknown): string {
+  const sha = payload && typeof payload === 'object'
+    && (payload as { object?: { sha?: unknown } }).object
+    && typeof (payload as { object: { sha?: unknown } }).object.sha === 'string'
+    ? (payload as { object: { sha: string } }).object.sha
+    : undefined;
+  if (!sha || !/^[a-f\d]{40,64}$/i.test(sha)) throw new Error('GitHub response was invalid');
+  return sha;
+}
+
 async function putContent(
   fetcher: GitHubFetcher,
   url: string,
@@ -109,7 +120,7 @@ async function putContent(
   return { revision };
 }
 
-export function createGitHubRepository(options: GitHubRepositoryOptions): WikiRepository {
+export function createGitHubRepository(options: GitHubRepositoryOptions) {
   const fetcher = options.fetcher;
   const apiBase = `https://api.github.com/repos/${encodeURIComponent(options.owner)}/${encodeURIComponent(options.repo)}`;
   const headers = {
@@ -119,12 +130,55 @@ export function createGitHubRepository(options: GitHubRepositoryOptions): WikiRe
     'X-GitHub-Api-Version': '2022-11-28',
   };
 
+  const readRef = async (ref: string): Promise<string | null> => {
+    let response: GitHubResponse;
+    try {
+      response = await fetcher(`${apiBase}/git/ref/heads/${encodeURIComponent(ref)}`, { method: 'GET', headers });
+    } catch {
+      throw new Error('GitHub request failed');
+    }
+    if (response.status === 404) return null;
+    if (response.status < 200 || response.status >= 300) throw new Error(`GitHub request failed (${response.status})`);
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new Error('GitHub response was invalid');
+    }
+    return refSha(payload);
+  };
+
+  const createRef = async (branch: string, sha: string): Promise<string | null> => {
+    let response: GitHubResponse;
+    try {
+      response = await fetcher(`${apiBase}/git/refs`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ref: `refs/heads/${branch}`, sha }),
+      });
+    } catch {
+      throw new Error('GitHub request failed');
+    }
+    if (response.status === 409 || response.status === 422) return null;
+    if (response.status < 200 || response.status >= 300) throw new Error(`GitHub request failed (${response.status})`);
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new Error('GitHub response was invalid');
+    }
+    return refSha(payload);
+  };
+
   const findCommitRevision = async (
     relativePath: string,
     requestId: string,
     identity?: { actorUserId: number; sourceTaskId?: string },
+    ref?: string,
   ): Promise<string | null> => {
-    const url = `${apiBase}/commits?path=${encodeURIComponent(relativePath)}&sha=${encodeURIComponent(options.branch)}&per_page=100`;
+    const branch = ref ?? options.branch;
+    if (!isSafeBranch(branch)) throw new Error('Invalid branch reference');
+    const url = `${apiBase}/commits?path=${encodeURIComponent(relativePath)}&sha=${encodeURIComponent(branch)}&per_page=100`;
     let response: GitHubResponse;
     try {
       response = await fetcher(url, { method: 'GET', headers });
@@ -163,7 +217,30 @@ export function createGitHubRepository(options: GitHubRepositoryOptions): WikiRe
 
   const contentRoot = options.contentRoot ?? 'wiki';
   return {
+    async ensureBranch({ branch, baseRef }: { branch: string; baseRef?: string }) {
+      if (!isContributorBranch(branch)) throw new Error('Invalid contribution branch');
+      if (baseRef !== undefined && !isSafeBranch(baseRef)) throw new Error('Invalid branch reference');
+
+      const existing = await readRef(branch);
+      if (existing) return { branch, sha: existing, created: false };
+
+      const baseRefs = baseRef === undefined
+        ? ['wiki-live', 'main']
+        : [baseRef, ...['wiki-live', 'main'].filter((ref) => ref !== baseRef)];
+      for (const candidateBaseRef of baseRefs) {
+        const baseSha = await readRef(candidateBaseRef);
+        if (!baseSha) continue;
+        const created = await createRef(branch, baseSha);
+        if (created) return { branch, sha: created, created: true, baseRef: candidateBaseRef };
+        const raced = await readRef(branch);
+        if (raced) return { branch, sha: raced, created: false };
+        throw new Error('GitHub branch creation conflict');
+      }
+      throw new Error('GitHub base branch was not found');
+    },
+
     async readPage(pageId: string, ref = options.branch): Promise<RepositoryPage | null> {
+      if (!isSafeBranch(ref)) throw new Error('Invalid branch reference');
       const url = `${apiBase}/${wikiPath(pageId, contentRoot)}?ref=${encodeURIComponent(ref)}`;
       let response: GitHubResponse;
       try {
@@ -194,30 +271,34 @@ export function createGitHubRepository(options: GitHubRepositoryOptions): WikiRe
       return { sha: file.sha, content: decodeBase64Utf8(file.content) };
     },
 
-    async findRequestRevision(pageId: string, requestId: string, identity) {
+    async findRequestRevision(pageId: string, requestId: string, identity, ref?: string) {
       const pagePath = wikiRelativePath(pageId, contentRoot);
       const candidateFilePath = candidateRelativePath(pageId, requestId);
-      const pageRevision = await findCommitRevision(pagePath, requestId, identity);
+      const pageRevision = await findCommitRevision(pagePath, requestId, identity, ref);
       if (pageRevision) return { kind: 'page' as const, revision: pageRevision };
-      const candidateRevision = await findCommitRevision(candidateFilePath, requestId, identity);
+      const candidateRevision = await findCommitRevision(candidateFilePath, requestId, identity, ref);
       if (candidateRevision) return { kind: 'candidate' as const, revision: candidateRevision };
       return null;
     },
 
-    async commitPage(input: { pageId: string; baseSha: string; content: string; message: string }) {
+    async commitPage(input: { pageId: string; baseSha: string; content: string; message: string; ref?: string }) {
+      const branch = input.ref ?? options.branch;
+      if (!isSafeBranch(branch)) throw new Error('Invalid branch reference');
       return putContent(fetcher, `${apiBase}/${wikiPath(input.pageId, contentRoot)}`, headers, {
         message: input.message,
         content: encodeBase64Utf8(input.content),
-        branch: options.branch,
+        branch,
         sha: input.baseSha,
       }, true);
     },
 
-    async saveCandidate(input: { pageId: string; content: string; requestId: string; message: string }) {
+    async saveCandidate(input: { pageId: string; content: string; requestId: string; message: string; ref?: string }) {
+      const branch = input.ref ?? options.branch;
+      if (!isSafeBranch(branch)) throw new Error('Invalid branch reference');
       return putContent(fetcher, `${apiBase}/${candidatePath(input.pageId, input.requestId)}`, headers, {
         message: input.message,
         content: encodeBase64Utf8(input.content),
-        branch: options.branch,
+        branch,
       });
     },
   };

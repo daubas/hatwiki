@@ -59,6 +59,31 @@ test('passes only the edit contract to the service and returns its receipt', asy
   ]);
 });
 
+test('does not accept or forward a client-provided ref', async () => {
+  let received: unknown;
+  const response = await handleEditRequest(
+    new Request('https://hatwiki.test/api/edit', {
+      method: 'POST',
+      body: JSON.stringify({ ...body, ref: 'contrib/u-999/attacker-controlled' }),
+    }),
+    { userId: 7, login: 'octo' },
+    async (_actor, input) => {
+      received = input;
+      return { requestId: input.requestId, status: 'committed', revision: 'commit-1' };
+    },
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(received, {
+    requestId: 'request-web-1',
+    pageId: 'concepts/hatwiki',
+    baseSha: 'blob-before',
+    content: '# Updated',
+    reason: 'Clarify the page',
+    sourceTaskId: 'task-1',
+  });
+});
+
 test('rejects malformed JSON without invoking the edit service', async () => {
   let calls = 0;
   const response = await handleEditRequest(

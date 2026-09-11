@@ -4,10 +4,12 @@ import { env } from 'cloudflare:workers';
 import { createCollectionProjection } from './collectionProjection.ts';
 import { createPublicWiki } from './publicWiki.ts';
 import { createR2OverlayProjection } from './r2OverlayProjection.ts';
+import { getWikiProjectionNamespace, isContributorBranchMode, isLiveBranchMode } from './wikiRepositoryConfig.ts';
 
 async function getProjection() {
   const entries = await getCollection('wiki');
-  return createR2OverlayProjection(createCollectionProjection('local-fixture', entries), env.HATWIKI_PUBLIC, env.WIKI_REPO);
+  const namespace = isContributorBranchMode(env) || isLiveBranchMode(env) ? getWikiProjectionNamespace(env) : env.WIKI_REPO;
+  return createR2OverlayProjection(createCollectionProjection('local-fixture', entries), env.HATWIKI_PUBLIC, namespace);
 }
 
 export async function getSiteWiki() {

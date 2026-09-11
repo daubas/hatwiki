@@ -1,7 +1,29 @@
-import type { LinkResolution, PageRead, PublicPage, PublicProjection, PublicSearchResult } from './contracts.ts';
+import type { LinkResolution, PageRead, PublicPage, PublicProjection, PublicSearchResult, PublicVariant, PublicVariantMetadata } from './contracts.ts';
 
 const SEARCH_RESULT_LIMIT = 8;
 const SEARCH_SNIPPET_LENGTH = 180;
+const VARIANT_RESULT_LIMIT = 32;
+
+function variantMetadata(variant: PublicVariant): PublicVariantMetadata {
+  return {
+    variantId: variant.variantId,
+    revision: variant.revision,
+    title: variant.title,
+    ...(variant.description ? { description: variant.description } : {}),
+    support: {
+      views: variant.support.views,
+      endorsements: variant.support.endorsements,
+      disagreements: variant.support.disagreements,
+    },
+  };
+}
+
+function variantsForRead(variants: PublicVariant[] | undefined, selected?: PublicVariant): PublicVariantMetadata[] | undefined {
+  if (!variants?.length) return undefined;
+  const listed = variants.slice(0, VARIANT_RESULT_LIMIT);
+  // ponytail: cap metadata to keep public reads bounded; add pagination when candidates outgrow this.
+  return (selected && !listed.includes(selected) ? [...listed.slice(0, -1), selected] : listed).map(variantMetadata);
+}
 
 function resolveLink(target: string, pages: PublicPage[]): LinkResolution {
   const exact = pages.find((page) => page.pageId === target);
@@ -65,12 +87,26 @@ export function createPublicWiki(projection: PublicProjection) {
         }));
     },
 
-    async readPage(pageId: string): Promise<PageRead | null> {
+    async readPage(pageId: string, variantId?: string): Promise<PageRead | null> {
       const snapshot = await projection.readSnapshot();
       const page = snapshot.pages.find((candidate) => candidate.pageId === pageId);
       if (!page) return null;
+      const selectedVariant = variantId === undefined ? undefined : page.variants?.find((candidate) => candidate.variantId === variantId);
+      if (variantId !== undefined && !selectedVariant) return null;
+      const activePage = selectedVariant
+        ? (() => {
+          const next = { ...page, title: selectedVariant.title, markdown: selectedVariant.markdown };
+          if (selectedVariant.description) next.description = selectedVariant.description;
+          else delete next.description;
+          // Variant metadata is independently projected; do not attribute the primary page's sources to it.
+          delete next.resource;
+          delete next.citations;
+          delete next.pendingCandidates;
+          return next;
+        })()
+        : page;
 
-      const links = linksFor(page, snapshot.pages);
+      const links = linksFor(activePage, snapshot.pages);
       const linkedPages = [...new Set(links.flatMap((link) => link.status === 'resolved' && link.pageId ? [link.pageId] : []))]
         .flatMap((linkedPageId) => {
           const linkedPage = snapshot.pages.find((candidate) => candidate.pageId === linkedPageId);
@@ -82,8 +118,19 @@ export function createPublicWiki(projection: PublicProjection) {
         .filter((candidate) => linksFor(candidate, snapshot.pages).some((link) => link.pageId === pageId))
         .map((candidate) => ({ pageId: candidate.pageId, title: candidate.title }));
       const backlinks = backlinkPages.map((candidate) => candidate.pageId);
+      const { variants: _variants, ...publicPage } = activePage;
+      const variants = variantsForRead(page.variants, selectedVariant);
 
-      return { ...page, revision: snapshot.revision, links, linkedPages, backlinks, backlinkPages };
+      return {
+        ...publicPage,
+        revision: selectedVariant?.revision ?? snapshot.revision,
+        ...(selectedVariant ? { selectedVariantId: selectedVariant.variantId } : {}),
+        ...(variants ? { variants } : {}),
+        links,
+        linkedPages,
+        backlinks,
+        backlinkPages,
+      };
     },
   };
 }

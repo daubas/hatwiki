@@ -7,6 +7,7 @@ const labels: EditUiLabels = {
   unableToSubmit: '無法送出',
   status: {
     committed: '已提交',
+    pending_live: '已提交候選分支，等待納入公開版本',
     conflict: '發生衝突',
     approval_required: '等待審核',
   },
@@ -24,6 +25,7 @@ const labels: EditUiLabels = {
 
 test('formats known edit receipts and errors without exposing machine codes', () => {
   assert.equal(editResultMessage({ ok: true, status: 'committed' }, labels), '已完成：已提交');
+  assert.equal(editResultMessage({ ok: true, status: 'pending_live' }, labels), '已完成：已提交候選分支，等待納入公開版本');
   assert.equal(editResultMessage({ ok: true, status: 'approval_required' }, labels), '已完成：等待審核');
   assert.equal(editResultMessage({ ok: false, error: 'authentication_required' }, labels), '無法送出：需要先登入');
   assert.equal(editResultMessage({ ok: false, error: 'unknown_error' }, labels), '無法送出：請稍後再試');

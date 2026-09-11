@@ -9,18 +9,18 @@ const copy = locale === 'en' ? {
   source: 'Private source', draft: 'Shared draft', feedback: 'Notes for your Agent', feedbackHint: 'Record what should be checked or improved next.',
   citation: 'Required source citation', preview: 'Changes from the current Wiki page', noChanges: 'No changes yet.',
   save: 'Save draft', publish: 'Publish to Wiki', reload: 'Reload', authorization: 'I confirm this draft may be published to the public Wiki.',
-  saved: 'Draft saved.', stale: 'This draft changed elsewhere. Reload before saving again.', published: 'Published to the Wiki.', conflict: 'Saved as a conflict candidate; it is not public yet.', approval: 'Submitted for approval; it is not public yet.', citationMissing: 'Add the displayed source citation to the draft before publishing.', discard: 'Discard unsaved changes and reload?', openResult: 'Open result', failed: 'Unable to complete this action.',
+  saved: 'Draft saved.', pending: 'Publishing and verifying Git and the public Wiki…', pendingLive: 'Saved to a contributor branch; awaiting the public Wiki version.', stale: 'This draft changed elsewhere. Reload before saving again.', published: 'Published to the Wiki.', conflict: 'Saved as a conflict candidate; it is not public yet.', approval: 'Submitted for approval; it is not public yet.', citationMissing: 'Add the displayed source citation to the draft before publishing.', discard: 'Discard unsaved changes and reload?', openResult: 'Open result', failed: 'Unable to complete this action.',
 } : {
   title: '共同編輯台', back: '再加入一份資料', loading: '正在載入你的私密來源與 Wiki 最新版本…',
   source: '私密來源', draft: '共同草稿', feedback: '給 Agent 的整理意見', feedbackHint: '記下下一步要查證或改善的地方。',
   citation: '發布時必須保留的來源引用', preview: '相對目前 Wiki 的修改', noChanges: '目前沒有修改。',
   save: '保存草稿', publish: '發布到 Wiki', reload: '重新載入', authorization: '我確認這份草稿可以發布到公開 Wiki。',
-  saved: '草稿已保存。', stale: '草稿已在別處更新，請重新載入後再保存。', published: '已發布到 Wiki。', conflict: '已保存為衝突候選，尚未公開。', approval: '已送交核准，尚未公開。', citationMissing: '發布前，請把畫面顯示的來源引用加入草稿。', discard: '要放棄尚未保存的修改並重新載入嗎？', openResult: '開啟處理結果', failed: '這次操作沒有完成。',
+  saved: '草稿已保存。', pending: '正在發布，並確認 Git 與公開 Wiki…', pendingLive: '已保存到貢獻分支，等待納入公開 Wiki。', stale: '草稿已在別處更新，請重新載入後再保存。', published: '已發布到 Wiki。', conflict: '已保存為衝突候選，尚未公開。', approval: '已送交核准，尚未公開。', citationMissing: '發布前，請把畫面顯示的來源引用加入草稿。', discard: '要放棄尚未保存的修改並重新載入嗎？', openResult: '開啟處理結果', failed: '這次操作沒有完成。',
 };
 ---
 
 <Layout title={copy.title}>
-  <article class="workbench" data-task-id={taskId} data-login-url={withLocale('/auth/login', locale)} data-saved={copy.saved} data-stale={copy.stale} data-published={copy.published} data-conflict={copy.conflict} data-approval={copy.approval} data-citation-missing={copy.citationMissing} data-discard={copy.discard} data-open-result={copy.openResult} data-failed={copy.failed}>
+  <article class="workbench" data-task-id={taskId} data-login-url={withLocale('/auth/login', locale)} data-saved={copy.saved} data-pending={copy.pending} data-pending-live={copy.pendingLive} data-stale={copy.stale} data-published={copy.published} data-conflict={copy.conflict} data-approval={copy.approval} data-citation-missing={copy.citationMissing} data-discard={copy.discard} data-open-result={copy.openResult} data-failed={copy.failed}>
     <header>
       <a href={withLocale('/sources/new', locale)}>← {copy.back}</a>
       <p>CHANGE WORKSPACE / {taskId}</p>
@@ -74,7 +74,7 @@ const copy = locale === 'en' ? {
   let dirty = false;
   let editRequest: EditRequestState | undefined;
 
-  const message = (key: 'saved' | 'stale' | 'published' | 'conflict' | 'approval' | 'citationMissing' | 'failed') => root?.dataset[key] || key;
+  const message = (key: 'saved' | 'pending' | 'pendingLive' | 'stale' | 'published' | 'conflict' | 'approval' | 'citationMissing' | 'failed') => root?.dataset[key] || key;
   const setNotice = (value: string, error = false) => {
     if (notice) { notice.firstChild!.textContent = `${value} `; notice.dataset.state = error ? 'error' : 'ok'; }
     if (resultLink) resultLink.hidden = true;
@@ -108,7 +108,7 @@ const copy = locale === 'en' ? {
     if (fields) fields.disabled = workspace.status !== 'stored';
     dirty = false;
     updateDiff();
-    setNotice(workspace.status === 'stored' ? (version ? message('saved') : 'Ready.') : workspace.status);
+    setNotice(workspace.status === 'stored' ? (version ? message('saved') : 'Ready.') : workspace.status === 'committed' ? message('published') : workspace.status === 'pending_live' ? message('pendingLive') : workspace.status === 'conflict' ? message('conflict') : workspace.status === 'approval_required' ? message('approval') : workspace.status);
   }
 
   async function saveDraft(snapshot: { content: string; feedback: string; version: number }) {
@@ -139,6 +139,7 @@ const copy = locale === 'en' ? {
     if (!root || !content || !feedback || !authorization?.checked) return setNotice(message('failed'), true);
     const snapshot = { content: content.value, feedback: feedback.value, version };
     if (fields) fields.disabled = true;
+    setNotice(message('pending'));
     try {
       await saveDraft(snapshot);
       dirty = false;
@@ -151,7 +152,7 @@ const copy = locale === 'en' ? {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error);
       const status = String(payload.status || '');
-      setNotice(status === 'committed' ? message('published') : status === 'conflict' ? message('conflict') : message('approval'));
+      setNotice(status === 'committed' ? message('published') : status === 'pending_live' ? message('pendingLive') : status === 'conflict' ? message('conflict') : message('approval'));
       if (resultLink && (payload.revisionUrl || payload.pageUrl)) {
         resultLink.href = payload.revisionUrl || payload.pageUrl;
         resultLink.textContent = root.dataset.openResult || 'Open result';

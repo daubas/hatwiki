@@ -4,14 +4,25 @@ import { getLocale, t, withLocale } from '../../lib/i18n.ts';
 import { renderWiki } from '../../lib/renderWiki.ts';
 import { getSiteWiki } from '../../lib/siteWiki.ts';
 import { addHeadingIds, extractWikiOutline, removeLeadingTitle } from '../../lib/wikiOutline.ts';
+import { diffMarkdown } from '../../lib/variantDiff.ts';
 
 const wiki = await getSiteWiki();
 const locale = getLocale(Astro.url);
-const page = await wiki.readPage(Astro.params.slug ?? '');
+const pageId = Astro.params.slug ?? '';
+const requestedVariant = Astro.url.searchParams.get('variant')?.trim() || undefined;
+const page = await wiki.readPage(pageId, requestedVariant);
 if (!page) return new Response(t(locale, 'notFound'), { status: 404 });
+const primaryPage = requestedVariant ? await wiki.readPage(pageId) : page;
 const outline = extractWikiOutline(page.markdown);
 const html = addHeadingIds(removeLeadingTitle(await renderWiki(page.markdown, page.pageId)), outline);
 const hasDiagnostics = page.links.some((link) => link.status !== 'resolved');
+const variants = page.variants ?? [];
+const versionHref = (variantId?: string) => {
+  const path = `/wiki/${page.pageId.split('/').map(encodeURIComponent).join('/')}`;
+  const localized = withLocale(path, locale);
+  return variantId ? `${localized}${localized.includes('?') ? '&' : '?'}variant=${encodeURIComponent(variantId)}` : localized;
+};
+const diff = requestedVariant && primaryPage ? diffMarkdown(primaryPage.markdown, page.markdown) : [];
 const citationHref = (resource: string) => {
   if (/^https?:\/\//i.test(resource)) return resource;
   if (resource.startsWith('/raw/')) return undefined;
@@ -34,9 +45,30 @@ const canonicalSource = page.resource && /^https?:\/\//i.test(page.resource) ? p
       <div class="page-meta">
         <span>{t(locale, 'wikiPageId')} / {page.pageId}</span>
         <span>{t(locale, 'graphRevision')} {page.revision}</span>
+        {requestedVariant && <span>{t(locale, 'pageSelectedVersion')}</span>}
         <a class="edit-link" href={withLocale(`/edit/${page.pageId}`, locale)}>{t(locale, 'edit')}</a>
       </div>
     </header>
+
+    {variants.length > 0 && <section class="wiki-versions" aria-labelledby="wiki-versions-title">
+      <p class="section-kicker" id="wiki-versions-title">{t(locale, 'pageVersions')}</p>
+      <p class="versions-hint">{t(locale, 'pageVersionsHint')}</p>
+      <div class="version-list">
+        <a class:list={['version-card', { 'version-card--selected': !requestedVariant }]} href={versionHref()}>
+          <strong>{primaryPage?.title ?? page.title}</strong>
+          <span>{t(locale, 'pagePrimaryVersion')}</span>
+        </a>
+        {variants.map((variant) => <a class:list={['version-card', { 'version-card--selected': requestedVariant === variant.variantId }]} href={versionHref(variant.variantId)}>
+          <strong>{variant.title}</strong>
+          <span>{t(locale, 'pageOtherVersion')} · {variant.revision.slice(0, 10)}</span>
+          <small>{t(locale, 'pageVariantViews')} {variant.support.views} · {t(locale, 'pageVariantEndorsements')} {variant.support.endorsements} · {t(locale, 'pageVariantDisagreements')} {variant.support.disagreements}</small>
+        </a>)}
+      </div>
+      {requestedVariant && primaryPage && <details class="version-diff">
+        <summary>{t(locale, 'pageViewDiff')}</summary>
+        <pre>{diff.map((line) => `${line.kind === 'added' ? '+ ' : line.kind === 'removed' ? '- ' : '  '}${line.text}`).join('\n')}</pre>
+      </details>}
+    </section>}
 
     <div class:list={['wiki-page-layout', { 'wiki-page-layout--with-toc': outline.length > 0 }]}>
       {outline.length > 0 && <nav class="wiki-toc" aria-labelledby="wiki-contents-title">
@@ -93,6 +125,18 @@ const canonicalSource = page.resource && /^https?:\/\//i.test(page.resource) ? p
   .page-meta { display:flex; flex-wrap:wrap; align-items:center; gap:14px; color:var(--muted); font-size:.84rem; }
   .edit-link { color:var(--accent); font-weight:800; text-decoration:none; }
   .edit-link:hover { color:var(--text); }
+  .wiki-versions { margin:0 0 34px; border:2px solid var(--line); padding:18px; background:color-mix(in srgb,var(--soft) 42%,transparent); }
+  .wiki-versions .section-kicker { margin:0 0 6px; }
+  .versions-hint { margin:0 0 14px; color:var(--muted); font-size:.9rem; }
+  .version-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px; }
+  .version-card { display:grid; gap:4px; min-width:0; border:1px solid var(--line); padding:12px; color:var(--text); text-decoration:none; background:var(--panel); }
+  .version-card:hover, .version-card--selected { background:var(--lime); color:var(--text); box-shadow:3px 3px 0 var(--line); }
+  .version-card strong, .version-card span, .version-card small { overflow-wrap:anywhere; }
+  .version-card span, .version-card small { color:var(--muted); font-size:.78rem; }
+  .version-card--selected span, .version-card--selected small { color:var(--text); }
+  .version-diff { margin-top:16px; border-top:1px solid var(--line); padding-top:12px; }
+  .version-diff summary { cursor:pointer; color:var(--accent); font-weight:800; }
+  .version-diff pre { max-height:360px; overflow:auto; margin:12px 0 0; padding:14px; background:var(--soft); white-space:pre-wrap; overflow-wrap:anywhere; }
   .wiki-page-layout { min-width:0; }
   .wiki-page-layout--with-toc { display:grid; grid-template-columns:minmax(0,1fr) 190px; grid-template-areas:'content toc'; gap:clamp(28px,5vw,56px); align-items:start; }
   .wiki-content { grid-area:content; min-width:0; overflow-wrap:anywhere; }

@@ -19,7 +19,7 @@
         "status": "pending",
         "owner": "HatWiki team",
         "decided_at": "",
-        "evidence": "Gate C operational acceptance is complete; awaiting human approval of the revised editorial beats and recorded evidence."
+        "evidence": "The original six-tool Gate C acceptance and the signed-in production Workbench flow are complete. The two workspace tools still need an external-host acceptance pass before recording."
       }
     }
   ]

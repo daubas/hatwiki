@@ -41,6 +41,7 @@ const retryErrorCopy = locale === 'en' ? {
       data-completed={t(locale, 'completed')}
       data-unable={t(locale, 'unableToSubmit')}
       data-status-committed={t(locale, 'editStatusCommitted')}
+      data-status-pending-live={t(locale, 'editStatusPendingLive')}
       data-status-conflict={t(locale, 'editStatusConflict')}
       data-status-approval={t(locale, 'editStatusApproval')}
       data-status-unknown={t(locale, 'editStatusUnknown')}
@@ -62,6 +63,7 @@ const retryErrorCopy = locale === 'en' ? {
       data-ready={t(locale, 'editReady')}
       data-read-only={t(locale, 'editReadOnly')}
       data-no-changes={t(locale, 'editNoChanges')}
+      data-pending={locale === 'en' ? 'Publishing and verifying Git and the public Wiki…' : '正在發布，並確認 Git 與公開 Wiki…'}
       data-view-wiki={t(locale, 'viewWiki')}
       data-view-commit={t(locale, 'viewCommit')}
       data-change-affected={t(locale, 'changeAffected')}
@@ -121,6 +123,7 @@ const retryErrorCopy = locale === 'en' ? {
     unableToSubmit: form?.dataset.unable || 'Unable to submit',
     status: {
       committed: form?.dataset.statusCommitted || 'Committed',
+      pending_live: form?.dataset.statusPendingLive || 'Saved to a contributor branch; awaiting the public version',
       conflict: form?.dataset.statusConflict || 'Conflict',
       approval_required: form?.dataset.statusApproval || 'Submitted for review',
     },
@@ -177,7 +180,7 @@ const retryErrorCopy = locale === 'en' ? {
     const data = new FormData(form);
     if (result) {
       result.dataset.state = 'pending';
-      result.textContent = '';
+      result.textContent = form.dataset.pending || 'Publishing…';
     }
     const input = JSON.stringify([
       form.dataset.pageId,

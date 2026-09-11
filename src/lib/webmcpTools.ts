@@ -2,7 +2,7 @@ export type WebMcpSession = 'anonymous' | 'authenticated';
 
 export type WebMcpHandlers = {
   searchWiki: (query: string) => unknown;
-  readPage: (pageId: string) => unknown;
+  readPage: (pageId: string, variantId?: string) => unknown;
 };
 
 export type WebMcpToolResult = {
@@ -47,7 +47,7 @@ export function createWebMcpTools(
       annotations,
       inputSchema: {
         type: 'object',
-        properties: { pageId: { type: 'string' } },
+        properties: { pageId: { type: 'string' }, variantId: { type: 'string' } },
         required: ['pageId'],
         additionalProperties: false,
       },
@@ -57,7 +57,9 @@ export function createWebMcpTools(
         if (!pageId) {
           return { isError: true, structuredContent: { error: 'invalid_input', field: 'pageId' } };
         }
-        const page = await _handlers.readPage(pageId);
+        const variantValue = inputField(input, 'variantId');
+        const variantId = typeof variantValue === 'string' ? variantValue.trim() : undefined;
+        const page = await _handlers.readPage(pageId, variantId || undefined);
         return page === null || page === undefined
           ? { isError: true, structuredContent: { error: 'not_found', pageId } }
           : { structuredContent: page };

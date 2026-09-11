@@ -79,6 +79,15 @@ publisher. It can help maintain shared knowledge, while people retain the
 final publication decision and the repository preserves attribution and
 history.
 
+## Next collaboration mode: optimistic `wiki-live` editing
+
+The post-demo architecture keeps the same GitHub identity boundary while letting
+ordinary low-risk edits write directly to `wiki-live`, the public provisional-
+consensus ref. Stale edits become conflict candidates instead of overwriting the
+live page; protected or larger changes may use isolated contributor branches.
+This is a planned opt-in extension, not part of the current recorded evidence;
+the deployed demo still reads and publishes against `main`.
+
 ## Video plan — source of truth
 
 The final video is governed by the recorded-course artifacts in
@@ -92,21 +101,25 @@ The 2:40 video is a compact five-beat course flow with one outcome:
 > session can read through WebMCP.
 
 The required story is: GitHub sign-in → authorized `add_source` →
-`get_ingestion_status` → `search_wiki` and `read_page` → `inspect_changes` →
-explicit publication declaration → `edit_page` → GitHub and R2 readback → fresh agent
-session reads the corrected page.
+`get_ingestion_status` → `get_workspace` → `search_wiki` and `read_page` →
+`save_draft` → `inspect_changes` → explicit publication declaration →
+`edit_page` → GitHub and R2 readback → fresh agent session reads the corrected
+page.
 
-Gate C operational acceptance has verified this flow in a real external browser
-host, including idempotent source and edit replays, conflict retry, and a fresh
-session readback. The paper edit remains `proposed`: operational acceptance is
-not recorded-video evidence. Do not call planned footage evidence, mark a
-cut-list Resolve-ready, or publish a final master until clean, redacted takes
-and the separate editorial, privacy, rights, technical, and publication gates
-exist.
+The original six-tool flow has passed Gate C operational acceptance in a real
+external browser host, including idempotent source and edit replays, conflict
+retry, and a fresh-session readback. The signed-in production Workbench has also
+passed private-source, versioned-draft, feedback, diff, authorized publication,
+public readback, and exact-restore checks. The two workspace tools still require
+an external-host acceptance pass before recording. The paper edit remains
+`proposed`: operational acceptance is not recorded-video evidence. Do not call
+planned footage evidence, mark a cut-list Resolve-ready, or publish a final
+master until clean, redacted takes and the separate editorial, privacy, rights,
+technical, and publication gates exist.
 
 ## Gate C operational acceptance
 
-- [x] An external browser host exposed all six tools through
+- [x] An external browser host exposed the original six tools through
       `document.modelContext` in the appropriate GitHub session.
 - [x] Authorized source creation, owner-scoped status reading, change
       inspection, and idempotent source/edit replays were exercised.
@@ -114,11 +127,15 @@ exist.
       stale-base conflict handling and retry were exercised separately.
 - [x] The deployed Wiki and Graph were checked at 320 px and 375 px viewports,
       and keyboard Graph interaction was checked.
+- [x] The signed-in Workbench saves a draft, shows its diff, publishes the
+      accepted draft through Git/R2, and restores the original bytes.
+- [ ] The external host exposes `get_workspace` and `save_draft`, and rejects a
+      stale draft version without changing the saved draft.
 
 ## Recording checklist
 
 - [ ] Use the deployed URL, not a localhost address.
-- [ ] Make all six tool names and the source-to-edit handoff legible in the
+- [ ] Make all eight tool names and the source-to-edit handoff legible in the
       recording; keep the main outcome understandable rather than replaying the
       entire acceptance suite.
 - [ ] Keep the source body, GitHub account details, cookies, and credentials out
@@ -132,8 +149,8 @@ exist.
 
 ## Submission checklist
 
-- [x] Confirm the live URL and the six-tool session boundary in an external
-      browser host.
+- [ ] Confirm the live URL and the current eight-tool session boundary in an
+      external browser host.
 - [ ] Confirm the final demo visibly covers the source-to-edit story and a fresh
       session readback.
 - [ ] Record a public YouTube video under three minutes with clear audio.

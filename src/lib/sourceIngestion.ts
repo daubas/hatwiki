@@ -1,7 +1,7 @@
 import type { EditActor } from './editContracts.ts';
 import { isCanonicalPageId } from './editPageService.ts';
 
-export type IngestionStatus = 'stored' | 'committed' | 'conflict' | 'approval_required';
+export type IngestionStatus = 'stored' | 'committed' | 'pending_live' | 'conflict' | 'approval_required';
 
 export type IngestionTask = {
   taskId: string;

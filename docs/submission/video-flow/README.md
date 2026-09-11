@@ -26,11 +26,17 @@ production-safe source of truth. The course pipeline adds the missing discipline
 
 ## Current status
 
-Gate C operational acceptance is complete on the deployed site: a real external
-browser host registered all six tools, exercised source/status/inspection/edit
-flows and their idempotent replays, preserved a conflict candidate through a
-retry, and read the committed result from a new session. The Wiki and Graph
-were also checked at 320 px and 375 px, including keyboard Graph interaction.
+Gate C operational acceptance is complete for the original six-tool flow on the
+deployed site. The production Workbench has also passed signed-in source, draft,
+feedback, diff, authorized publication, public readback, and exact-restore
+checks. The current eight-tool build still needs an external-host acceptance
+pass for `get_workspace`, `save_draft`, and stale-version rejection. The Wiki
+and Graph were already checked at 320 px and 375 px, including keyboard Graph
+interaction.
+
+The approved next architecture uses contributor branches and a controlled
+`wiki-live` branch as the public provisional consensus. It is not implemented
+or recorded in this demo flow; the current evidence continues to use `main`.
 
 The paper edit remains intentionally `proposed`. Operational acceptance is not
 recorded-video evidence, and this folder has no approved, redacted raw takes in
@@ -39,19 +45,20 @@ the real UI operations are captured, inventoried, privacy-reviewed, rights-
 reviewed, and approved through the separate editorial and technical gates.
 
 When a browser provides `document.modelContext`, anonymous sessions register
-`search_wiki` and `read_page`; a GitHub-signed-in session registers all six:
+`search_wiki` and `read_page`; a GitHub-signed-in session registers all eight:
 `search_wiki`, `read_page`, `edit_page`, `add_source`,
-`get_ingestion_status`, and `inspect_changes`. Source text stays in private D1
-and is owner-readable only; the public R2 projection never contains its body.
+`get_ingestion_status`, `inspect_changes`, `get_workspace`, and `save_draft`.
+Source text and drafts stay in private D1 and are owner-readable only; the
+public R2 projection never contains the source body.
 
 ## Five-beat review order
 
 1. Outcome and environment.
 2. Authorized source, task, and human-facing Wiki surface.
-3. Agent discovery through `add_source`, `get_ingestion_status`, `search_wiki`,
-   and `read_page`.
-4. `inspect_changes`, publication declaration, `edit_page`, Git commit receipt,
-   and public R2 snapshot.
+3. Agent discovery through `add_source`, `get_ingestion_status`,
+   `get_workspace`, `search_wiki`, and `read_page`.
+4. `save_draft`, Workbench diff, `inspect_changes`, publication declaration,
+   `edit_page`, Git commit receipt, and public R2 snapshot.
 5. Fresh-session validation and close.
 
 ## Production gates

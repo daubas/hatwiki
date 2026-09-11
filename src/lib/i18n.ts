@@ -27,6 +27,15 @@ export interface UiMessages {
   wikiResultCount: string;
   wikiContents: string;
   wikiRelated: string;
+  pageVersions: string;
+  pageVersionsHint: string;
+  pagePrimaryVersion: string;
+  pageOtherVersion: string;
+  pageSelectedVersion: string;
+  pageViewDiff: string;
+  pageVariantViews: string;
+  pageVariantEndorsements: string;
+  pageVariantDisagreements: string;
   wikiPageId: string;
   homeStatus: string;
   homeOverline: string;
@@ -91,6 +100,7 @@ export interface UiMessages {
   completed: string;
   unableToSubmit: string;
   editStatusCommitted: string;
+  editStatusPendingLive: string;
   editStatusConflict: string;
   editStatusApproval: string;
   editStatusUnknown: string;
@@ -142,6 +152,15 @@ export const ui: Record<Locale, UiMessages> = {
     wikiResultCount: '個結果',
     wikiContents: '本頁目錄',
     wikiRelated: '相關頁面',
+    pageVersions: '公開版本',
+    pageVersionsHint: '這一頁目前保留多個公開版本；你可以比較內容，再選擇想閱讀的版本。',
+    pagePrimaryVersion: '目前主版本',
+    pageOtherVersion: '其他版本',
+    pageSelectedVersion: '目前閱讀',
+    pageViewDiff: '查看與主版本的差異',
+    pageVariantViews: '查看',
+    pageVariantEndorsements: '認同',
+    pageVariantDisagreements: '不同意',
     wikiPageId: '頁面 ID',
     homeStatus: '公開 Wiki · Git 版本管理',
     homeOverline: 'HATWIKI / 共同知識',
@@ -206,6 +225,7 @@ export const ui: Record<Locale, UiMessages> = {
     completed: '已完成',
     unableToSubmit: '無法送出',
     editStatusCommitted: '已提交',
+    editStatusPendingLive: '已提交候選分支，等待納入公開版本',
     editStatusConflict: '發生衝突，已保留候選版本',
     editStatusApproval: '已送出，等待審核',
     editStatusUnknown: '已收到回應',
@@ -255,6 +275,15 @@ export const ui: Record<Locale, UiMessages> = {
     wikiResultCount: 'results',
     wikiContents: 'On this page',
     wikiRelated: 'Related pages',
+    pageVersions: 'Public versions',
+    pageVersionsHint: 'This page keeps more than one public version. Compare them and choose the one you want to read.',
+    pagePrimaryVersion: 'Current primary',
+    pageOtherVersion: 'Other version',
+    pageSelectedVersion: 'Currently reading',
+    pageViewDiff: 'Compare with the primary version',
+    pageVariantViews: 'views',
+    pageVariantEndorsements: 'endorsements',
+    pageVariantDisagreements: 'disagreements',
     wikiPageId: 'Page ID',
     homeStatus: 'Public wiki · Git-backed',
     homeOverline: 'HATWIKI / SHARED KNOWLEDGE',
@@ -319,6 +348,7 @@ export const ui: Record<Locale, UiMessages> = {
     completed: 'Completed',
     unableToSubmit: 'Unable to submit',
     editStatusCommitted: 'Committed',
+    editStatusPendingLive: 'Saved to a contributor branch; awaiting the public version',
     editStatusConflict: 'Conflict saved as a candidate version',
     editStatusApproval: 'Submitted for review',
     editStatusUnknown: 'Response received',

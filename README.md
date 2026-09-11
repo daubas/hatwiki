@@ -21,6 +21,13 @@ Published Wiki edits are committed through GitHub and served from the Cloudflare
 R2 public projection. D1 stores idempotent edit receipts and private plain-text
 source tasks; it is not a second public Wiki.
 
+The next collaboration mode is optimistic open editing: ordinary low-risk
+changes write directly to `wiki-live`, which is the public provisional-consensus
+ref. Stale edits become conflict candidates instead of overwriting the live
+page; protected or larger changes can still use the contributor-branch seam.
+The current production deployment still reads `main`; live mode is opt-in and
+not enabled yet.
+
 ## Browser-agent setup
 
 Open the live site in a browser that provides the browser-native
@@ -31,15 +38,16 @@ session—tools never accept a GitHub token as input.
 - Anonymous sessions register `search_wiki` and `read_page` for the public
   projection.
 - A signed-in GitHub session additionally registers `edit_page`, `add_source`,
-  `get_ingestion_status`, and `inspect_changes`.
+  `get_ingestion_status`, `inspect_changes`, `get_workspace`, and `save_draft`.
 
 `search_wiki` returns bounded public summaries and `read_page` returns a public
 page. In a signed-in session, `read_page` also supplies the canonical Markdown
 and base SHA needed to prepare an edit, but only for a page already in the
 public projection. `add_source` privately stores one authorized plain-text
 source for an existing page; `get_ingestion_status` is limited to that source's
-owner; and `inspect_changes` summarizes a proposed page's citations, WikiLinks,
-affected page, and unresolved markers before submission.
+owner; `get_workspace` and `save_draft` expose an owner-scoped, version-fenced
+draft for that task; and `inspect_changes` summarizes a proposed page's
+citations, WikiLinks, affected page, and unresolved markers before submission.
 
 ## Publication, privacy, and rights boundaries
 
@@ -83,6 +91,12 @@ Authenticated writes require these server-only Worker secrets:
 `GITHUB_CLIENT_SECRET`, `GITHUB_PRIVATE_KEY`, `GITHUB_INSTALLATION_ID`,
 `GITHUB_REPOSITORY_ID`, and `SESSION_SECRET`. Never expose them in browser code,
 tool input, recordings, or source material.
+
+The live rollout seam is opt-in: set `WIKI_BRANCH_MODE=live`,
+`WIKI_PUBLIC_REF=wiki-live`, and `WIKI_WRITE_BRANCH=wiki-live` to route ordinary
+authenticated edits directly to `wiki-live`. The exact ref pairing is required;
+otherwise configuration fails closed. `WIKI_BRANCH_MODE=contributor` remains
+available for isolated contributor branches. Production still uses `off/main`.
 
 ## License
 

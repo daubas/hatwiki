@@ -1,4 +1,4 @@
-import { StalePageError } from './editContracts.ts';
+import { isSafeVariantId, StalePageError } from './editContracts.ts';
 import type {
   EditActor,
   EditReceiptBinding,
@@ -9,6 +9,7 @@ import type {
   PublicPublisher,
   WikiRepository,
 } from './editContracts.ts';
+import { isContributorBranch, isSafeBranch } from './wikiRepositoryConfig.ts';
 
 type EditDependencies = {
   repository: WikiRepository;
@@ -34,7 +35,9 @@ function sameBytes(left: string, right: string): boolean {
 }
 
 async function editBinding(actor: EditActor, input: EditPageInput): Promise<EditReceiptBinding> {
-  const payload = JSON.stringify([input.pageId, input.baseSha, input.content, input.reason, input.sourceTaskId ?? '']);
+  const payload = input.ref === undefined
+    ? JSON.stringify([input.pageId, input.baseSha, input.content, input.reason, input.sourceTaskId ?? ''])
+    : JSON.stringify([input.pageId, input.baseSha, input.content, input.reason, input.sourceTaskId ?? '', input.ref]);
   const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(payload));
   return {
     actorUserId: actor.userId,
@@ -78,7 +81,9 @@ function isValidInput(input: EditPageInput): boolean {
     && isNonBlank(input.reason)
     && input.reason.length <= 160
     && !/[\r\n]/.test(input.reason)
-    && (input.sourceTaskId === undefined || (isTrimmedNonEmpty(input.sourceTaskId) && !/[\r\n]/.test(input.sourceTaskId)));
+    && (input.sourceTaskId === undefined || (isTrimmedNonEmpty(input.sourceTaskId) && !/[\r\n]/.test(input.sourceTaskId)))
+    && (input.ref === undefined || input.ref === 'main' || input.ref === 'wiki-live' || (isSafeBranch(input.ref) && isContributorBranch(input.ref)))
+    && (input.ref !== 'wiki-live' || isSafeVariantId(input.requestId));
 }
 
 function isValidActor(actor: EditActor): boolean {
@@ -119,12 +124,36 @@ export function createEditPageService({ repository, receipts, publisher, policy 
     const readback = await repository.readPage(input.pageId, revision);
     if (!readback || !sameBytes(readback.content, input.content)) throw new Error('readback_mismatch');
 
-    const head = recovered ? await repository.readPage(input.pageId) : readback;
+    const head = recovered ? await repository.readPage(input.pageId, input.ref) : readback;
     if (head?.sha !== readback.sha) throw new Error('recovery_head_advanced');
-    const published = await publisher.publish({ revision, previousSha: input.baseSha, baseSha: readback.sha, pageId: input.pageId, content: input.content });
-    if (published.revision !== revision) throw new Error('publisher_mismatch');
+    const pendingLive = Boolean(input.ref && isContributorBranch(input.ref));
+    if (!pendingLive) {
+      const published = await publisher.publish({ revision, previousSha: input.baseSha, baseSha: readback.sha, pageId: input.pageId, content: input.content });
+      if (published.revision !== revision) throw new Error('publisher_mismatch');
+    }
 
-    const receipt: EditReceipt = { requestId: input.requestId, status: 'committed', revision };
+    const receipt: EditReceipt = { requestId: input.requestId, status: pendingLive ? 'pending_live' : 'committed', revision };
+    await receipts.put(receipt, binding, claimToken);
+    return receipt;
+  }
+
+  async function completeConflict(input: EditPageInput, candidateRevision: string, binding: EditReceiptBinding, claimToken: string): Promise<EditReceipt> {
+    if (input.ref === 'wiki-live') {
+      if (!publisher.publishVariant) throw new Error('publisher_unavailable');
+      const published = await publisher.publishVariant({
+        variantId: input.requestId,
+        revision: candidateRevision,
+        baseSha: input.baseSha,
+        pageId: input.pageId,
+        content: input.content,
+      });
+      if (published.revision !== candidateRevision) throw new Error('publisher_mismatch');
+    }
+    const receipt: EditReceipt = {
+      requestId: input.requestId,
+      status: 'conflict',
+      candidateRevision,
+    };
     await receipts.put(receipt, binding, claimToken);
     return receipt;
   }
@@ -145,17 +174,9 @@ export function createEditPageService({ repository, receipts, publisher, policy 
       if (claim.status === 'in_progress') throw new Error('request_in_progress');
       const claimToken = claim.token;
 
-      const recovered = await repository.findRequestRevision(input.pageId, input.requestId, { actorUserId: actor.userId, ...(input.sourceTaskId ? { sourceTaskId: input.sourceTaskId } : {}) });
+      const recovered = await repository.findRequestRevision(input.pageId, input.requestId, { actorUserId: actor.userId, ...(input.sourceTaskId ? { sourceTaskId: input.sourceTaskId } : {}) }, input.ref);
       if (recovered?.kind === 'page') return completePage(input, recovered.revision, binding, claimToken, true);
-      if (recovered?.kind === 'candidate') {
-        const receipt: EditReceipt = {
-          requestId: input.requestId,
-          status: 'conflict',
-          candidateRevision: recovered.revision,
-        };
-        await receipts.put(receipt, binding, claimToken);
-        return receipt;
-      }
+      if (recovered?.kind === 'candidate') return completeConflict(input, recovered.revision, binding, claimToken);
 
       if (isProtectedPage(input.pageId, policy.protectedPaths)) {
         const receipt: EditReceipt = { requestId: input.requestId, status: 'approval_required' };
@@ -163,7 +184,7 @@ export function createEditPageService({ repository, receipts, publisher, policy 
         return receipt;
       }
 
-      const current = await repository.readPage(input.pageId);
+      const current = await repository.readPage(input.pageId, input.ref);
       if (!current) throw new Error('page_not_found');
 
       if (changedByteCount(current.content, input.content) > policy.largeEditThreshold) {
@@ -178,14 +199,9 @@ export function createEditPageService({ repository, receipts, publisher, policy 
           content: input.content,
           requestId: input.requestId,
           message: messageFor(actor, input),
+          ...(input.ref ? { ref: input.ref } : {}),
         });
-        const receipt: EditReceipt = {
-          requestId: input.requestId,
-          status: 'conflict',
-          candidateRevision: candidate.revision,
-        };
-        await receipts.put(receipt, binding, claimToken);
-        return receipt;
+        return completeConflict(input, candidate.revision, binding, claimToken);
       };
 
       if (current.sha !== input.baseSha) return saveConflict();
@@ -197,6 +213,7 @@ export function createEditPageService({ repository, receipts, publisher, policy 
           baseSha: input.baseSha,
           content: input.content,
           message: messageFor(actor, input),
+          ...(input.ref ? { ref: input.ref } : {}),
         }));
       } catch (error) {
         if (error instanceof StalePageError) return saveConflict();

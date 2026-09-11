@@ -9,6 +9,9 @@
   "vars": {
     "WIKI_REPO": "daubas/webmcp-okf",
     "WIKI_REF": "main",
+    "WIKI_PUBLIC_REF": "main",
+    "WIKI_WRITE_BRANCH": "main",
+    "WIKI_BRANCH_MODE": "off",
     "WIKI_ROOT": "."
   },
   "d1_databases": [{

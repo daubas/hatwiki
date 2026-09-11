@@ -11,7 +11,7 @@ import { createR2Publisher } from '../../lib/r2Publisher.ts';
 import { readSessionCookie } from '../../lib/sessionCookie.ts';
 import { completeSourceEdit } from '../../lib/sourceEdit.ts';
 import { getSiteWiki } from '../../lib/siteWiki.ts';
-import { getWikiRepositoryConfig } from '../../lib/wikiRepositoryConfig.ts';
+import { contributorBranchFor, getWikiProjectionNamespace, getWikiPublicRef, getWikiRepositoryConfig, isContributorBranchMode, isLiveBranchMode } from '../../lib/wikiRepositoryConfig.ts';
 
 export const POST: APIRoute = async ({ request }) => {
   const actor = env.SESSION_SECRET ? await readSessionCookie(env.SESSION_SECRET, request.headers.get('Cookie')) : null;
@@ -34,16 +34,24 @@ export const POST: APIRoute = async ({ request }) => {
     redirectUri: `${new URL(request.url).origin}/auth/callback`,
   });
   const installation = await auth.createInstallationToken(repositoryConfig.installationId, repositoryConfig.repositoryId);
+  const repository = createGitHubRepository({ ...repositoryConfig, token: installation.token, fetcher: fetch });
+  const contributorBranch = isContributorBranchMode(env) ? contributorBranchFor(actor.userId, 'wiki') : undefined;
+  const writeRef = isLiveBranchMode(env) ? 'wiki-live' : contributorBranch;
+  const publicRef = getWikiPublicRef(env);
   const service = createEditPageService({
-    repository: createGitHubRepository({ ...repositoryConfig, token: installation.token, fetcher: fetch }),
+    repository,
     receipts: createD1ReceiptStore(env.HATWIKI_STATE),
-    publisher: createR2Publisher(env.HATWIKI_PUBLIC, env.WIKI_REPO),
+    publisher: createR2Publisher(env.HATWIKI_PUBLIC, writeRef ? getWikiProjectionNamespace(env) : env.WIKI_REPO),
     policy: { protectedPaths: ['policies/**'], largeEditThreshold: 50_000 },
   });
   const wiki = await getSiteWiki();
   const ingestions = createD1IngestionStore(env.HATWIKI_STATE);
   return handleEditRequest(request, actor, async (editActor, input) => {
     if (!await wiki.readPage(input.pageId)) throw new Error('page_not_found');
-    return withEditLinks(await completeSourceEdit(editActor, input, ingestions, service.edit), input.pageId, request.url, `${repositoryConfig.owner}/${repositoryConfig.repo}`);
+    if (contributorBranch) await repository.ensureBranch({ branch: contributorBranch, baseRef: publicRef });
+    return withEditLinks(await completeSourceEdit(editActor, {
+      ...input,
+      ...(writeRef ? { ref: writeRef } : {}),
+    }, ingestions, service.edit), input.pageId, request.url, `${repositoryConfig.owner}/${repositoryConfig.repo}`);
   });
 };

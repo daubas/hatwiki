@@ -10,6 +10,16 @@ export class StalePageError extends Error {
   }
 }
 
+export function isSafeVariantId(value: unknown): value is string {
+  return typeof value === 'string'
+    && value.length > 0
+    && value.length <= 255
+    && value === value.trim()
+    && value !== '.'
+    && value !== '..'
+    && !/[\\/?#\u0000-\u001f\u007f]/.test(value);
+}
+
 export type EditPageInput = {
   requestId: string;
   pageId: string;
@@ -17,6 +27,7 @@ export type EditPageInput = {
   content: string;
   reason: string;
   sourceTaskId?: string;
+  ref?: string;
 };
 
 export type RepositoryPage = {
@@ -26,7 +37,7 @@ export type RepositoryPage = {
 
 export type EditReceipt = {
   requestId: string;
-  status: 'committed' | 'conflict' | 'approval_required';
+  status: 'committed' | 'pending_live' | 'conflict' | 'approval_required';
   revision?: string;
   candidateRevision?: string;
   pageUrl?: string;
@@ -49,9 +60,9 @@ export type StoredEditReceipt = EditReceipt & {
 
 export interface WikiRepository {
   readPage(pageId: string, ref?: string): Promise<RepositoryPage | null>;
-  findRequestRevision(pageId: string, requestId: string, identity?: { actorUserId: number; sourceTaskId?: string }): Promise<{ kind: 'page' | 'candidate'; revision: string } | null>;
-  commitPage(input: { pageId: string; baseSha: string; content: string; message: string }): Promise<{ revision: string }>;
-  saveCandidate(input: { pageId: string; content: string; requestId: string; message: string }): Promise<{ revision: string }>;
+  findRequestRevision(pageId: string, requestId: string, identity?: { actorUserId: number; sourceTaskId?: string }, ref?: string): Promise<{ kind: 'page' | 'candidate'; revision: string } | null>;
+  commitPage(input: { pageId: string; baseSha: string; content: string; message: string; ref?: string }): Promise<{ revision: string }>;
+  saveCandidate(input: { pageId: string; content: string; requestId: string; message: string; ref?: string }): Promise<{ revision: string }>;
 }
 
 export interface EditReceiptStore {
@@ -62,6 +73,7 @@ export interface EditReceiptStore {
 
 export interface PublicPublisher {
   publish(page: { revision: string; previousSha: string; baseSha: string; pageId: string; content: string }): Promise<{ revision: string }>;
+  publishVariant?(variant: { variantId: string; revision: string; baseSha: string; pageId: string; content: string }): Promise<{ revision: string }>;
 }
 
 export type EditPolicy = {
