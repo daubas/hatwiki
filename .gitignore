@@ -5,5 +5,5 @@ dist/
 .dev.vars
 .env
 .wiki-external/
-wiki
+/wiki
 

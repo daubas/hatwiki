@@ -53,6 +53,50 @@ function normalizeMarkdownTarget(target: string, pageId: string): string | null 
   return normalized;
 }
 
+interface DetailedLinkResolution extends LinkResolution {
+  alias?: string;
+  snippet?: string;
+}
+
+function extractLinkSnippet(markdown: string, matchIndex: number, matchLength: number): string {
+  const before = markdown.slice(0, matchIndex);
+  const after = markdown.slice(matchIndex + matchLength);
+
+  const lastNewline = before.lastIndexOf('\n');
+  const lineStart = lastNewline === -1 ? 0 : lastNewline + 1;
+  const nextNewline = after.indexOf('\n');
+  const lineEnd = nextNewline === -1 ? markdown.length : matchIndex + matchLength + nextNewline;
+
+  let raw = markdown.slice(lineStart, lineEnd).trim();
+  raw = raw.replace(/^([#>\-*|]|\d+\.)+\s+/, '').trim();
+  raw = raw
+    .replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, target, alias) => alias || target.split('/').at(-1) || target)
+    .replace(/(?<!!)\[([^\]]*)\]\([^)\s]+\)/g, '$1')
+    .replace(/[*_`]/g, '')
+    .trim();
+
+  if (raw.length <= 80) return raw;
+  return '…' + raw.slice(0, 75).trim() + '…';
+}
+
+function detailedLinksFor(page: PublicPage, pages: PublicPage[]): DetailedLinkResolution[] {
+  const regex = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]|(?<!!)\[([^\]]*)\]\(([^)\s]+)\)/g;
+  return [...page.markdown.matchAll(regex)].map((match) => {
+    const isWiki = match[1] !== undefined;
+    const rawTarget = isWiki ? match[1].trim() : normalizeMarkdownTarget(match[4] ?? '', page.pageId);
+    if (!rawTarget) return null;
+    const resolved = resolveLink(rawTarget, pages);
+    const alias = isWiki ? match[2]?.trim() : (match[3]?.trim() || undefined);
+    const snippet = extractLinkSnippet(page.markdown, match.index ?? 0, match[0].length);
+
+    return {
+      ...resolved,
+      ...(alias ? { alias } : {}),
+      ...(snippet ? { snippet } : {}),
+    };
+  }).filter((item): item is DetailedLinkResolution => item !== null);
+}
+
 function linksFor(page: PublicPage, pages: PublicPage[]): LinkResolution[] {
   return [...page.markdown.matchAll(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]|(?<!!)\[[^\]]*\]\(([^)\s]+)\)/g)]
     .map((match) => match[1]?.trim() ?? normalizeMarkdownTarget(match[2] ?? '', page.pageId))
@@ -112,11 +156,19 @@ export function createPublicWiki(projection: PublicProjection) {
           const linkedPage = snapshot.pages.find((candidate) => candidate.pageId === linkedPageId);
           return linkedPage ? [{ pageId: linkedPage.pageId, title: linkedPage.title }] : [];
         });
-      // ponytail: scans the current snapshot; add a per-revision link index if public wikis grow large.
       const backlinkPages = snapshot.pages
         .filter((candidate) => candidate.pageId !== pageId)
-        .filter((candidate) => linksFor(candidate, snapshot.pages).some((link) => link.pageId === pageId))
-        .map((candidate) => ({ pageId: candidate.pageId, title: candidate.title }));
+        .flatMap((candidate) => {
+          const matched = detailedLinksFor(candidate, snapshot.pages).filter((link) => link.pageId === pageId);
+          if (matched.length === 0) return [];
+          const first = matched[0];
+          return [{
+            pageId: candidate.pageId,
+            title: candidate.title,
+            ...(first.alias ? { alias: first.alias } : {}),
+            ...(first.snippet ? { snippet: first.snippet } : {}),
+          }];
+        });
       const backlinks = backlinkPages.map((candidate) => candidate.pageId);
       const { variants: _variants, ...publicPage } = activePage;
       const variants = variantsForRead(page.variants, selectedVariant);

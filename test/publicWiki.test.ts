@@ -43,7 +43,7 @@ test('readPage derives backlinks from resolved links in the same snapshot', asyn
 
   assert.ok(page);
   assert.deepEqual(page.backlinks, ['notes/reviewer']);
-  assert.deepEqual(page.backlinkPages, [{ pageId: 'notes/reviewer', title: 'Review note' }]);
+  assert.deepEqual(page.backlinkPages, [{ pageId: 'notes/reviewer', title: 'Review note', snippet: 'overview' }]);
 });
 
 test('searchWiki finds only projected pages whose public text matches the query', async () => {

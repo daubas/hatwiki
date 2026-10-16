@@ -103,7 +103,11 @@ const canonicalSource = page.resource && /^https?:\/\//i.test(page.resource) ? p
       </>}
       {page.backlinkPages.length > 0 && <>
         <p class="side-label">{t(locale, 'backlinks')}</p>
-        <ul>{page.backlinkPages.map((backlink) => <li><a href={withLocale(`/wiki/${backlink.pageId}`, locale)}>{backlink.title}</a></li>)}</ul>
+        <ul class="backlink-list">{page.backlinkPages.map((backlink) => <li class="backlink-item">
+          <a class="backlink-title" href={withLocale(`/wiki/${backlink.pageId}`, locale)}>{backlink.title}</a>
+          {backlink.alias && <span class="backlink-alias">詞：<strong>{backlink.alias}</strong></span>}
+          {backlink.snippet && <p class="backlink-snippet">「{backlink.snippet}」</p>}
+        </li>)}</ul>
       </>}
     </section>}
     {hasDiagnostics && <section aria-labelledby="wiki-diagnostics-title">
@@ -169,6 +173,13 @@ const canonicalSource = page.resource && /^https?:\/\//i.test(page.resource) ? p
   .wiki-side a { color:var(--accent); overflow-wrap:anywhere; }
   .wiki-side code { display:block; overflow-wrap:anywhere; color:var(--text); font:inherit; }
   .wiki-side li span { display:block; color:var(--muted); font-size:.8rem; }
+  .backlink-list { list-style:none; padding-left:0 !important; display:grid; gap:14px; }
+  .backlink-item { min-width:0; border-left:2px solid color-mix(in srgb,var(--line) 70%,transparent); padding-left:10px; }
+  .backlink-item a.backlink-title { font-weight:750; font-size:.86rem; line-height:1.35; display:block; text-decoration:none; }
+  .backlink-item a.backlink-title:hover { text-decoration:underline; }
+  .backlink-alias { display:block; color:var(--text) !important; font-size:.78rem; margin:3px 0 2px; }
+  .backlink-alias strong { color:var(--accent); font-weight:800; }
+  .backlink-snippet { margin:3px 0 0; color:var(--muted); font-size:.75rem; line-height:1.45; overflow-wrap:anywhere; font-style:italic; }
   @media (max-width:760px) {
     .wiki-page-layout--with-toc { grid-template-columns:minmax(0,1fr); grid-template-areas:'toc' 'content'; gap:22px; }
     .wiki-toc { position:static; max-height:none; overflow:visible; border-top:2px solid var(--line); border-left:0; padding:16px 0 0; }

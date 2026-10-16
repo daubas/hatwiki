@@ -58,7 +58,7 @@ export type PageRead = Omit<PublicPage, 'variants'> & {
   links: LinkResolution[];
   linkedPages: Array<{ pageId: string; title: string }>;
   backlinks: string[];
-  backlinkPages: Array<{ pageId: string; title: string }>;
+  backlinkPages: Array<{ pageId: string; title: string; alias?: string; snippet?: string }>;
 };
 
 export interface PublicProjection {
