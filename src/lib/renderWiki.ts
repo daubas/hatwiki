@@ -9,6 +9,22 @@ const marked = new Marked({
   },
   extensions: [
     {
+      // CommonMark 的 flanking 規則讓 `於**「…」**。` 這類緊貼 CJK 標點的粗體解析失敗，補上這個情形。
+      name: 'cjkStrong',
+      level: 'inline',
+      start: (source) => source.indexOf('**'),
+      tokenizer(source) {
+        const match = /^\*\*([^*\n]+)\*\*/.exec(source);
+        if (!match) return undefined;
+        const cjkPunct = /[\u3000-\u303F\uFF00-\uFFEF]/;
+        if (!cjkPunct.test(match[1][0]) && !cjkPunct.test(match[1].at(-1)!)) return undefined;
+        return { type: 'cjkStrong', raw: match[0], tokens: this.lexer.inlineTokens(match[1]) };
+      },
+      renderer(token) {
+        return `<strong>${this.parser.parseInline(token.tokens)}</strong>`;
+      },
+    },
+    {
       name: 'citationDefinition',
       level: 'block',
       start: (source) => source.search(/^\[\^(?!source-)[A-Za-z0-9_-]+\]:/m),

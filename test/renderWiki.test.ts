@@ -59,3 +59,11 @@ test('renders OKF source footnotes as readable references instead of raw Markdow
   assert.match(html, /href="https:\/\/github\.com\/daubas\/hatwiki\/blob\/main\/README\.md"/);
   assert.doesNotMatch(html, /\[\^hatwiki-readme\]/);
 });
+
+test('renders bold wrapped in CJK punctuation next to CJK text', async () => {
+  const html = await renderWiki('核心在於**「AI 導演自治、人類退居製片」**。其餘由**「Opus」**自主完成，**3 個節點** 介入。');
+
+  assert.doesNotMatch(html, /\*\*/);
+  assert.match(html, /<strong>「AI 導演自治、人類退居製片」<\/strong>/);
+  assert.match(html, /<strong>3 個節點<\/strong>/);
+});

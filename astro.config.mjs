@@ -5,4 +5,9 @@ export default defineConfig({
   output: 'server',
   adapter: cloudflare({ imageService: 'passthrough' }),
   session: false,
+  vite: {
+    server: {
+      allowedHosts: true,
+    },
+  },
 });

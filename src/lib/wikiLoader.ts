@@ -1,6 +1,6 @@
 const externalWikiPatterns = [
   '{overview,CONTEXT,SCHEMA}.md',
-  '{concepts,entities,methods,guides,comparisons,experiments}/**/*.md',
+  '{concepts,entities,methods,guides,comparisons,experiments,models,prompts,workflows,cases,facts,research}/**/*.md',
   '!**/raw/**',
   '!**/index.md',
   '!**/log.md',
