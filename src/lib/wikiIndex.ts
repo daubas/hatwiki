@@ -1,16 +1,22 @@
+import { isDraftStatus } from './contracts.ts';
+
 export type WikiIndexItem = {
   id: string;
   title: string;
   description?: string;
   tags?: string[];
+  status?: string;
 };
 
 export function mergeWikiIndexPages(
-  pages: Array<{ pageId: string; title: string }>,
+  pages: Array<{ pageId: string; title: string; status?: string }>,
   metadata: WikiIndexItem[],
+  options: { includeDrafts?: boolean } = {},
 ): WikiIndexItem[] {
   const byId = new Map(metadata.map((item) => [item.id, item]));
-  return pages.map((page) => ({ ...byId.get(page.pageId), id: page.pageId, title: page.title }));
+  return pages
+    .filter((page) => options.includeDrafts || !isDraftStatus(page.status))
+    .map((page) => ({ ...byId.get(page.pageId), id: page.pageId, title: page.title, ...(page.status ? { status: page.status } : {}) }));
 }
 
 function normalizeSearchText(value: string): string {

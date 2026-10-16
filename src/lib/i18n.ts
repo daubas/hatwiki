@@ -122,6 +122,11 @@ export interface UiMessages {
   linkAmbiguous: string;
   linkUnresolved: string;
   notFound: string;
+  draftWarning: string;
+  staleWarning: string;
+  draftBadge: string;
+  showDrafts: string;
+  hideDrafts: string;
   authAppNotConfigured: string;
   authInvalidLogin: string;
   authLoginFailed: string;
@@ -247,6 +252,11 @@ export const ui: Record<Locale, UiMessages> = {
     linkAmbiguous: '有多個可能頁面',
     linkUnresolved: '找不到目標頁面',
     notFound: '找不到頁面',
+    draftWarning: '草稿：未經覆核，不可當作正式做法。',
+    staleWarning: '此頁已過期（stale_after：{date}），內容可能已不適用，請先確認。',
+    draftBadge: '草稿',
+    showDrafts: '顯示草稿',
+    hideDrafts: '隱藏草稿',
     authAppNotConfigured: 'GitHub App 尚未設定完成',
     authInvalidLogin: '登入請求無效',
     authLoginFailed: 'GitHub 登入失敗',
@@ -370,6 +380,11 @@ export const ui: Record<Locale, UiMessages> = {
     linkAmbiguous: 'Multiple possible pages',
     linkUnresolved: 'Target page not found',
     notFound: 'Page not found',
+    draftWarning: 'Draft: not reviewed. Do not treat as an official practice.',
+    staleWarning: 'This page is stale (stale_after: {date}). Its content may no longer apply; verify before relying on it.',
+    draftBadge: 'Draft',
+    showDrafts: 'Show drafts',
+    hideDrafts: 'Hide drafts',
     authAppNotConfigured: 'The GitHub App is not configured',
     authInvalidLogin: 'Invalid login request',
     authLoginFailed: 'GitHub login failed',

@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import Layout from '../../components/Layout.astro';
 import { getLocale, t, withLocale } from '../../lib/i18n.ts';
 import { getSiteSnapshot } from '../../lib/siteWiki.ts';
+import { isDraftStatus } from '../../lib/contracts.ts';
 import { mergeWikiIndexPages, type WikiIndexItem } from '../../lib/wikiIndex.ts';
 
 const locale = getLocale(Astro.url);
@@ -13,7 +14,14 @@ const metadata: WikiIndexItem[] = (await getCollection('wiki'))
     ...(entry.data.description ? { description: entry.data.description } : {}),
     ...(entry.data.tags?.length ? { tags: entry.data.tags } : {}),
   }));
-const pages = mergeWikiIndexPages((await getSiteSnapshot()).pages, metadata)
+const showDrafts = Astro.url.searchParams.get('drafts') === '1';
+const draftsHref = (() => {
+  const next = new URL(Astro.url);
+  if (showDrafts) next.searchParams.delete('drafts');
+  else next.searchParams.set('drafts', '1');
+  return `${next.pathname}${next.search}`;
+})();
+const pages = mergeWikiIndexPages((await getSiteSnapshot()).pages, metadata, { includeDrafts: showDrafts })
   .sort((a, b) => a.title.localeCompare(b.title, locale));
 const pageJson = JSON.stringify(pages).replaceAll('<', '\\u003c');
 const pageHref = (id: string) => `/wiki/${id.split('/').map(encodeURIComponent).join('/')}`;
@@ -47,6 +55,7 @@ const pageHref = (id: string) => `/wiki/${id.split('/').map(encodeURIComponent).
         <button id="wiki-search-clear" class="clear-search" type="button" hidden>{t(locale, 'wikiSearchClear')}</button>
       </div>
       <p id="wiki-search-hint" class="search-hint">{t(locale, 'wikiSearchHint')}</p>
+      <a class="drafts-toggle" href={draftsHref}>{showDrafts ? t(locale, 'hideDrafts') : t(locale, 'showDrafts')}</a>
     </form>
 
     <p id="wiki-results-status" class="results-status" role="status" aria-live="polite"></p>
@@ -54,7 +63,7 @@ const pageHref = (id: string) => `/wiki/${id.split('/').map(encodeURIComponent).
       {pages.map((page) => (
         <li class="wiki-result" data-page-id={page.id}>
           <a href={withLocale(pageHref(page.id), locale)}>
-            <span class="result-id">{page.id}</span>
+            <span class="result-id">{page.id}{isDraftStatus(page.status) && <span class="draft-badge">{t(locale, 'draftBadge')}</span>}</span>
             <strong>{page.title}</strong>
             {page.description && <span class="result-description">{page.description}</span>}
             {page.tags && <span class="result-tags">{page.tags.map((tag) => <span>#{tag}</span>)}</span>}
@@ -126,6 +135,8 @@ const pageHref = (id: string) => `/wiki/${id.split('/').map(encodeURIComponent).
   .search-field input::placeholder { color:var(--muted); opacity:1; }
   .clear-search { flex:0 0 auto; min-height:48px; padding:10px 14px; border:2px solid var(--line); border-radius:0; background:var(--lime); box-shadow:3px 3px 0 var(--line); color:var(--text); font:inherit; font-weight:800; cursor:pointer; }
   .clear-search:hover { background:var(--accent); }
+  .drafts-toggle { width:max-content; color:var(--accent); font-size:.8rem; font-weight:800; }
+  .draft-badge { margin-left:8px; padding:1px 6px; border:1px solid var(--line); background:var(--lime); color:var(--text); font-family:inherit; font-size:.7rem; font-weight:800; }
   .search-hint { margin:0; color:var(--muted); font-size:.8rem; line-height:1.5; }
   .results-status { margin:30px 0 10px; color:var(--muted); font-size:.8rem; font-weight:800; letter-spacing:.04em; }
   .wiki-results { display:grid; gap:10px; min-width:0; margin:0; padding:0; list-style:none; }

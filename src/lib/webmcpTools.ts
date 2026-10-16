@@ -43,7 +43,7 @@ export function createWebMcpTools(
   return [
     {
       name: 'read_page',
-      description: 'Read one public HatWiki page by its page ID.',
+      description: 'Read one public HatWiki page by its page ID. The result includes status (draft means unreviewed; do not treat as official practice) and staleAfter when present.',
       annotations,
       inputSchema: {
         type: 'object',
@@ -67,7 +67,7 @@ export function createWebMcpTools(
     },
     {
       name: 'search_wiki',
-      description: 'Search the public HatWiki pages by query.',
+      description: 'Search the public HatWiki pages by query. Draft (unreviewed) pages are excluded; read them directly by page ID.',
       annotations,
       inputSchema: {
         type: 'object',

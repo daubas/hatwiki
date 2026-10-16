@@ -1,3 +1,4 @@
+import { isDraftStatus } from './contracts.ts';
 import type { LinkResolution, PageRead, PublicPage, PublicProjection, PublicSearchResult, PublicVariant, PublicVariantMetadata } from './contracts.ts';
 
 const SEARCH_RESULT_LIMIT = 8;
@@ -114,13 +115,14 @@ function searchSnippet(page: PublicPage, needle: string): string {
 
 export function createPublicWiki(projection: PublicProjection) {
   return {
-    async searchWiki(query: string): Promise<PublicSearchResult[]> {
+    async searchWiki(query: string, options: { includeDrafts?: boolean } = {}): Promise<PublicSearchResult[]> {
       const needle = query.trim().toLowerCase();
       if (!needle) return [];
 
       const snapshot = await projection.readSnapshot();
       // ponytail: fixed result cap keeps Agent context bounded; add ranking/indexing when the corpus outgrows this.
       return snapshot.pages
+        .filter((page) => options.includeDrafts || !isDraftStatus(page.status))
         .filter((page) => `${page.title}\n${page.markdown}`.toLowerCase().includes(needle))
         .slice(0, SEARCH_RESULT_LIMIT)
         .map((page) => ({
@@ -167,6 +169,7 @@ export function createPublicWiki(projection: PublicProjection) {
             title: candidate.title,
             ...(first.alias ? { alias: first.alias } : {}),
             ...(first.snippet ? { snippet: first.snippet } : {}),
+            ...(candidate.status ? { status: candidate.status } : {}),
           }];
         });
       const backlinks = backlinkPages.map((candidate) => candidate.pageId);

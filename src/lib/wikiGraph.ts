@@ -1,4 +1,4 @@
-import type { PublicSnapshot } from './contracts.ts';
+import { isDraftStatus, type PublicSnapshot } from './contracts.ts';
 
 export type WikiGraphNode = {
   id: string;
@@ -25,8 +25,9 @@ function normalizeMarkdownTarget(target: string): string | undefined {
   return path.replace(/^\/+/, '').replace(/\.md$/i, '');
 }
 
-export function buildWikiGraph(snapshot: PublicSnapshot): WikiGraph {
-  const pages = snapshot.pages.map(({ pageId, title }) => ({ id: pageId, title }));
+export function buildWikiGraph(snapshot: PublicSnapshot, options: { includeDrafts?: boolean } = {}): WikiGraph {
+  const visiblePages = options.includeDrafts ? snapshot.pages : snapshot.pages.filter((page) => !isDraftStatus(page.status));
+  const pages = visiblePages.map(({ pageId, title }) => ({ id: pageId, title }));
   const pageIds = new Set(pages.map((node) => node.id));
   const basenameMap = new Map<string, string[]>();
   for (const node of pages) {
@@ -46,7 +47,7 @@ export function buildWikiGraph(snapshot: PublicSnapshot): WikiGraph {
   const edgeKeys = new Set<string>();
   const edges: WikiGraphEdge[] = [];
 
-  for (const page of snapshot.pages) {
+  for (const page of visiblePages) {
     for (const match of page.markdown.matchAll(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]|(?<!!)\[[^\]]*\]\(([^)\s]+)\)/g)) {
       const target = match[1]?.trim() || normalizeMarkdownTarget(match[2] || '');
       if (!target) continue;

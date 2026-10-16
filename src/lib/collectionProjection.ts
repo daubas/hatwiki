@@ -10,6 +10,8 @@ export type CollectionEntry = {
     sources?: unknown;
     pendingCandidates?: unknown;
     visibility?: unknown;
+    status?: unknown;
+    stale_after?: unknown;
   };
 };
 
@@ -73,6 +75,8 @@ export function createCollectionProjection(
         && entry.data.pendingCandidates >= 0
         ? entry.data.pendingCandidates
         : undefined;
+      const status = typeof entry.data.status === 'string' && entry.data.status.trim() ? entry.data.status.trim() : undefined;
+      const staleAfter = typeof entry.data.stale_after === 'string' && entry.data.stale_after.trim() ? entry.data.stale_after.trim() : undefined;
       return {
         pageId,
         title: entry.data.title || pageId,
@@ -81,6 +85,8 @@ export function createCollectionProjection(
         ...(resource ? { resource } : {}),
         ...(citations ? { citations } : {}),
         ...(pendingCandidates !== undefined ? { pendingCandidates } : {}),
+        ...(status ? { status } : {}),
+        ...(staleAfter ? { staleAfter } : {}),
       };
     });
 
