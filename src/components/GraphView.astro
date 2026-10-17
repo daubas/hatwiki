@@ -13,6 +13,9 @@ const labels = {
   openPage: locale === 'en' ? 'Open page' : '閱讀頁面',
 };
 const graphJson = JSON.stringify({ graph, locale, labels }).replaceAll('<', '\\u003c');
+const groupLabels: Record<string, string> = { entities: '實體', concepts: '概念', facts: '事實', comparisons: '比較', workflows: '工作流', prompts: '提示詞', cases: '案例', sources: '來源摘要', other: '其他' };
+const presentGroups = new Set(graph.nodes.map((n: { group: string }) => (groupLabels[n.group] ? n.group : 'other')));
+const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)).map((key) => ({ key, label: groupLabels[key] }));
 ---
 
 <div class:list={['graph-wrap', 'card', `graph-wrap--${variant}`]}>
@@ -30,6 +33,9 @@ const graphJson = JSON.stringify({ graph, locale, labels }).replaceAll('<', '\\u
       <p class="graph-search-status" data-graph-search-status role="status" aria-live="polite" hidden></p>
     </div>
   </div>
+  <ul class="graph-legend" aria-label="節點類型">
+    {legendGroups.map((g) => <li><span class="swatch" style={`background:var(--group-${g.key})`}></span>{g.label}</li>)}
+  </ul>
   <svg id="wiki-graph" role="group" aria-label={variant === 'loom' ? t(locale, 'graphAriaLoom') : t(locale, 'graphAriaMap')}></svg>
   <section class="graph-detail" data-graph-detail aria-live="polite" tabindex="-1" hidden>
     <p class="label">{labels.details}</p>
@@ -50,6 +56,7 @@ const graphJson = JSON.stringify({ graph, locale, labels }).replaceAll('<', '\\u
   if (element && dataElement && wrapper) {
     const payload = JSON.parse(dataElement.textContent || '{"graph":{"nodes":[],"edges":[]},"locale":"zh-Hant","labels":{}}');
     const graph = payload.graph;
+    const groupColors: Record<string, true> = { entities: true, concepts: true, facts: true, comparisons: true, workflows: true, prompts: true, cases: true, sources: true } as any;
     const labels = payload.labels;
     const searchInput = wrapper.querySelector<HTMLInputElement>('[data-graph-search]');
     const searchStatus = wrapper.querySelector<HTMLElement>('[data-graph-search-status]');
@@ -101,7 +108,7 @@ const graphJson = JSON.stringify({ graph, locale, labels }).replaceAll('<', '\\u
       .attr('role', 'button')
       .attr('tabindex', 0)
       .attr('aria-label', (d: any) => `${d.title}, ${d.backlinks} ${labels.backlinks}`);
-    node.append('circle').attr('r', (d: any) => radius(d.connections)).attr('fill', 'var(--lime)');
+    node.append('circle').attr('r', (d: any) => radius(d.connections)).attr('fill', (d: any) => `var(--group-${groupColors[d.group] !== undefined ? d.group : 'other'})`);
     node.append('text').text((d: any) => d.title.length > 22 ? `${d.title.slice(0, 21)}…` : d.title).attr('x', (d: any) => radius(d.connections) + 5).attr('y', 4)
       .attr('opacity', labelOpacity);
     node.append('title').text((d: any) => `${d.title}\n${d.backlinks} ${labels.backlinks} · ${d.connections} ${labels.neighbors}`);
@@ -270,6 +277,10 @@ const graphJson = JSON.stringify({ graph, locale, labels }).replaceAll('<', '\\u
 
 <style>
   .graph-wrap { position:relative; padding:0; overflow:hidden; }
+  .graph-wrap { --group-entities:#ff7a59; --group-concepts:#2dd4bf; --group-facts:#fbbf24; --group-comparisons:#c084fc; --group-workflows:#60a5fa; --group-prompts:#f472b6; --group-cases:#a3e635; --group-sources:#94a3b8; --group-other:#cbd5e1; }
+  .graph-legend { position:absolute; z-index:1; top:auto; right:14px; bottom:14px; display:flex; flex-wrap:wrap; gap:4px 12px; max-width:min(420px,60%); margin:0; padding:7px 10px; list-style:none; border:2px solid var(--line); background:var(--panel); color:var(--muted); font-size:.74rem; pointer-events:none; }
+  .graph-legend li { display:inline-flex; align-items:center; gap:5px; }
+  .graph-legend .swatch { width:11px; height:11px; border-radius:50%; border:1.5px solid var(--line); }
   .graph-wrap--loom { border:1px solid var(--line); background:var(--panel); box-shadow:none; }
   .graph-tools { position:absolute; z-index:1; inset:14px 14px auto; display:flex; justify-content:space-between; align-items:start; gap:12px; pointer-events:none; }
   .graph-summary { max-width:260px; padding:8px 10px; border:2px solid var(--line); background:var(--panel); box-shadow:3px 3px 0 var(--line); color:var(--muted); font-size:.75rem; line-height:1.35; }

@@ -22,8 +22,8 @@ test('builds canonical page nodes and resolved link edges for a snapshot', () =>
   assert.deepEqual(graph, {
     revision: 'rev-1',
     nodes: [
-      { id: 'guides/one', title: 'One', backlinks: 0, connections: 1 },
-      { id: 'topics/two', title: 'Two', backlinks: 1, connections: 1 },
+      { id: 'guides/one', title: 'One', group: 'guides', backlinks: 0, connections: 1 },
+      { id: 'topics/two', title: 'Two', group: 'topics', backlinks: 1, connections: 1 },
     ],
     edges: [{ source: 'guides/one', target: 'topics/two' }],
   });
@@ -40,9 +40,9 @@ test('counts backlinks and unique connections for graph sizing', () => {
   });
 
   assert.deepEqual(graph.nodes, [
-    { id: 'one', title: 'One', backlinks: 1, connections: 2 },
-    { id: 'two', title: 'Two', backlinks: 2, connections: 2 },
-    { id: 'three', title: 'Three', backlinks: 1, connections: 2 },
+    { id: 'one', title: 'One', group: 'root', backlinks: 1, connections: 2 },
+    { id: 'two', title: 'Two', group: 'root', backlinks: 2, connections: 2 },
+    { id: 'three', title: 'Three', group: 'root', backlinks: 1, connections: 2 },
   ]);
 });
 
@@ -112,4 +112,15 @@ test('resolves root-relative Markdown links but ignores parent traversal', () =>
   });
 
   assert.deepEqual(graph.edges, [{ source: 'guides/one', target: 'concepts/hatwiki' }]);
+});
+
+test('graph nodes carry the first path segment as their group', () => {
+  const graph = buildWikiGraph({
+    revision: 'r1',
+    pages: [
+      { pageId: 'entities/a', title: 'A', markdown: '' },
+      { pageId: 'facts/b', title: 'B', markdown: '' },
+    ],
+  } as never);
+  assert.deepEqual(graph.nodes.map((n) => n.group), ['entities', 'facts']);
 });

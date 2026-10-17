@@ -3,6 +3,7 @@ import { isDraftStatus, type PublicSnapshot } from './contracts.ts';
 export type WikiGraphNode = {
   id: string;
   title: string;
+  group: string;
   backlinks: number;
   connections: number;
 };
@@ -69,6 +70,7 @@ export function buildWikiGraph(snapshot: PublicSnapshot, options: { includeDraft
   }
   const nodes = pages.map((node) => ({
     ...node,
+    group: node.id.includes('/') ? node.id.split('/')[0] : 'root',
     backlinks: backlinks.get(node.id) || 0,
     connections: neighbors.get(node.id)?.size || 0,
   }));
