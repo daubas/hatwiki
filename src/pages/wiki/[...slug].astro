@@ -104,16 +104,15 @@ const canonicalSource = page.resource && /^https?:\/\//i.test(page.resource) ? p
     {(page.linkedPages.length > 0 || page.backlinks.length > 0) && <section aria-labelledby="wiki-related-title">
       <p class="section-kicker" id="wiki-related-title">{t(locale, 'wikiRelated')}</p>
       {page.linkedPages.length > 0 && <>
-        <p class="side-label">{t(locale, 'neighbors')}</p>
+        <p class="side-label">{t(locale, 'linksOut')}</p>
         <ul>{page.linkedPages.map((linkedPage) => <li><a href={withLocale(`/wiki/${linkedPage.pageId}`, locale)}>{linkedPage.title}</a></li>)}</ul>
       </>}
       {page.backlinkPages.length > 0 && <>
         <p class="side-label">{t(locale, 'backlinks')}</p>
-        <ul class="backlink-list">{page.backlinkPages.map((backlink) => <li class="backlink-item">
+        <ul class="backlink-list">{page.backlinkPages.map((backlink) => <li class="backlink-item" title={backlink.snippet ? `「${backlink.snippet}」` : undefined}>
           <a class="backlink-title" href={withLocale(`/wiki/${backlink.pageId}`, locale)}>{backlink.title}</a>
           {isDraftStatus(backlink.status) && <span class="draft-badge">{t(locale, 'draftBadge')}</span>}
           {backlink.alias && <span class="backlink-alias">詞：<strong>{backlink.alias}</strong></span>}
-          {backlink.snippet && <p class="backlink-snippet">「{backlink.snippet}」</p>}
         </li>)}</ul>
       </>}
     </section>}

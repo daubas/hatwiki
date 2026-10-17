@@ -75,6 +75,7 @@ export interface UiMessages {
   graphAriaMap: string;
   backlinks: string;
   neighbors: string;
+  linksOut: string;
   edit: string;
   editBack: string;
   editReadOnly: string;
@@ -205,6 +206,7 @@ export const ui: Record<Locale, UiMessages> = {
     graphAriaMap: 'Wiki 頁面關係圖',
     backlinks: '反向連結',
     neighbors: '相鄰頁面',
+    linksOut: '連出的頁面',
     edit: '編輯',
     editBack: '回到頁面',
     editReadOnly: '這一頁尚未同步 Git revision，現在只能閱讀。',
@@ -333,6 +335,7 @@ export const ui: Record<Locale, UiMessages> = {
     graphAriaMap: 'Wiki page relationship graph',
     backlinks: 'backlinks',
     neighbors: 'neighboring pages',
+    linksOut: 'outgoing links',
     edit: 'Edit',
     editBack: 'Back to page',
     editReadOnly: 'This page has not synced a Git revision yet and is currently read-only.',
