@@ -13,6 +13,7 @@ const labels = {
   openPage: locale === 'en' ? 'Open page' : '閱讀頁面',
 };
 const graphJson = JSON.stringify({ graph, locale, labels }).replaceAll('<', '\\u003c');
+const groupHints: Record<string, string> = { entities: '有名字的對象：模型、工具、平台', concepts: '可跨模型適用的做法與心智模型', facts: '會過期的數字，帶口徑與有效期', comparisons: '兩個以上對象或做法的比較', workflows: '端到端操作流程', prompts: '可直接重用的提示詞模組', cases: '實戰案例拆解', sources: '來源摘要（一份來源一頁，多為草稿）', other: '其他頁面' };
 const groupLabels: Record<string, string> = { entities: '實體', concepts: '概念', facts: '事實', comparisons: '比較', workflows: '工作流', prompts: '提示詞', cases: '案例', sources: '來源摘要', other: '其他' };
 const presentGroups = new Set(graph.nodes.map((n: { group: string }) => (groupLabels[n.group] ? n.group : 'other')));
 const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)).map((key) => ({ key, label: groupLabels[key] }));
@@ -34,7 +35,7 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
     </div>
   </div>
   <ul class="graph-legend" aria-label="節點類型">
-    {legendGroups.map((g) => <li><span class="swatch" style={`background:var(--group-${g.key})`}></span>{g.label}</li>)}
+    {legendGroups.map((g) => <li><button type="button" data-legend-group={g.key} aria-pressed="true" title={`${g.label}：${groupHints[g.key]}（點擊顯示／隱藏）`}><span class="swatch" style={`background:var(--group-${g.key})`}></span>{g.label}</button></li>)}
   </ul>
   <svg id="wiki-graph" role="group" aria-label={variant === 'loom' ? t(locale, 'graphAriaLoom') : t(locale, 'graphAriaMap')}></svg>
   <section class="graph-detail" data-graph-detail aria-live="polite" tabindex="-1" hidden>
@@ -120,6 +121,21 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
         .attr('x', (d: any) => d.x > width - 110 ? -radius(d.connections) - 5 : radius(d.connections) + 5)
         .attr('text-anchor', (d: any) => d.x > width - 110 ? 'end' : 'start');
     };
+
+    const hiddenGroups = new Set<string>();
+    const groupKey = (d: any) => (groupColors[d.group] ? d.group : 'other');
+    const applyGroupFilter = () => {
+      node.style('display', (d: any) => hiddenGroups.has(groupKey(d)) ? 'none' : null);
+      link.style('display', (d: any) => hiddenGroups.has(groupKey(nodeById.get(idOf(d.source)) || {})) || hiddenGroups.has(groupKey(nodeById.get(idOf(d.target)) || {})) ? 'none' : null);
+    };
+    wrapper.querySelectorAll<HTMLButtonElement>('[data-legend-group]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const key = button.dataset.legendGroup || '';
+        if (hiddenGroups.has(key)) hiddenGroups.delete(key); else hiddenGroups.add(key);
+        button.setAttribute('aria-pressed', hiddenGroups.has(key) ? 'false' : 'true');
+        applyGroupFilter();
+      });
+    });
 
     const updateDetail = (focus = false) => {
       const selected = selectedId ? nodeById.get(selectedId) : undefined;
@@ -278,8 +294,11 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
 <style>
   .graph-wrap { position:relative; padding:0; overflow:hidden; }
   .graph-wrap { --group-entities:#ff7a59; --group-concepts:#2dd4bf; --group-facts:#fbbf24; --group-comparisons:#c084fc; --group-workflows:#60a5fa; --group-prompts:#f472b6; --group-cases:#a3e635; --group-sources:#94a3b8; --group-other:#cbd5e1; }
-  .graph-legend { position:absolute; z-index:1; top:auto; right:14px; bottom:14px; display:flex; flex-wrap:wrap; gap:4px 12px; max-width:min(420px,60%); margin:0; padding:7px 10px; list-style:none; border:2px solid var(--line); background:var(--panel); color:var(--muted); font-size:.74rem; pointer-events:none; }
-  .graph-legend li { display:inline-flex; align-items:center; gap:5px; }
+  .graph-legend { position:absolute; z-index:1; top:auto; right:14px; bottom:14px; display:flex; flex-wrap:wrap; gap:4px 12px; max-width:min(420px,60%); margin:0; padding:7px 10px; list-style:none; border:2px solid var(--line); background:var(--panel); color:var(--muted); font-size:.74rem; }
+  .graph-legend li { display:inline-flex; }
+  .graph-legend button { display:inline-flex; align-items:center; gap:5px; padding:2px 4px; border:0; background:transparent; color:inherit; font:inherit; cursor:pointer; }
+  .graph-legend button:hover { color:var(--text); background:var(--soft); }
+  .graph-legend button[aria-pressed="false"] { opacity:.4; text-decoration:line-through; }
   .graph-legend .swatch { width:11px; height:11px; border-radius:50%; border:1.5px solid var(--line); }
   .graph-wrap--loom { border:1px solid var(--line); background:var(--panel); box-shadow:none; }
   .graph-tools { position:absolute; z-index:1; inset:14px 14px auto; display:flex; justify-content:space-between; align-items:start; gap:12px; pointer-events:none; }
