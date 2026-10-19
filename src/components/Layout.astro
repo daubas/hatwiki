@@ -4,6 +4,7 @@ import { getLocale, LOCALES, switchLocaleUrl, t, withLocale } from '../lib/i18n.
 const { title = 'HatWiki' } = Astro.props;
 const pathname = Astro.url.pathname;
 const pageClass = pathname === '/' ? 'home-page' : pathname === '/graph' ? 'graph-page' : 'reading-page';
+const hasLeft = Astro.slots.has('left');
 const hasAside = Astro.slots.has('right');
 const locale = getLocale(Astro.url);
 ---
@@ -48,7 +49,8 @@ const locale = getLocale(Astro.url);
         ><span id="account-label"><span class="account-long">GitHub&nbsp;</span>{t(locale, 'login')}</span> <span aria-hidden="true">↗</span></a>
       </div>
     </header>
-    <div class:list={['shell', { 'shell--with-aside': hasAside }]}>
+    <div class:list={['shell', { 'shell--with-left': hasLeft, 'shell--with-aside': hasAside }]}>
+      {hasLeft && <aside class="left-sidebar"><slot name="left" /></aside>}
       <main id="main-content" tabindex="-1"><slot /></main>
       {hasAside && <aside class="right-sidebar"><slot name="right" /></aside>}
     </div>
@@ -99,6 +101,9 @@ const locale = getLocale(Astro.url);
   a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline:3px solid var(--cobalt); outline-offset:3px; }
   .shell { width:min(calc(100% - 48px), 840px); margin:auto; padding:48px 0 76px; }
   .shell--with-aside { display:grid; width:min(calc(100% - 64px),1136px); grid-template-columns:minmax(0,1fr) 280px; gap:56px; align-items:start; }
+  .shell--with-left { display:grid; width:min(calc(100% - 64px),1048px); grid-template-columns:176px minmax(0,1fr); gap:32px; align-items:start; }
+  .shell--with-left.shell--with-aside { width:min(calc(100% - 64px),1480px); grid-template-columns:176px minmax(0,1fr) 280px; gap:32px; }
+  .left-sidebar { position:sticky; top:104px; min-width:0; max-height:calc(100svh - 128px); overflow:auto; }
   .right-sidebar { min-width:0; }
   .home-page .shell, .graph-page .shell { width:min(calc(100% - 48px), 1320px); }
   body.home-page { background-image:linear-gradient(rgb(138 230 255 / .055) 1px,transparent 1px),linear-gradient(90deg,rgb(138 230 255 / .055) 1px,transparent 1px); background-size:40px 40px; }
@@ -118,9 +123,13 @@ const locale = getLocale(Astro.url);
   @media (max-width:1200px) {
     .site-header { gap:12px; }
     .primary-nav a { padding-inline:8px; }
+    .left-sidebar { display:none; }
+    .shell--with-left:not(.shell--with-aside) { grid-template-columns:minmax(0,1fr); }
+    .shell--with-left.shell--with-aside { grid-template-columns:minmax(0,1fr) 280px; }
   }
   @media (max-width:900px) {
     #main-content { scroll-margin-top:160px; }
+    .shell--with-left { display:block; }
     .shell--with-aside { display:block; }
     .right-sidebar { position:static; max-height:none; overflow:visible; margin-top:36px; border-top:1px solid var(--line); padding-top:20px; }
     .site-header { grid-template-columns:auto minmax(140px,1fr) auto; }
@@ -138,7 +147,7 @@ const locale = getLocale(Astro.url);
     .account { min-width:72px; padding-inline:8px; }
     .account-long { display:none; }
     .primary-nav a, .account { min-height:46px; padding-inline:7px; }
-    .shell, .shell--with-aside, .home-page .shell, .graph-page .shell { display:block; width:calc(100% - 32px); padding:24px 0 56px; }
+    .shell, .shell--with-aside, .shell--with-left, .shell--with-left.shell--with-aside, .home-page .shell, .graph-page .shell { display:block; width:calc(100% - 32px); padding:24px 0 56px; }
     .right-sidebar { margin-top:36px; border-top:1px solid var(--line); padding-top:20px; }
   }
   @media (prefers-reduced-motion:reduce) { *, *::before, *::after { scroll-behavior:auto !important; transition-duration:.01ms !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; } }

@@ -44,6 +44,7 @@ const hasSources = Boolean(canonicalSource || page.citations?.length);
 ---
 
 <Layout title={page.title}>
+  <WikiContents slot="left" {outline} {hasSources} {locale} />
   <article class="wiki-page" aria-labelledby="wiki-page-title">
     <header class="wiki-page-header">
       <nav class="breadcrumbs" aria-label={t(locale, 'breadcrumbs')}>
@@ -110,7 +111,6 @@ const hasSources = Boolean(canonicalSource || page.citations?.length);
   </article>
 
   <div slot="right" class="wiki-side">
-    <WikiContents {outline} {hasSources} {locale} />
     <section aria-labelledby="wiki-local-graph-title">
       <h2 id="wiki-local-graph-title">{locale === 'en' ? 'Page connections' : '條目關聯圖'}</h2>
       <p class="graph-hint">{locale === 'en' ? 'One link away · select a node to read it.' : '一層連結範圍 · 選取節點即可前往閱讀'}{requestedVariant && (locale === 'en' ? ' Based on the primary version.' : '（以主版本連結為準）')}</p>
