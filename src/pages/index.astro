@@ -7,6 +7,7 @@ import { groupWikiIndexByType } from '../lib/homeCatalog.ts';
 import { getLocale, t, withLocale } from '../lib/i18n.ts';
 import { getSiteSnapshot } from '../lib/siteWiki.ts';
 import { buildWikiGraph } from '../lib/wikiGraph.ts';
+import { extractWikiIntro } from '../lib/wikiIntro.ts';
 import { parseWikiLog } from '../lib/wikiLog.ts';
 import { mergeWikiIndexPages, type WikiIndexItem } from '../lib/wikiIndex.ts';
 
@@ -24,6 +25,8 @@ const groupOrder = ['concepts', 'workflows', 'entities', 'facts', 'comparisons',
 const groups = groupWikiIndexByType(catalogPages, groupOrder).filter((group) => group.group !== 'sources');
 const COLLAPSE_AFTER = 8;
 const logFiles = import.meta.glob('../../wiki/log.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+const indexFiles = import.meta.glob('../../wiki/index.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+const intro = extractWikiIntro(Object.values(indexFiles)[0] ?? '');
 const latest = parseWikiLog(Object.values(logFiles)[0] ?? '', Infinity)
   .map((entry, index) => ({ entry, index }))
   .sort((a, b) => b.entry.date.localeCompare(a.entry.date) || b.index - a.index)
@@ -44,7 +47,12 @@ const pageHref = (pageId: string) => `/wiki/${pageId.split('/').map(encodeURICom
 <Layout title="Humans and Agents Together">
   <div class="home">
     <main class="home-main">
-      <h1 class="visually-hidden">{t(locale, 'homeCatalogTitle')}</h1>
+      {intro ? (
+        <header class="intro">
+          <h1>{intro.title}</h1>
+          <p>{intro.text}</p>
+        </header>
+      ) : <h1 class="visually-hidden">{t(locale, 'homeCatalogTitle')}</h1>}
       {latest.length > 0 && (
         <section class="latest" aria-labelledby="latest-title">
           <h2 id="latest-title">{t(locale, 'homeLatestTitle')}</h2>
@@ -114,6 +122,8 @@ const pageHref = (pageId: string) => `/wiki/${pageId.split('/').map(encodeURICom
   .visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
   .home { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,340px); gap:clamp(24px,4vw,48px); align-items:start; min-width:0; }
   .home-main { display:grid; gap:28px; min-width:0; }
+  .intro h1 { margin:0 0 8px; font-size:clamp(1.4rem,2.6vw,1.9rem); letter-spacing:-.03em; line-height:1.2; }
+  .intro p { max-width:46rem; margin:0; color:var(--muted); font-size:.95rem; line-height:1.7; }
   .latest h2 { margin:0 0 6px; padding-bottom:6px; border-bottom:1px solid var(--line); font-size:.95rem; }
   .latest ol { display:grid; gap:0; margin:0; padding:0; list-style:none; }
   .latest li { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; padding:6px 0; font-size:.86rem; }
