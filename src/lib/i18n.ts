@@ -37,31 +37,22 @@ export interface UiMessages {
   pageVariantEndorsements: string;
   pageVariantDisagreements: string;
   wikiPageId: string;
-  homeStatus: string;
-  homeOverline: string;
-  homeTitle1: string;
-  homeTitle2: string;
-  homeTitle3: string;
-  homeLede: string;
-  homeExplore: string;
-  homeRead: string;
-  homeOpenGraph: string;
   homeMapOverline: string;
   homeMapTitle: string;
   publicPages: string;
   wikiLinks: string;
   homeMapHint: string;
-  homeCollaborateOverline: string;
-  homeCollaborateTitle: string;
-  homeCollaborateBody: string;
-  homeCollaborateAction: string;
-  homeCollaborateStatus: string;
-  homeCollaborateStep1: string;
-  homeCollaborateStep2: string;
-  homeCollaborateStep3: string;
-  homeBrowseOverline: string;
-  homeBrowseTitle: string;
-  homeBrowseAll: string;
+  homeCatalogTitle: string;
+  homeSearchHint: string;
+  groupConcepts: string;
+  groupWorkflows: string;
+  groupEntities: string;
+  groupFacts: string;
+  groupComparisons: string;
+  groupPrompts: string;
+  groupCases: string;
+  groupSources: string;
+  groupOther: string;
   graphRevision: string;
   graphHeading: string;
   graphDescription: string;
@@ -168,31 +159,22 @@ export const ui: Record<Locale, UiMessages> = {
     pageVariantEndorsements: '認同',
     pageVariantDisagreements: '不同意',
     wikiPageId: '頁面 ID',
-    homeStatus: '公開 Wiki · Git 版本管理',
-    homeOverline: 'HATWIKI / 共同知識',
-    homeTitle1: '人與 Agent',
-    homeTitle2: '共同編織的',
-    homeTitle3: '知識地圖',
-    homeLede: '把原始資料、人的判斷與 Agent 整理出的脈絡，留成可追查、可修正，也能跨 session 繼續使用的共同記憶。',
-    homeExplore: '開始探索 HatWiki',
-    homeRead: '開始閱讀',
-    homeOpenGraph: '打開完整圖譜',
     homeMapOverline: '即時知識地圖',
     homeMapTitle: '資料進來，關係長出來。',
     publicPages: '公開頁面',
     wikiLinks: 'WikiLinks',
     homeMapHint: '拖曳探索 · 點擊節點閱讀',
-    homeCollaborateOverline: '共同編輯',
-    homeCollaborateTitle: '從一份資料，開始一起整理。',
-    homeCollaborateBody: '先把文字資料私密保存，再由你的 Agent 整理進既有 Wiki 頁面；你可以檢查差異後再發布。',
-    homeCollaborateAction: '加入文字資料',
-    homeCollaborateStatus: '目前可用流程',
-    homeCollaborateStep1: '保存來源',
-    homeCollaborateStep2: '整理草稿',
-    homeCollaborateStep3: '檢查並發布',
-    homeBrowseOverline: '瀏覽 Wiki',
-    homeBrowseTitle: '從一個節點開始',
-    homeBrowseAll: '查看所有頁面',
+    homeCatalogTitle: '目錄',
+    homeSearchHint: '在首頁直接搜尋全部頁面',
+    groupConcepts: '概念與做法',
+    groupWorkflows: '工作流',
+    groupEntities: '實體',
+    groupFacts: '事實',
+    groupComparisons: '比較',
+    groupPrompts: '提示詞',
+    groupCases: '案例',
+    groupSources: '來源摘要',
+    groupOther: '其他',
     graphRevision: '版本',
     graphHeading: 'Wiki 圖譜',
     graphDescription: '每個節點是一頁 Wiki；連線來自頁面中的 WikiLink 或標準 Markdown 連結。',
@@ -297,31 +279,22 @@ export const ui: Record<Locale, UiMessages> = {
     pageVariantEndorsements: 'endorsements',
     pageVariantDisagreements: 'disagreements',
     wikiPageId: 'Page ID',
-    homeStatus: 'Public wiki · Git-backed',
-    homeOverline: 'HATWIKI / SHARED KNOWLEDGE',
-    homeTitle1: 'Humans + agents',
-    homeTitle2: 'weave a shared',
-    homeTitle3: 'knowledge map',
-    homeLede: 'Turn source material, human judgment, and agent-made connections into shared memory that stays traceable, editable, and useful across sessions.',
-    homeExplore: 'Start exploring HatWiki',
-    homeRead: 'Start reading',
-    homeOpenGraph: 'Open the full graph',
     homeMapOverline: 'LIVE KNOWLEDGE MAP',
     homeMapTitle: 'Add knowledge. Watch connections grow.',
     publicPages: 'public pages',
     wikiLinks: 'WikiLinks',
     homeMapHint: 'Drag to explore · Select a node to read',
-    homeCollaborateOverline: 'COLLABORATIVE EDITING',
-    homeCollaborateTitle: 'Start together from one source.',
-    homeCollaborateBody: 'Store a text source privately, let your Agent organize it into an existing Wiki page, then review the diff before publishing.',
-    homeCollaborateAction: 'Add a text source',
-    homeCollaborateStatus: 'Available now',
-    homeCollaborateStep1: 'Store source',
-    homeCollaborateStep2: 'Shape the draft',
-    homeCollaborateStep3: 'Review and publish',
-    homeBrowseOverline: 'BROWSE THE WIKI',
-    homeBrowseTitle: 'Start from one node',
-    homeBrowseAll: 'View all pages',
+    homeCatalogTitle: 'Contents',
+    homeSearchHint: 'Search every page from here',
+    groupConcepts: 'Concepts',
+    groupWorkflows: 'Workflows',
+    groupEntities: 'Entities',
+    groupFacts: 'Facts',
+    groupComparisons: 'Comparisons',
+    groupPrompts: 'Prompts',
+    groupCases: 'Cases',
+    groupSources: 'Sources',
+    groupOther: 'Other',
     graphRevision: 'Revision',
     graphHeading: 'Wiki graph',
     graphDescription: 'Each node is a Wiki page. Links come from WikiLinks and standard Markdown links.',
