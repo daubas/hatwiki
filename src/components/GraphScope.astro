@@ -1,0 +1,44 @@
+---
+import type { Locale } from '../lib/i18n.ts';
+
+const { locale = 'zh-Hant', includeSources = false } = Astro.props as { locale?: Locale; includeSources?: boolean };
+const copy = locale === 'en'
+  ? {
+      includeSources: 'Include source summaries',
+      apply: 'Apply',
+      note: 'Colors represent page types; lines represent page links. Draft, archived, and catalog pages are excluded.',
+    }
+  : {
+      includeSources: '加入來源摘要',
+      apply: '套用',
+      note: '顏色代表頁面類型，連線代表頁面連結。草稿、封存與目錄頁不列入。',
+    };
+---
+
+<section class="graph-scope" aria-label={locale === 'en' ? 'Graph scope' : '圖譜範圍'}>
+  <form class="graph-scope-form" method="get" action={Astro.url.pathname}>
+    {locale === 'en' && <input type="hidden" name="lang" value="en" />}
+    <label class="graph-scope-option">
+      <input type="checkbox" name="sources" value="1" checked={includeSources} />
+      <span>{copy.includeSources}</span>
+    </label>
+    <button type="submit">{copy.apply}</button>
+  </form>
+  <p class="graph-scope-note">{copy.note}</p>
+</section>
+
+<style>
+  .graph-scope { display:grid; min-width:0; gap:10px; padding:12px 14px; border:1px solid var(--line); background:var(--panel); color:var(--text); }
+  .graph-scope-form { display:flex; min-width:0; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; }
+  .graph-scope-option { display:flex; min-width:0; align-items:center; gap:8px; color:var(--text); font-size:.86rem; font-weight:750; }
+  .graph-scope-option span { min-width:0; overflow-wrap:anywhere; }
+  .graph-scope-option input { flex:0 0 auto; width:1rem; height:1rem; margin:0; accent-color:var(--lime); }
+  .graph-scope button { flex:0 0 auto; min-height:36px; padding:7px 12px; border:2px solid var(--line); border-radius:0; background:var(--lime); box-shadow:3px 3px 0 var(--line); color:#09111a; font:inherit; font-size:.78rem; font-weight:800; cursor:pointer; }
+  .graph-scope button:hover { background:var(--cobalt); color:var(--panel); }
+  .graph-scope-note { margin:0; color:var(--muted); font-size:.78rem; line-height:1.5; overflow-wrap:anywhere; }
+  @media (max-width:420px) {
+    .graph-scope-form { align-items:stretch; }
+    .graph-scope-option { flex:1 1 100%; }
+    .graph-scope button { width:100%; }
+  }
+</style>

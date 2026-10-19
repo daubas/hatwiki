@@ -1,14 +1,18 @@
 ---
-import { getCollection } from 'astro:content';
 import GraphView from '../components/GraphView.astro';
+import GraphScope from '../components/GraphScope.astro';
 import Layout from '../components/Layout.astro';
 import { getLocale, t, withLocale } from '../lib/i18n.ts';
 import { getSiteSnapshot } from '../lib/siteWiki.ts';
 import { buildWikiGraph } from '../lib/wikiGraph.ts';
 
-const pages = (await getCollection('wiki')).filter((entry) => entry.data.visibility !== 'private');
-const graph = buildWikiGraph(await getSiteSnapshot());
 const locale = getLocale(Astro.url);
+const includeSources = Astro.url.searchParams.get('sources') === '1';
+const snapshot = await getSiteSnapshot();
+const graph = buildWikiGraph(snapshot, { includeSources });
+const graphPageIds = new Set(graph.nodes.map((node) => node.id));
+const pages = snapshot.pages.filter((page) => graphPageIds.has(page.pageId)).slice(0, 6);
+const pageHref = (pageId: string) => `/wiki/${pageId.split('/').map(encodeURIComponent).join('/')}`;
 ---
 
 <Layout title="Humans and Agents Together">
@@ -35,6 +39,7 @@ const locale = getLocale(Astro.url);
           <p>{graph.edges.length}<span>{t(locale, 'wikiLinks')}</span></p>
         </div>
       </div>
+      <GraphScope {locale} {includeSources} />
       <GraphView graph={graph} variant="loom" {locale} />
       <p class="loom-hint">{t(locale, 'homeMapHint')}</p>
     </section>
@@ -63,7 +68,7 @@ const locale = getLocale(Astro.url);
         <a href={withLocale('/wiki', locale)}>{t(locale, 'homeBrowseAll')} →</a>
       </div>
       <ul>
-        {pages.slice(0, 6).map((page) => <li><a href={withLocale(`/wiki/${page.id}`, locale)}><strong>{page.data.title}</strong><span>{page.data.description}</span></a></li>)}
+        {pages.map((page) => <li><a href={withLocale(pageHref(page.pageId), locale)}><strong>{page.title}</strong><span>{page.description}</span></a></li>)}
       </ul>
     </section>
   </section>

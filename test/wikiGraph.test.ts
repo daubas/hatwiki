@@ -89,7 +89,7 @@ test('includes resolved standard Markdown links and ignores external image links
       {
         pageId: 'guides/one',
         title: 'One',
-        markdown: '[Two](topics/two.md#details) [External](https://example.test/two) ![Image](https://example.test/image.png)',
+        markdown: '[Two](/topics/two.md#details) [External](https://example.test/two) ![Image](https://example.test/image.png)',
       },
       { pageId: 'topics/two', title: 'Two', markdown: '' },
     ],
@@ -98,7 +98,7 @@ test('includes resolved standard Markdown links and ignores external image links
   assert.deepEqual(graph.edges, [{ source: 'guides/one', target: 'topics/two' }]);
 });
 
-test('resolves root-relative Markdown links but ignores parent traversal', () => {
+test('deduplicates root-relative and valid parent-relative Markdown links', () => {
   const graph = buildWikiGraph({
     revision: 'rev-5',
     pages: [
@@ -138,14 +138,14 @@ test('local graph includes incoming and outgoing neighbors but excludes two-hop 
   assert.equal(graph.nodes.find((node) => node.id === 'outgoing')?.connections, 2);
 });
 
-test('local graph retains a draft focus and excludes other drafts before resolving bare links', () => {
+test('local graph retains a draft focus without guessing ambiguous bare links', () => {
   const graph = buildLocalWikiGraph({ revision: 'draft-local', pages: [
     { pageId: 'sources/note', title: 'Draft focus', markdown: '[[topic]]', status: 'draft' },
     { pageId: 'concepts/topic', title: 'Topic', markdown: '[[sources/note]]' },
     { pageId: 'sources/topic', title: 'Other draft', markdown: '[[sources/note]]', status: 'draft' },
   ] }, 'sources/note');
   assert.deepEqual(graph.nodes.map((node) => node.id), ['sources/note', 'concepts/topic']);
-  assert.equal(graph.edges.length, 2);
+  assert.deepEqual(graph.edges, [{ source: 'concepts/topic', target: 'sources/note' }]);
 });
 
 test('local graph retains an isolated page and handles an absent focus', () => {

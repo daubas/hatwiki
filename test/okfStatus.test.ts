@@ -45,7 +45,7 @@ test('graph and index hide drafts by default', async () => {
   const snapshot = await projection.readSnapshot();
   assert.deepEqual(buildWikiGraph(snapshot).nodes.map((n) => n.id), ['guides/official', 'guides/plain']);
   assert.deepEqual(buildWikiGraph(snapshot).edges, []);
-  assert.equal(buildWikiGraph(snapshot, { includeDrafts: true }).nodes.length, 3);
+  assert.equal(buildWikiGraph(snapshot, { includeDrafts: true, includeSources: true }).nodes.length, 3);
   assert.deepEqual(mergeWikiIndexPages(snapshot.pages, []).map((i) => i.id), ['guides/official', 'guides/plain']);
   const withDrafts = mergeWikiIndexPages(snapshot.pages, [], { includeDrafts: true });
   assert.equal(withDrafts.find((i) => i.id === 'sources/note')?.status, 'draft');

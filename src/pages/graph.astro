@@ -1,17 +1,20 @@
 ---
 import GraphView from '../components/GraphView.astro';
+import GraphScope from '../components/GraphScope.astro';
 import Layout from '../components/Layout.astro';
 import { getLocale, t } from '../lib/i18n.ts';
 import { getSiteSnapshot } from '../lib/siteWiki.ts';
 import { buildWikiGraph } from '../lib/wikiGraph.ts';
 
-const graph = buildWikiGraph(await getSiteSnapshot());
 const locale = getLocale(Astro.url);
+const includeSources = Astro.url.searchParams.get('sources') === '1';
+const graph = buildWikiGraph(await getSiteSnapshot(), { includeSources });
 ---
 
 <Layout title={t(locale, 'graphHeading')}>
   <p class="meta">{t(locale, 'graphRevision')} {graph.revision}</p>
   <h1>{t(locale, 'graphHeading')}</h1>
   <p>{t(locale, 'graphDescription')}</p>
+  <GraphScope {locale} {includeSources} />
   <GraphView {graph} {locale} />
 </Layout>

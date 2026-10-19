@@ -142,14 +142,14 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
     };
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([isLocal ? 0.2 : 0.35, 4])
+      .scaleExtent([0.2, 4])
       .on('zoom', (event) => {
         root.attr('transform', event.transform);
       });
     svg.call(zoom);
 
-    const fitLocalView = () => {
-      if (!isLocal || nodes.length === 0) return;
+    const fitGraphView = () => {
+      if (nodes.length === 0) return;
       let minX = Infinity;
       let maxX = -Infinity;
       let minY = Infinity;
@@ -163,14 +163,16 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
         maxY = Math.max(maxY, candidate.y + nodeRadius);
       }
       if (!Number.isFinite(minX)) return;
-      const padding = 22;
+      const padding = isLocal ? 22 : 36;
+      const topInset = isLocal ? 0 : 90;
+      const bottomInset = isLocal ? 0 : 80;
       const boundsWidth = Math.max(1, maxX - minX);
       const boundsHeight = Math.max(1, maxY - minY);
       const availableWidth = Math.max(1, width - padding * 2);
-      const availableHeight = Math.max(1, height - padding * 2);
+      const availableHeight = Math.max(1, height - padding * 2 - topInset - bottomInset);
       const scale = Math.max(0.2, Math.min(1, availableWidth / boundsWidth, availableHeight / boundsHeight));
       const transform = d3.zoomIdentity
-        .translate(width / 2 - scale * (minX + maxX) / 2, height / 2 - scale * (minY + maxY) / 2)
+        .translate(width / 2 - scale * (minX + maxX) / 2, (height + topInset - bottomInset) / 2 - scale * (minY + maxY) / 2)
         .scale(scale);
       svg.call(zoom.transform, transform);
     };
@@ -276,12 +278,10 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
       if (action === 'select') selectNode(selected.id, true);
       else clearInteraction(true);
     });
-    if (reducedMotion || isLocal) {
-      simulation.stop();
-      for (let tick = 0; tick < 180; tick += 1) simulation.tick();
-      render();
-      if (isLocal) fitLocalView();
-    }
+    simulation.stop();
+    for (let tick = 0; tick < 180; tick += 1) simulation.tick();
+    render();
+    fitGraphView();
 
     const isPinnedFocus = (candidate: any) => Boolean(focusNode && candidate === focusNode);
     node.call(d3.drag<any, any>()
@@ -316,14 +316,7 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
         if (reducedMotion) render();
       }));
 
-    const resetZoom = () => {
-      if (isLocal) {
-        fitLocalView();
-        return;
-      }
-      if (reducedMotion) svg.call(zoom.transform, d3.zoomIdentity);
-      else svg.transition().duration(250).call(zoom.transform, d3.zoomIdentity);
-    };
+    const resetZoom = () => fitGraphView();
     const handleGraphKeydown = (event: KeyboardEvent) => {
       if (!isLocal) return;
       const zoomFactor = event.key === '+' || event.key === '=' ? 1.25 : event.key === '-' || event.key === '_' ? 0.8 : undefined;
@@ -365,17 +358,10 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
         focusNode.x = width / 2;
         focusNode.y = height / 2;
       }
-      if (isLocal) {
-        render();
-        return;
-      }
-      if (reducedMotion) {
-        simulation.stop();
-        for (let tick = 0; tick < 180; tick += 1) simulation.tick();
-        render();
-      } else {
-        simulation.alpha(0.35).restart();
-      }
+      simulation.stop();
+      for (let tick = 0; tick < 180; tick += 1) simulation.tick();
+      render();
+      fitGraphView();
     };
     const stopResize = observeResize(window, resize);
     window.addEventListener('pagehide', () => {
