@@ -77,3 +77,42 @@ export function buildWikiGraph(snapshot: PublicSnapshot, options: { includeDraft
 
   return { revision: snapshot.revision, nodes, edges };
 }
+
+export function buildLocalWikiGraph(snapshot: PublicSnapshot, pageId: string): WikiGraph {
+  const graph = buildWikiGraph({
+    ...snapshot,
+    pages: snapshot.pages.filter((page) => page.pageId === pageId || !isDraftStatus(page.status)),
+  }, { includeDrafts: true });
+  const graphNodeIds = new Set(graph.nodes.map((node) => node.id));
+  if (!graphNodeIds.has(pageId)) return { ...graph, nodes: [], edges: [] };
+
+  const localNodeIds = new Set([pageId]);
+  for (const edge of graph.edges) {
+    if (edge.source === pageId || edge.target === pageId) {
+      localNodeIds.add(edge.source);
+      localNodeIds.add(edge.target);
+    }
+  }
+
+  const edges = graph.edges.filter((edge) => localNodeIds.has(edge.source) && localNodeIds.has(edge.target));
+  const backlinks = new Map<string, number>();
+  const neighbors = new Map<string, Set<string>>();
+  for (const nodeId of localNodeIds) {
+    backlinks.set(nodeId, 0);
+    neighbors.set(nodeId, new Set());
+  }
+  for (const edge of edges) {
+    backlinks.set(edge.target, (backlinks.get(edge.target) || 0) + 1);
+    neighbors.get(edge.source)?.add(edge.target);
+    neighbors.get(edge.target)?.add(edge.source);
+  }
+
+  const nodes = graph.nodes
+    .filter((node) => localNodeIds.has(node.id))
+    .map((node) => ({
+      ...node,
+      backlinks: backlinks.get(node.id) || 0,
+      connections: neighbors.get(node.id)?.size || 0,
+    }));
+  return { revision: graph.revision, nodes, edges };
+}

@@ -1,0 +1,188 @@
+---
+import { isDraftStatus, isStale } from '../lib/contracts.ts';
+import type { Locale } from '../lib/i18n.ts';
+
+type Props = {
+  status?: string;
+  staleAfter?: string;
+  pendingCandidates?: number;
+  locale?: Locale;
+  compact?: boolean;
+};
+
+const { status, staleAfter, pendingCandidates, locale = 'zh-Hant', compact = false } = Astro.props as Props;
+const isEnglish = locale === 'en';
+const rawStatus = status?.trim();
+const normalizedStatus = rawStatus?.toLowerCase();
+const deadline = staleAfter?.trim();
+const stale = isStale(staleAfter);
+const pendingCount = typeof pendingCandidates === 'number' && Number.isFinite(pendingCandidates) && pendingCandidates > 0
+  ? pendingCandidates
+  : undefined;
+
+const statusTone = isDraftStatus(status)
+  ? 'draft'
+  : normalizedStatus === 'active'
+    ? 'active'
+    : normalizedStatus === 'stable'
+      ? 'stable'
+      : normalizedStatus === 'deprecated'
+        ? 'deprecated'
+        : rawStatus
+          ? 'unknown'
+          : 'missing';
+const statusText = isDraftStatus(status)
+  ? (isEnglish ? 'Draft' : '草稿')
+  : normalizedStatus === 'active'
+    ? (isEnglish ? 'In active use' : '正式使用')
+    : normalizedStatus === 'stable'
+      ? (isEnglish ? 'Stable entry' : '穩定條目')
+      : normalizedStatus === 'deprecated'
+        ? (isEnglish ? 'Deprecated / no longer maintained' : '已淘汰/停止維護')
+        : rawStatus || (isEnglish ? 'Unmarked' : '未標示');
+const deadlineText = deadline
+  ? (isEnglish ? `Update by ${deadline}` : `更新期限：${deadline}`)
+  : '';
+const pendingText = pendingCount === undefined
+  ? ''
+  : isEnglish
+    ? `${pendingCount} pending edits`
+    : `${pendingCount} 筆待處理修改`;
+const labels = {
+  lifecycle: isEnglish ? 'Usage status' : '使用狀態',
+  deadline: isEnglish ? 'Update deadline' : '更新期限',
+  pending: isEnglish ? 'Pending edits' : '待處理修改',
+  updateNeeded: isEnglish ? 'Update needed' : '待更新',
+  notice: isEnglish
+    ? 'Usage status does not mean the content has been verified. Check the sources and dates.'
+    : '使用狀態不代表內容已查證，請核對來源與日期。',
+};
+---
+
+<div class:list={['wiki-status', { 'wiki-status--compact': compact }]} data-status={status}>
+  {compact ? (
+    <div class="wiki-status__badges" aria-label={labels.lifecycle}>
+      <span class:list={['wiki-status__badge', `wiki-status__badge--${statusTone}`]}>{statusText}</span>
+      {deadline && <span class:list={['wiki-status__badge', { 'wiki-status__badge--stale': stale }]}>{deadlineText}</span>}
+      {stale && <span class="wiki-status__badge wiki-status__badge--stale">{labels.updateNeeded}</span>}
+      {pendingText && <span class="wiki-status__badge">{pendingText}</span>}
+    </div>
+  ) : (
+    <>
+      <dl class="wiki-status__details">
+        <div class="wiki-status__detail">
+          <dt>{labels.lifecycle}</dt>
+          <dd><span class:list={['wiki-status__badge', `wiki-status__badge--${statusTone}`]}>{statusText}</span></dd>
+        </div>
+        {deadline && <div class="wiki-status__detail">
+          <dt>{labels.deadline}</dt>
+          <dd>
+            <span class:list={['wiki-status__badge', { 'wiki-status__badge--stale': stale }]}>{deadline}</span>
+            {stale && <span class="wiki-status__badge wiki-status__badge--stale">{labels.updateNeeded}</span>}
+          </dd>
+        </div>}
+        {pendingText && <div class="wiki-status__detail">
+          <dt>{labels.pending}</dt>
+          <dd><span class="wiki-status__badge">{pendingText}</span></dd>
+        </div>}
+      </dl>
+      <p class="wiki-status__notice">{labels.notice}</p>
+    </>
+  )}
+</div>
+
+<style>
+  .wiki-status {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    border: 1px solid #d6dce5;
+    border-radius: 0;
+    background: var(--panel, #f8f9fa);
+    color: #2c5b91;
+    font-size: .84rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .wiki-status:not(.wiki-status--compact) { padding: 12px; }
+  .wiki-status--compact { width:fit-content; padding:0; border:0; background:transparent; }
+
+  .wiki-status__details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 24px;
+    margin: 0;
+  }
+
+  .wiki-status__detail {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+    min-width: 0;
+  }
+
+  .wiki-status__detail dt {
+    min-width: 0;
+    color: #657184;
+    font-size: .78rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  .wiki-status__detail dd {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+    margin: 0;
+  }
+
+  .wiki-status__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .wiki-status__badge {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    border: 1px solid #cbd7e6;
+    border-radius: 999px;
+    padding: 2px 8px;
+    background: #f5f8fc;
+    color: #2c5b91;
+    font-size: .78rem;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+  }
+
+  .wiki-status__badge--draft,
+  .wiki-status__badge--stale {
+    border-color: #e3c77c;
+    background: #fff7e4;
+    color: #845b08;
+  }
+
+  .wiki-status__badge--deprecated,
+  .wiki-status__badge--unknown,
+  .wiki-status__badge--missing {
+    border-color: #d5d9df;
+    background: #f7f8fa;
+    color: #5d6877;
+  }
+
+  .wiki-status__notice {
+    margin: 10px 0 0;
+    border-top: 1px solid #e8ebf0;
+    padding-top: 10px;
+    color: #657184;
+    font-size: .76rem;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+</style>

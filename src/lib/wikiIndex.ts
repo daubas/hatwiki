@@ -6,17 +6,24 @@ export type WikiIndexItem = {
   description?: string;
   tags?: string[];
   status?: string;
+  staleAfter?: string;
+  pendingCandidates?: number;
 };
 
 export function mergeWikiIndexPages(
-  pages: Array<{ pageId: string; title: string; status?: string }>,
+  pages: Array<{ pageId: string; title: string; status?: string; staleAfter?: string; pendingCandidates?: number }>,
   metadata: WikiIndexItem[],
   options: { includeDrafts?: boolean } = {},
 ): WikiIndexItem[] {
   const byId = new Map(metadata.map((item) => [item.id, item]));
   return pages
     .filter((page) => options.includeDrafts || !isDraftStatus(page.status))
-    .map((page) => ({ ...byId.get(page.pageId), id: page.pageId, title: page.title, ...(page.status ? { status: page.status } : {}) }));
+    .map((page) => ({
+      ...byId.get(page.pageId), id: page.pageId, title: page.title,
+      ...(page.status ? { status: page.status } : {}),
+      ...(page.staleAfter ? { staleAfter: page.staleAfter } : {}),
+      ...(page.pendingCandidates !== undefined ? { pendingCandidates: page.pendingCandidates } : {}),
+    }));
 }
 
 function normalizeSearchText(value: string): string {

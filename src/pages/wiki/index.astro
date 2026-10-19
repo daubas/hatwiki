@@ -1,9 +1,9 @@
 ---
 import { getCollection } from 'astro:content';
 import Layout from '../../components/Layout.astro';
+import WikiStatus from '../../components/WikiStatus.astro';
 import { getLocale, t, withLocale } from '../../lib/i18n.ts';
 import { getSiteSnapshot } from '../../lib/siteWiki.ts';
-import { isDraftStatus } from '../../lib/contracts.ts';
 import { mergeWikiIndexPages, type WikiIndexItem } from '../../lib/wikiIndex.ts';
 
 const locale = getLocale(Astro.url);
@@ -43,6 +43,7 @@ const pageHref = (id: string) => `/wiki/${id.split('/').map(encodeURIComponent).
           <input
             id="wiki-search"
             name="q"
+            value={Astro.url.searchParams.get('q') ?? ''}
             type="search"
             placeholder={t(locale, 'wikiSearchPlaceholder')}
             aria-describedby="wiki-search-hint"
@@ -63,8 +64,9 @@ const pageHref = (id: string) => `/wiki/${id.split('/').map(encodeURIComponent).
       {pages.map((page) => (
         <li class="wiki-result" data-page-id={page.id}>
           <a href={withLocale(pageHref(page.id), locale)}>
-            <span class="result-id">{page.id}{isDraftStatus(page.status) && <span class="draft-badge">{t(locale, 'draftBadge')}</span>}</span>
+            <span class="result-id">{page.id}</span>
             <strong>{page.title}</strong>
+            <WikiStatus status={page.status} staleAfter={page.staleAfter} pendingCandidates={page.pendingCandidates} {locale} compact />
             {page.description && <span class="result-description">{page.description}</span>}
             {page.tags && <span class="result-tags">{page.tags.map((tag) => <span>#{tag}</span>)}</span>}
           </a>
@@ -125,26 +127,25 @@ const pageHref = (id: string) => `/wiki/${id.split('/').map(encodeURIComponent).
   .index-header { display:grid; gap:0; margin-bottom:34px; }
   .back-link { width:max-content; color:var(--accent); font-size:.84rem; font-weight:800; text-decoration:none; }
   .back-link:hover { color:var(--text); }
-  .eyebrow { margin:32px 0 0; color:var(--accent); font-size:.72rem; font-weight:850; letter-spacing:.12em; text-transform:uppercase; }
+  .eyebrow { display:none; }
   .index-header h1 { margin:10px 0 12px; }
   .index-description { max-width:620px; margin:0; color:var(--muted); font-size:1.05rem; line-height:1.7; }
-  .search-panel { display:grid; gap:12px; padding:20px; border:2px solid var(--line); background:var(--panel); box-shadow:6px 6px 0 var(--line); }
+  .search-panel { display:grid; gap:12px; padding:20px; border:1px solid var(--line); background:var(--panel); }
   .search-row { display:flex; align-items:end; gap:12px; min-width:0; }
   .search-field { display:grid; flex:1 1 300px; min-width:0; gap:8px; color:var(--text); font-size:.8rem; font-weight:800; }
-  .search-field input { width:100%; min-width:0; min-height:48px; padding:10px 12px; border:2px solid var(--line); border-radius:0; background:var(--bg); color:var(--text); font:inherit; font-weight:500; }
+  .search-field input { width:100%; min-width:0; min-height:48px; padding:10px 12px; border:1px solid var(--line); border-radius:0; background:var(--bg); color:var(--text); font:inherit; font-weight:500; }
   .search-field input::placeholder { color:var(--muted); opacity:1; }
-  .clear-search { flex:0 0 auto; min-height:48px; padding:10px 14px; border:2px solid var(--line); border-radius:0; background:var(--lime); box-shadow:3px 3px 0 var(--line); color:var(--text); font:inherit; font-weight:800; cursor:pointer; }
+  .clear-search { flex:0 0 auto; min-height:48px; padding:10px 14px; border:1px solid var(--line); border-radius:0; background:var(--bg); color:var(--text); font:inherit; cursor:pointer; }
   .clear-search:hover { background:var(--accent); }
   .drafts-toggle { width:max-content; color:var(--accent); font-size:.8rem; font-weight:800; }
-  .draft-badge { margin-left:8px; padding:1px 6px; border:1px solid var(--line); background:var(--lime); color:var(--text); font-family:inherit; font-size:.7rem; font-weight:800; }
   .search-hint { margin:0; color:var(--muted); font-size:.8rem; line-height:1.5; }
   .results-status { margin:30px 0 10px; color:var(--muted); font-size:.8rem; font-weight:800; letter-spacing:.04em; }
-  .wiki-results { display:grid; gap:10px; min-width:0; margin:0; padding:0; list-style:none; }
+  .wiki-results { display:grid; min-width:0; margin:0; padding:0; list-style:none; }
   .wiki-result { min-width:0; }
-  .wiki-result a { display:grid; min-width:0; gap:6px; padding:18px; border:1px solid var(--line); background:var(--panel); color:var(--text); text-decoration:none; }
-  .wiki-result a:hover, .wiki-result a:focus-visible { border-color:var(--accent); box-shadow:4px 4px 0 var(--line); }
+  .wiki-result a { display:grid; min-width:0; gap:8px; padding:20px 0; border-bottom:1px solid var(--soft); color:var(--text); text-decoration:none; }
+  .wiki-result a:hover strong, .wiki-result a:focus-visible strong { text-decoration:underline; }
   .result-id { overflow-wrap:anywhere; color:var(--accent); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:.72rem; font-weight:700; }
-  .wiki-result strong { min-width:0; font-size:1.1rem; letter-spacing:-.02em; overflow-wrap:anywhere; }
+  .wiki-result strong { min-width:0; color:var(--accent); font-size:1.15rem; font-weight:500; overflow-wrap:anywhere; }
   .result-description { min-width:0; color:var(--muted); line-height:1.55; overflow-wrap:anywhere; }
   .result-tags { display:flex; flex-wrap:wrap; gap:6px; color:var(--muted); font-size:.76rem; }
   .result-tags span { padding:3px 7px; border:1px solid var(--line); color:var(--text); }

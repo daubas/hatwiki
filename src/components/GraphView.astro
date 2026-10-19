@@ -2,7 +2,8 @@
 import type { WikiGraph } from '../lib/wikiGraph.ts';
 import { t, type Locale } from '../lib/i18n.ts';
 
-const { graph, variant = 'graph', locale = 'zh-Hant' } = Astro.props as { graph: WikiGraph; variant?: 'graph' | 'loom'; locale?: Locale };
+const { graph, variant = 'graph', locale = 'zh-Hant', focusPageId } = Astro.props as { graph: WikiGraph; variant?: 'graph' | 'loom' | 'local'; locale?: Locale; focusPageId?: string };
+const isLocal = variant === 'local';
 const labels = {
   backlinks: t(locale, 'backlinks'),
   neighbors: t(locale, 'neighbors'),
@@ -11,34 +12,47 @@ const labels = {
   noResults: locale === 'en' ? 'No matching nodes' : '沒有符合的節點',
   details: locale === 'en' ? 'Node details' : '節點詳情',
   openPage: locale === 'en' ? 'Open page' : '閱讀頁面',
+  localGraph: locale === 'en' ? 'Local graph' : '局部關聯圖',
+  currentPage: locale === 'en' ? 'Current page' : '目前條目',
+  localReset: locale === 'en' ? 'Reset view' : '重置視圖',
+  localKeyboardHint: locale === 'en' ? 'Focus the graph, then use +/− to zoom or arrow keys to pan.' : '聚焦圖譜後，可用 +/− 縮放或方向鍵平移。',
+  graphTypes: locale === 'en' ? 'Node types' : '節點類型',
 };
-const graphJson = JSON.stringify({ graph, locale, labels }).replaceAll('<', '\\u003c');
-const groupHints: Record<string, string> = { entities: '有名字的對象：模型、工具、平台', concepts: '可跨模型適用的做法與心智模型', facts: '會過期的數字，帶口徑與有效期', comparisons: '兩個以上對象或做法的比較', workflows: '端到端操作流程', prompts: '可直接重用的提示詞模組', cases: '實戰案例拆解', sources: '來源摘要（一份來源一頁，多為草稿）', other: '其他頁面' };
-const groupLabels: Record<string, string> = { entities: '實體', concepts: '概念', facts: '事實', comparisons: '比較', workflows: '工作流', prompts: '提示詞', cases: '案例', sources: '來源摘要', other: '其他' };
+const graphJson = JSON.stringify({ graph, locale, labels, focusPageId }).replaceAll('<', '\\u003c');
+const groupHints: Record<string, string> = locale === 'en'
+  ? { entities: 'Named objects: models, tools, and platforms', concepts: 'Reusable methods and mental models', facts: 'Time-sensitive numbers with scope and validity', comparisons: 'Comparisons of two or more objects or methods', workflows: 'End-to-end operating flows', prompts: 'Prompt modules ready to reuse', cases: 'Breakdowns of practical cases', sources: 'Source summaries, usually drafts', other: 'Other pages' }
+  : { entities: '有名字的對象：模型、工具、平台', concepts: '可跨模型適用的做法與心智模型', facts: '會過期的數字，帶口徑與有效期', comparisons: '兩個以上對象或做法的比較', workflows: '端到端操作流程', prompts: '可直接重用的提示詞模組', cases: '實戰案例拆解', sources: '來源摘要（一份來源一頁，多為草稿）', other: '其他頁面' };
+const groupLabels: Record<string, string> = locale === 'en'
+  ? { entities: 'Entities', concepts: 'Concepts', facts: 'Facts', comparisons: 'Comparisons', workflows: 'Workflows', prompts: 'Prompts', cases: 'Cases', sources: 'Sources', other: 'Other' }
+  : { entities: '實體', concepts: '概念', facts: '事實', comparisons: '比較', workflows: '工作流', prompts: '提示詞', cases: '案例', sources: '來源摘要', other: '其他' };
 const presentGroups = new Set(graph.nodes.map((n: { group: string }) => (groupLabels[n.group] ? n.group : 'other')));
 const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)).map((key) => ({ key, label: groupLabels[key] }));
 ---
 
 <div class:list={['graph-wrap', 'card', `graph-wrap--${variant}`]}>
-  <div class="graph-tools">
+  <div class:list={['graph-tools', { 'graph-tools--local': isLocal }]}>
     <div class="graph-summary">
-      <p>{variant === 'loom' ? t(locale, 'graphLoom') : t(locale, 'graphMap')}</p>
+      <p>{isLocal ? labels.localGraph : variant === 'loom' ? t(locale, 'graphLoom') : t(locale, 'graphMap')}</p>
       <span>{graph.nodes.length} {t(locale, 'graphPages')} · {graph.edges.length} {t(locale, 'graphLinks')} · {t(locale, 'graphScaleHint')}</span>
     </div>
-    <div class="graph-actions">
+    {isLocal && <div class="graph-local-actions">
+      <button data-graph-reset type="button">{labels.localReset}</button>
+      <span>{labels.localKeyboardHint}</span>
+    </div>}
+    {!isLocal && <div class="graph-actions">
       <label class="graph-search">
         <span>{labels.search}</span>
         <input data-graph-search type="search" autocomplete="off" placeholder={labels.searchPlaceholder} />
       </label>
       <button data-graph-reset type="button">{t(locale, 'graphReset')}</button>
       <p class="graph-search-status" data-graph-search-status role="status" aria-live="polite" hidden></p>
-    </div>
+    </div>}
   </div>
-  <ul class="graph-legend" aria-label="節點類型">
-    {legendGroups.map((g) => <li><button type="button" data-legend-group={g.key} aria-pressed="true" title={`${g.label}：${groupHints[g.key]}（點擊顯示／隱藏）`}><span class="swatch" style={`background:var(--group-${g.key})`}></span>{g.label}</button></li>)}
-  </ul>
-  <svg id="wiki-graph" role="group" aria-label={variant === 'loom' ? t(locale, 'graphAriaLoom') : t(locale, 'graphAriaMap')}></svg>
-  <section class="graph-detail" data-graph-detail aria-live="polite" tabindex="-1" hidden>
+  {!isLocal && <ul class="graph-legend" aria-label={labels.graphTypes}>
+    {legendGroups.map((g) => <li><button type="button" data-legend-group={g.key} aria-pressed="true" title={locale === 'en' ? `${g.label}: ${groupHints[g.key]} (click to show or hide)` : `${g.label}：${groupHints[g.key]}（點擊顯示／隱藏）`}><span class="swatch" style={`background:var(--group-${g.key})`}></span>{g.label}</button></li>)}
+  </ul>}
+  <svg id="wiki-graph" role="group" tabindex={isLocal ? 0 : undefined} aria-keyshortcuts={isLocal ? '+ - ArrowUp ArrowDown ArrowLeft ArrowRight' : undefined} aria-label={isLocal ? labels.localGraph : variant === 'loom' ? t(locale, 'graphAriaLoom') : t(locale, 'graphAriaMap')}></svg>
+  <section class:list={['graph-detail', { 'graph-detail--local': isLocal }]} data-graph-detail aria-live="polite" tabindex="-1" hidden>
     <p class="label">{labels.details}</p>
     <strong data-graph-detail-title></strong>
     <p data-graph-detail-summary></p>
@@ -74,11 +88,14 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
     const svg = d3.select(element).attr('viewBox', [0, 0, width, height]);
     const root = svg.append('g');
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isLocal = element.closest('.graph-wrap--local') !== null;
     const maxConnections = d3.max(nodes, (node: any) => node.connections) || 1;
-    const radius = d3.scaleSqrt().domain([0, maxConnections]).range([7, 18]);
+    const radius = d3.scaleSqrt().domain([0, maxConnections]).range(isLocal ? [4, 10] : [7, 18]);
     const isLoom = element.closest('.graph-wrap--loom') !== null;
+    const focusPageId = typeof payload.focusPageId === 'string' ? payload.focusPageId : undefined;
     const labelThreshold = d3.quantile(nodes.map((node: any) => node.connections).sort(d3.ascending), 0.88) || 0;
     const idOf = (value: string | { id: string }) => typeof value === 'string' ? value : value.id;
+    const pageHref = (id: string) => `/wiki/${id.split('/').map(encodeURIComponent).join('/')}${payload.locale === 'en' ? '?lang=en' : ''}`;
     const adjacency = new Map<string, Set<string>>();
     for (const edge of links) {
       if (!adjacency.has(edge.source)) adjacency.set(edge.source, new Set());
@@ -87,6 +104,7 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
       adjacency.get(edge.target)?.add(edge.source);
     }
     const labelOpacity = (node: any) => !isLoom || node.connections >= labelThreshold ? 1 : 0;
+    const initialLabelOpacity = (node: any) => isLocal ? (node.id === focusPageId ? 1 : 0) : labelOpacity(node);
     let selectedId: string | undefined;
 
     svg.append('defs').append('marker')
@@ -108,11 +126,12 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
       .attr('class', 'graph-node')
       .attr('role', 'button')
       .attr('tabindex', 0)
-      .attr('aria-label', (d: any) => `${d.title}, ${d.backlinks} ${labels.backlinks}`);
+      .attr('aria-label', (d: any) => `${d.title}${isLocal && d.id === focusPageId ? `, ${labels.currentPage}` : ''}, ${d.backlinks} ${labels.backlinks}`);
     node.append('circle').attr('r', (d: any) => radius(d.connections)).attr('fill', (d: any) => `var(--group-${groupColors[d.group] !== undefined ? d.group : 'other'})`);
     node.append('text').text((d: any) => d.title.length > 22 ? `${d.title.slice(0, 21)}…` : d.title).attr('x', (d: any) => radius(d.connections) + 5).attr('y', 4)
-      .attr('opacity', labelOpacity);
+      .attr('opacity', initialLabelOpacity);
     node.append('title').text((d: any) => `${d.title}\n${d.backlinks} ${labels.backlinks} · ${d.connections} ${labels.neighbors}`);
+    if (isLocal) node.filter((d: any) => d.id === focusPageId).raise();
 
     const render = () => {
       link.attr('x1', (d: any) => d.source.x).attr('y1', (d: any) => d.source.y).attr('x2', (d: any) => d.target.x).attr('y2', (d: any) => d.target.y);
@@ -120,6 +139,40 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
       node.select('text')
         .attr('x', (d: any) => d.x > width - 110 ? -radius(d.connections) - 5 : radius(d.connections) + 5)
         .attr('text-anchor', (d: any) => d.x > width - 110 ? 'end' : 'start');
+    };
+
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([isLocal ? 0.2 : 0.35, 4])
+      .on('zoom', (event) => {
+        root.attr('transform', event.transform);
+      });
+    svg.call(zoom);
+
+    const fitLocalView = () => {
+      if (!isLocal || nodes.length === 0) return;
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+      for (const candidate of nodes) {
+        if (!Number.isFinite(candidate.x) || !Number.isFinite(candidate.y)) continue;
+        const nodeRadius = radius(candidate.connections);
+        minX = Math.min(minX, candidate.x - nodeRadius);
+        maxX = Math.max(maxX, candidate.x + nodeRadius);
+        minY = Math.min(minY, candidate.y - nodeRadius);
+        maxY = Math.max(maxY, candidate.y + nodeRadius);
+      }
+      if (!Number.isFinite(minX)) return;
+      const padding = 22;
+      const boundsWidth = Math.max(1, maxX - minX);
+      const boundsHeight = Math.max(1, maxY - minY);
+      const availableWidth = Math.max(1, width - padding * 2);
+      const availableHeight = Math.max(1, height - padding * 2);
+      const scale = Math.max(0.2, Math.min(1, availableWidth / boundsWidth, availableHeight / boundsHeight));
+      const transform = d3.zoomIdentity
+        .translate(width / 2 - scale * (minX + maxX) / 2, height / 2 - scale * (minY + maxY) / 2)
+        .scale(scale);
+      svg.call(zoom.transform, transform);
     };
 
     const hiddenGroups = new Set<string>();
@@ -147,7 +200,7 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
       if (detailTitle) detailTitle.textContent = selected.title;
       if (detailSummary) detailSummary.textContent = `${selected.backlinks} ${labels.backlinks} · ${selected.connections} ${labels.neighbors}`;
       if (detailLink) {
-        detailLink.href = `/wiki/${selected.id}${payload.locale === 'en' ? '?lang=en' : ''}`;
+        detailLink.href = pageHref(selected.id);
         detailLink.textContent = labels.openPage;
       }
       if (focus) detail.focus();
@@ -167,8 +220,11 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
         .attr('tabindex', (candidate: any) => focused.has(candidate.id) ? 0 : -1)
         .style('pointer-events', (candidate: any) => focused.has(candidate.id) ? null : 'none')
         .classed('is-selected', (candidate: any) => candidate.id === selectedId)
+        .classed('is-focus', (candidate: any) => isLocal && candidate.id === focusPageId)
         .classed('is-neighbor', (candidate: any) => Boolean(selectedId && candidate.id !== selectedId && focused.has(candidate.id)));
-      node.select('text').attr('opacity', (candidate: any) => focused.has(candidate.id) ? selectedId ? 1 : labelOpacity(candidate) : 0);
+      node.select('text').attr('opacity', (candidate: any) => isLocal
+        ? (candidate.id === focusPageId || candidate.id === selectedId ? 1 : 0)
+        : focused.has(candidate.id) ? selectedId ? 1 : initialLabelOpacity(candidate) : 0);
       link.attr('opacity', (edge: any) => focused.has(idOf(edge.source)) && focused.has(idOf(edge.target)) ? null : 0.08);
       updateDetail(focusDetail);
     };
@@ -187,10 +243,17 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
       updateInteraction(focusDetail);
     };
 
+    const focusNode = isLocal && focusPageId ? nodeById.get(focusPageId) : undefined;
+    if (focusNode) {
+      focusNode.fx = width / 2;
+      focusNode.fy = height / 2;
+      focusNode.x = width / 2;
+      focusNode.y = height / 2;
+    }
     const simulation = d3.forceSimulation(nodes)
-      .force('link', d3.forceLink(links).id((d: any) => d.id).distance(110))
-      .force('charge', d3.forceManyBody().strength(-280))
-      .force('collision', d3.forceCollide().radius((d: any) => radius(d.connections) + 20))
+      .force('link', d3.forceLink(links).id((d: any) => d.id).distance(isLocal ? 38 : 110))
+      .force('charge', d3.forceManyBody().strength(isLocal ? -55 : -280))
+      .force('collision', d3.forceCollide().radius((d: any) => radius(d.connections) + (isLocal ? 6 : 20)))
       .force('center', d3.forceCenter(width / 2, height / 2))
       .on('tick', render);
 
@@ -213,42 +276,64 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
       if (action === 'select') selectNode(selected.id, true);
       else clearInteraction(true);
     });
-    if (reducedMotion) {
+    if (reducedMotion || isLocal) {
       simulation.stop();
       for (let tick = 0; tick < 180; tick += 1) simulation.tick();
       render();
+      if (isLocal) fitLocalView();
     }
 
+    const isPinnedFocus = (candidate: any) => Boolean(focusNode && candidate === focusNode);
     node.call(d3.drag<any, any>()
       .on('start', (event, d) => {
         if (!reducedMotion && !event.active) simulation.alphaTarget(0.25).restart();
-        d.fx = d.x;
-        d.fy = d.y;
+        if (isPinnedFocus(d)) {
+          d.fx = width / 2;
+          d.fy = height / 2;
+        } else {
+          d.fx = d.x;
+          d.fy = d.y;
+        }
       })
       .on('drag', (event, d) => {
-        d.fx = event.x;
-        d.fy = event.y;
+        d.fx = isPinnedFocus(d) ? width / 2 : event.x;
+        d.fy = isPinnedFocus(d) ? height / 2 : event.y;
         if (reducedMotion) {
-          d.x = event.x;
-          d.y = event.y;
+          d.x = d.fx;
+          d.y = d.fy;
           render();
         }
       })
       .on('end', (event, d) => {
         if (!reducedMotion && !event.active) simulation.alphaTarget(0);
-        d.fx = null;
-        d.fy = null;
+        if (isPinnedFocus(d)) {
+          d.fx = width / 2;
+          d.fy = height / 2;
+        } else {
+          d.fx = null;
+          d.fy = null;
+        }
         if (reducedMotion) render();
       }));
 
-    const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.35, 4])
-      .on('zoom', (event) => root.attr('transform', event.transform));
-    svg.call(zoom);
     const resetZoom = () => {
+      if (isLocal) {
+        fitLocalView();
+        return;
+      }
       if (reducedMotion) svg.call(zoom.transform, d3.zoomIdentity);
       else svg.transition().duration(250).call(zoom.transform, d3.zoomIdentity);
     };
+    const handleGraphKeydown = (event: KeyboardEvent) => {
+      if (!isLocal) return;
+      const zoomFactor = event.key === '+' || event.key === '=' ? 1.25 : event.key === '-' || event.key === '_' ? 0.8 : undefined;
+      const pan = event.key === 'ArrowLeft' ? [-28, 0] : event.key === 'ArrowRight' ? [28, 0] : event.key === 'ArrowUp' ? [0, -28] : event.key === 'ArrowDown' ? [0, 28] : undefined;
+      if (zoomFactor === undefined && pan === undefined) return;
+      event.preventDefault();
+      if (zoomFactor !== undefined) svg.call(zoom.scaleBy, zoomFactor, [width / 2, height / 2]);
+      else if (pan) svg.call(zoom.translateBy, pan[0], pan[1]);
+    };
+    if (isLocal) element.addEventListener('keydown', handleGraphKeydown);
     resetButton?.addEventListener('click', () => {
       clearInteraction();
       resetZoom();
@@ -274,6 +359,16 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
       height = next.height;
       svg.attr('viewBox', [0, 0, width, height]);
       simulation.force('center', d3.forceCenter(width / 2, height / 2));
+      if (focusNode) {
+        focusNode.fx = width / 2;
+        focusNode.fy = height / 2;
+        focusNode.x = width / 2;
+        focusNode.y = height / 2;
+      }
+      if (isLocal) {
+        render();
+        return;
+      }
       if (reducedMotion) {
         simulation.stop();
         for (let tick = 0; tick < 180; tick += 1) simulation.tick();
@@ -285,6 +380,7 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
     const stopResize = observeResize(window, resize);
     window.addEventListener('pagehide', () => {
       stopResize();
+      if (isLocal) element.removeEventListener('keydown', handleGraphKeydown);
       simulation.stop();
     }, { once: true });
     updateInteraction();
@@ -336,4 +432,16 @@ const legendGroups = Object.keys(groupLabels).filter((k) => presentGroups.has(k)
     .graph-wrap--graph svg { height:68svh; min-height:480px; }
     .graph-wrap--loom svg { height:370px; min-height:0; }
   }
+  .graph-wrap--local { width:min(320px,100%); min-width:min(280px,100%); max-width:320px; }
+  .graph-tools--local { position:static; inset:auto; display:block; padding:12px 12px 0; pointer-events:auto; }
+  .graph-tools--local .graph-summary { max-width:none; padding:0; border:0; background:transparent; box-shadow:none; }
+  .graph-local-actions { display:flex; align-items:center; gap:8px; margin-top:8px; color:var(--muted); font-size:.7rem; line-height:1.35; }
+  .graph-local-actions span { min-width:0; }
+  .graph-local-actions button { flex-shrink:0; min-height:32px; padding:6px 8px; border-width:1px; box-shadow:none; white-space:nowrap; font-size:.74rem; font-weight:500; }
+  .graph-wrap--local svg { height:240px; min-height:240px; background:transparent; }
+  .graph-wrap--local svg:focus-visible { outline:3px solid var(--cobalt); outline-offset:-3px; }
+  .graph-detail--local { position:static; width:auto; margin:0 12px 12px; border-width:1px; box-shadow:none; }
+  :global(.graph-wrap--local .graph-nodes .is-focus circle) { fill:var(--lime); stroke:var(--cobalt); stroke-width:5px; }
+  :global(.graph-wrap--local .graph-nodes .is-focus text) { font-weight:900; }
+  :global(.graph-wrap--local .graph-links line) { stroke-opacity:.2; stroke-width:1px; }
 </style>

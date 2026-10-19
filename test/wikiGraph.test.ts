@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildWikiGraph } from '../src/lib/wikiGraph.ts';
+import { buildLocalWikiGraph, buildWikiGraph } from '../src/lib/wikiGraph.ts';
 
 test('builds canonical page nodes and resolved link edges for a snapshot', () => {
   const graph = buildWikiGraph({
@@ -123,4 +123,33 @@ test('graph nodes carry the first path segment as their group', () => {
     ],
   } as never);
   assert.deepEqual(graph.nodes.map((n) => n.group), ['entities', 'facts']);
+});
+
+test('local graph includes incoming and outgoing neighbors but excludes two-hop pages', () => {
+  const graph = buildLocalWikiGraph({ revision: 'local', pages: [
+    { pageId: 'center', title: 'Center', markdown: '[[outgoing]]' },
+    { pageId: 'incoming', title: 'Incoming', markdown: '[[center]] [[outgoing]]' },
+    { pageId: 'outgoing', title: 'Outgoing', markdown: '[[distant]]' },
+    { pageId: 'distant', title: 'Distant', markdown: '' },
+    { pageId: 'draft', title: 'Draft', markdown: '[[center]]', status: 'draft' },
+  ] }, 'center');
+  assert.deepEqual(graph.nodes.map((node) => node.id), ['center', 'incoming', 'outgoing']);
+  assert.equal(graph.edges.length, 3);
+  assert.equal(graph.nodes.find((node) => node.id === 'outgoing')?.connections, 2);
+});
+
+test('local graph retains a draft focus and excludes other drafts before resolving bare links', () => {
+  const graph = buildLocalWikiGraph({ revision: 'draft-local', pages: [
+    { pageId: 'sources/note', title: 'Draft focus', markdown: '[[topic]]', status: 'draft' },
+    { pageId: 'concepts/topic', title: 'Topic', markdown: '[[sources/note]]' },
+    { pageId: 'sources/topic', title: 'Other draft', markdown: '[[sources/note]]', status: 'draft' },
+  ] }, 'sources/note');
+  assert.deepEqual(graph.nodes.map((node) => node.id), ['sources/note', 'concepts/topic']);
+  assert.equal(graph.edges.length, 2);
+});
+
+test('local graph retains an isolated page and handles an absent focus', () => {
+  const snapshot = { revision: 'isolated', pages: [{ pageId: 'alone', title: 'Alone', markdown: '' }] };
+  assert.deepEqual(buildLocalWikiGraph(snapshot, 'alone').nodes.map((node) => node.id), ['alone']);
+  assert.deepEqual(buildLocalWikiGraph(snapshot, 'missing'), { revision: 'isolated', nodes: [], edges: [] });
 });
