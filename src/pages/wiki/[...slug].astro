@@ -2,6 +2,7 @@
 import Layout from '../../components/Layout.astro';
 import GraphView from '../../components/GraphView.astro';
 import WikiStatus from '../../components/WikiStatus.astro';
+import WikiContents from '../../components/WikiContents.astro';
 import { getLocale, t, withLocale } from '../../lib/i18n.ts';
 import { renderWiki } from '../../lib/renderWiki.ts';
 import { getSiteSnapshot } from '../../lib/siteWiki.ts';
@@ -39,20 +40,10 @@ const citationHref = (resource: string) => {
   return undefined;
 };
 const canonicalSource = page.resource && /^https?:\/\//i.test(page.resource) ? page.resource : undefined;
+const hasSources = Boolean(canonicalSource || page.citations?.length);
 ---
 
 <Layout title={page.title}>
-  <nav slot="left" class="wiki-toc" aria-labelledby="wiki-contents-title">
-    <details open id="article-contents">
-      <summary id="wiki-contents-title">{t(locale, 'wikiContents')}</summary>
-      <ol>
-        <li><a href="#wiki-page-title">{locale === 'en' ? 'Overview' : '概述'}</a></li>
-        {outline.map((item) => <li class:list={{ 'toc-level-3': item.level === 3 }}><a href={`#${item.id}`}>{item.text}</a></li>)}
-        {(canonicalSource || page.citations?.length) && <li><a href="#wiki-sources-title">{t(locale, 'sources')}</a></li>}
-        <li><a href="#page-information">{locale === 'en' ? 'Page information' : '頁面資訊'}</a></li>
-      </ol>
-    </details>
-  </nav>
   <article class="wiki-page" aria-labelledby="wiki-page-title">
     <header class="wiki-page-header">
       <nav class="breadcrumbs" aria-label={t(locale, 'breadcrumbs')}>
@@ -71,6 +62,7 @@ const canonicalSource = page.resource && /^https?:\/\//i.test(page.resource) ? p
     </header>
 
     <WikiStatus status={requestedVariant ? undefined : page.status} staleAfter={requestedVariant ? undefined : page.staleAfter} pendingCandidates={requestedVariant ? undefined : page.pendingCandidates} {locale} />
+    <WikiContents {outline} {hasSources} {locale} position="inline" />
     {page.pageId.startsWith('sources/') && <p class="source-notice">{locale === 'en' ? 'This page summarizes a source. Check the original evidence before using its claims.' : '這是來源摘要頁。引用其中的說法前，請回到原始資料核對。'}</p>}
 
     {variants.length > 0 && <section class="wiki-versions" aria-labelledby="wiki-versions-title">
@@ -118,14 +110,16 @@ const canonicalSource = page.resource && /^https?:\/\//i.test(page.resource) ? p
   </article>
 
   <div slot="right" class="wiki-side">
+    <WikiContents {outline} {hasSources} {locale} />
     <section aria-labelledby="wiki-local-graph-title">
       <h2 id="wiki-local-graph-title">{locale === 'en' ? 'Page connections' : '條目關聯圖'}</h2>
       <p class="graph-hint">{locale === 'en' ? 'One link away · select a node to read it.' : '一層連結範圍 · 選取節點即可前往閱讀'}{requestedVariant && (locale === 'en' ? ' Based on the primary version.' : '（以主版本連結為準）')}</p>
       <GraphView graph={localGraph} variant="local" focusPageId={page.pageId} {locale} />
       <a class="global-graph-link" href={withLocale('/graph', locale)}>{locale === 'en' ? 'Explore the full graph →' : '探索完整知識圖譜 →'}</a>
     </section>
-    {(page.linkedPages.length > 0 || page.backlinks.length > 0) && <section aria-labelledby="wiki-related-title">
-      <h2 id="wiki-related-title">{t(locale, 'wikiRelated')}</h2>
+    {(page.linkedPages.length > 0 || page.backlinks.length > 0) && <details class="related-pages">
+      <summary>{t(locale, 'wikiRelated')}</summary>
+      <div class="related-pages-body">
       {page.linkedPages.length > 0 && <>
         <p class="side-label">{t(locale, 'linksOut')}</p>
         <ul>{page.linkedPages.map((linkedPage) => <li><a href={pageHref(linkedPage.pageId)}>{linkedPage.title}</a></li>)}</ul>
@@ -138,21 +132,14 @@ const canonicalSource = page.resource && /^https?:\/\//i.test(page.resource) ? p
           {backlink.alias && <span class="backlink-alias">{locale === 'en' ? 'Term: ' : '詞：'}<strong>{backlink.alias}</strong></span>}
         </li>)}</ul>
       </>}
-    </section>}
-    {hasDiagnostics && <section aria-labelledby="wiki-diagnostics-title">
-      <h2 id="wiki-diagnostics-title">{t(locale, 'linkDiagnostics')}</h2>
+      </div>
+    </details>}
+    {hasDiagnostics && <details class="related-pages">
+      <summary>{t(locale, 'linkDiagnostics')}</summary>
       <ul>{page.links.filter((link) => link.status !== 'resolved').map((link) => <li><code>{link.target}</code><span>{t(locale, link.status === 'ambiguous' ? 'linkAmbiguous' : 'linkUnresolved')}</span></li>)}</ul>
-    </section>}
+    </details>}
   </div>
 </Layout>
-
-<script>
-  const contents = document.querySelector<HTMLDetailsElement>('#article-contents');
-  const wide = window.matchMedia('(min-width:1201px)');
-  const updateContents = () => { if (contents) contents.open = wide.matches; };
-  updateContents();
-  wide.addEventListener('change', updateContents);
-</script>
 
 <style>
   .wiki-page { min-width:0; }
@@ -160,10 +147,11 @@ const canonicalSource = page.resource && /^https?:\/\//i.test(page.resource) ? p
   .breadcrumbs { display:flex; flex-wrap:wrap; gap:8px; color:var(--muted); font-size:.78rem; }
   .breadcrumbs a { color:inherit; text-decoration:none; }
   .breadcrumbs a:hover { color:var(--accent); text-decoration:underline; }
-  .wiki-page-header h1 { margin:16px 0 12px; font-family:Georgia,"Noto Serif TC","Songti TC",serif; font-weight:400; font-size:clamp(1.8rem,3vw,2.35rem); line-height:1.4; overflow-wrap:anywhere; }
+  .wiki-page-header h1 { margin:16px 0 12px; font-weight:800; font-size:clamp(2rem,3.5vw,2.75rem); line-height:1.35; overflow-wrap:anywhere; }
   .page-tabs { display:flex; flex-wrap:wrap; gap:24px; margin-bottom:20px; border-bottom:1px solid var(--line); font-size:.85rem; }
-  .page-tabs a { padding:8px 0; text-decoration:none; }
-  .page-tabs a[aria-current] { border-bottom:2px solid var(--text); color:var(--text); }
+  .page-tabs a { padding:8px 0; color:var(--muted); text-decoration:none; }
+  .page-tabs a:hover { color:var(--accent); }
+  .page-tabs a[aria-current] { border-bottom:2px solid var(--lime); color:var(--lime); }
   .page-description { margin:0; font-size:1.05rem; line-height:1.85; }
   .version-notice, .source-notice { color:var(--muted); font-size:.86rem; line-height:1.65; }
   .source-notice { padding:10px 14px; border-left:3px solid var(--line); background:var(--panel); }
@@ -172,14 +160,14 @@ const canonicalSource = page.resource && /^https?:\/\//i.test(page.resource) ? p
   .versions-hint { margin:0 0 14px; color:var(--muted); font-size:.85rem; }
   .version-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:8px; }
   .version-card { display:grid; gap:4px; min-width:0; border:1px solid var(--line); padding:12px; color:var(--text); text-decoration:none; background:var(--bg); overflow-wrap:anywhere; }
-  .version-card:hover, .version-card--selected { border-color:var(--accent); background:var(--lime); }
+  .version-card:hover, .version-card--selected { border-color:var(--accent); background:var(--soft); }
   .version-card span, .version-card small { color:var(--muted); font-size:.78rem; }
   .version-diff { margin-top:16px; }
   .version-diff summary { cursor:pointer; color:var(--accent); }
   .version-diff pre { max-height:360px; overflow:auto; padding:14px; background:var(--soft); white-space:pre-wrap; overflow-wrap:anywhere; }
   .wiki-content { min-width:0; margin-top:28px; font-size:1rem; line-height:1.85; overflow-wrap:anywhere; }
   .wiki-content :global(p), .wiki-content :global(li) { line-height:1.85; }
-  .wiki-content :global(h2), .wiki-sources h2 { margin:32px 0 16px; padding-bottom:6px; border-bottom:1px solid var(--line); font-family:Georgia,"Noto Serif TC","Songti TC",serif; font-size:1.5rem; font-weight:400; line-height:1.5; }
+  .wiki-content :global(h2), .wiki-sources h2 { margin:32px 0 16px; padding-bottom:6px; border-bottom:1px solid var(--line); font-size:1.4rem; font-weight:700; line-height:1.5; }
   .wiki-content :global(h3) { margin:24px 0 12px; font-size:1.15rem; line-height:1.6; }
   .wiki-content :global(h4), .wiki-content :global(h5), .wiki-content :global(h6) { font-size:1rem; line-height:1.65; }
   .wiki-content :global(h2), .wiki-content :global(h3), #wiki-page-title, #wiki-content, #wiki-sources-title, #page-information { scroll-margin-top:100px; }
@@ -189,12 +177,6 @@ const canonicalSource = page.resource && /^https?:\/\//i.test(page.resource) ? p
   .wiki-content :global(pre) { max-width:100%; overflow:auto; padding:16px; background:var(--panel); border:1px solid var(--soft); font-size:.88rem; }
   .wiki-content :global(img) { max-width:100%; height:auto; }
   .wiki-content :global(blockquote) { margin:20px 0; padding:0 20px; border-left:3px solid var(--line); color:var(--muted); }
-  .wiki-toc { font-size:.85rem; }
-  .wiki-toc summary { margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--soft); font-size:.9rem; font-weight:700; cursor:pointer; }
-  .wiki-toc ol { display:grid; gap:10px; margin:0; padding:0; list-style:none; }
-  .wiki-toc .toc-level-3 { padding-left:12px; font-size:.8rem; }
-  .wiki-toc a { color:var(--accent); line-height:1.5; overflow-wrap:anywhere; text-decoration:none; }
-  .wiki-toc a:hover, .wiki-toc a:focus-visible { text-decoration:underline; }
   .wiki-sources { margin-top:32px; }
   .wiki-sources ul, .wiki-side ul { margin:0; padding-left:18px; }
   .wiki-sources li, .wiki-side li { margin-bottom:8px; overflow-wrap:anywhere; line-height:1.65; }
@@ -203,7 +185,11 @@ const canonicalSource = page.resource && /^https?:\/\//i.test(page.resource) ? p
   .page-information summary { cursor:pointer; color:var(--text); }
   .page-information dl { display:grid; grid-template-columns:auto minmax(0,1fr); gap:8px 16px; }
   .page-information dd { margin:0; }
-  .wiki-side { display:grid; gap:28px; }
+  .wiki-side { display:grid; gap:28px; padding-right:4px; }
+  .related-pages summary { display:flex; align-items:center; gap:8px; padding-bottom:12px; border-bottom:1px solid var(--line); color:var(--text); font-size:.85rem; font-weight:700; cursor:pointer; }
+  .related-pages summary::before { content:"＋"; color:var(--accent); }
+  .related-pages[open] summary::before { content:"−"; }
+  .related-pages-body, .related-pages > ul { margin-top:16px !important; }
   .wiki-side section { min-width:0; }
   .wiki-side h2 { margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid var(--soft); color:var(--text); font-size:.9rem; line-height:1.5; }
   .wiki-side .side-label { margin:0 0 8px; font-size:.8rem; font-weight:700; }
@@ -217,12 +203,7 @@ const canonicalSource = page.resource && /^https?:\/\//i.test(page.resource) ? p
   .backlink-item a { font-size:.85rem; line-height:1.55; text-decoration:none; }
   .backlink-item a:hover { text-decoration:underline; }
   .backlink-alias { margin-top:3px; }
-  .draft-badge { display:inline-block !important; padding:1px 5px; border:1px solid #a89050; color:#705419 !important; font-size:.7rem !important; }
-  @media (max-width:1200px) {
-    .wiki-toc { padding:12px 0; border-bottom:1px solid var(--soft); }
-    .wiki-toc summary { margin-bottom:0; padding-bottom:0; border-bottom:0; }
-    .wiki-toc details[open] summary { margin-bottom:12px; }
-  }
+  .draft-badge { display:inline-block !important; padding:1px 5px; border:1px solid #a89050; color:#eed08d !important; font-size:.7rem !important; }
   @media (max-width:900px) {
     .wiki-content :global(h2), .wiki-content :global(h3), #wiki-page-title, #wiki-content, #wiki-sources-title, #page-information { scroll-margin-top:160px; }
   }

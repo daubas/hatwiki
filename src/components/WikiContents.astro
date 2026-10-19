@@ -1,0 +1,39 @@
+---
+import { t, type Locale } from '../lib/i18n.ts';
+import type { WikiOutlineItem } from '../lib/wikiOutline.ts';
+
+const { outline, hasSources, locale, position = 'sidebar' } = Astro.props as {
+  outline: WikiOutlineItem[];
+  hasSources: boolean;
+  locale: Locale;
+  position?: 'sidebar' | 'inline';
+};
+const labelId = `wiki-contents-${position}`;
+---
+
+<nav class:list={['wiki-toc', `wiki-toc--${position}`]} aria-labelledby={labelId}>
+  <details open={position === 'sidebar'}>
+    <summary id={labelId}>{t(locale, 'wikiContents')}</summary>
+    <ol>
+      <li><a href="#wiki-page-title">{locale === 'en' ? 'Overview' : '概述'}</a></li>
+      {outline.map((item) => <li class:list={{ 'toc-level-3': item.level === 3 }}><a href={`#${item.id}`}>{item.text}</a></li>)}
+      {hasSources && <li><a href="#wiki-sources-title">{t(locale, 'sources')}</a></li>}
+      <li><a href="#page-information">{locale === 'en' ? 'Page information' : '頁面資訊'}</a></li>
+    </ol>
+  </details>
+</nav>
+
+<style>
+  .wiki-toc { color:var(--muted); font-size:.82rem; }
+  summary { padding-bottom:12px; border-bottom:1px solid var(--line); color:var(--text); font-size:.85rem; font-weight:700; cursor:pointer; }
+  ol { display:grid; gap:10px; max-height:280px; overflow:auto; margin:14px 0 0; padding:0; list-style:none; }
+  .toc-level-3 { padding-left:14px; font-size:.78rem; }
+  a { display:block; color:var(--muted); line-height:1.6; overflow-wrap:anywhere; text-decoration:none; }
+  a:hover, a:focus-visible { color:var(--accent); text-decoration:underline; }
+  .wiki-toc--inline { display:none; }
+  @media (max-width:900px) {
+    .wiki-toc--sidebar { display:none; }
+    .wiki-toc--inline { display:block; margin:24px 0; }
+    summary { padding:12px 0; }
+  }
+</style>

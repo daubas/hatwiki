@@ -136,7 +136,7 @@ const pageHref = (id: string) => `/wiki/${id.split('/').map(encodeURIComponent).
   .search-field input { width:100%; min-width:0; min-height:48px; padding:10px 12px; border:1px solid var(--line); border-radius:0; background:var(--bg); color:var(--text); font:inherit; font-weight:500; }
   .search-field input::placeholder { color:var(--muted); opacity:1; }
   .clear-search { flex:0 0 auto; min-height:48px; padding:10px 14px; border:1px solid var(--line); border-radius:0; background:var(--bg); color:var(--text); font:inherit; cursor:pointer; }
-  .clear-search:hover { background:var(--accent); }
+  .clear-search:hover, .clear-search:focus-visible { border-color:var(--accent); background:var(--accent); color:var(--bg); }
   .drafts-toggle { width:max-content; color:var(--accent); font-size:.8rem; font-weight:800; }
   .search-hint { margin:0; color:var(--muted); font-size:.8rem; line-height:1.5; }
   .results-status { margin:30px 0 10px; color:var(--muted); font-size:.8rem; font-weight:800; letter-spacing:.04em; }
