@@ -32,11 +32,6 @@ const pageHref = (pageId: string) => `/wiki/${pageId.split('/').map(encodeURICom
 <Layout title="Humans and Agents Together">
   <div class="home">
     <main class="home-main">
-      <form class="home-search" role="search" action={withLocale('/wiki', locale)} method="get">
-        <label class="visually-hidden" for="home-q">{t(locale, 'wikiSearchLabel')}</label>
-        <input id="home-q" name="q" type="search" placeholder={t(locale, 'wikiSearchPlaceholder')} autocomplete="off" spellcheck="false" />
-      </form>
-
       <section class="catalog" aria-labelledby="catalog-title">
         <h1 id="catalog-title" class="visually-hidden">{t(locale, 'homeCatalogTitle')}</h1>
         <div class="catalog-columns">
@@ -76,8 +71,6 @@ const pageHref = (pageId: string) => `/wiki/${pageId.split('/').map(encodeURICom
   .visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
   .home { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,340px); gap:clamp(24px,4vw,48px); align-items:start; min-width:0; }
   .home-main { display:grid; gap:28px; min-width:0; }
-  .home-search input { width:100%; min-height:46px; padding:10px 14px; border:1px solid var(--line); background:var(--panel); color:var(--text); font:inherit; }
-  .home-search input:focus-visible { outline:2px solid var(--cobalt); outline-offset:2px; }
   .catalog-columns { columns:2 320px; column-gap:clamp(24px,4vw,48px); }
   .catalog-group { break-inside:avoid; margin:0 0 26px; }
   .catalog-group h2 { margin:0 0 4px; padding-bottom:6px; border-bottom:1px solid var(--line); font-size:.95rem; letter-spacing:.02em; }
@@ -92,6 +85,8 @@ const pageHref = (pageId: string) => `/wiki/${pageId.split('/').map(encodeURICom
   .home-graph-head h2 { margin:0; font-size:.95rem; }
   .home-graph-head p { margin:2px 0 0; color:var(--muted); font-size:.74rem; }
   .home-graph :global(.graph-wrap--loom svg) { height:300px; min-height:0; }
+  .home-graph :global(.graph-tools) { display:none; }
+  .home-graph :global(.graph-legend) { position:static; max-width:none; padding:8px 10px; border:0; border-top:1px solid var(--line); box-shadow:none; background:transparent; }
   .home-graph-foot { margin:0; font-size:.8rem; font-weight:800; }
   .home-graph-foot a { color:var(--text); text-decoration:none; }
   .home-graph-foot a:hover { color:var(--cobalt); }
