@@ -7,6 +7,7 @@ import { groupWikiIndexByType } from '../lib/homeCatalog.ts';
 import { getLocale, t, withLocale } from '../lib/i18n.ts';
 import { getSiteSnapshot } from '../lib/siteWiki.ts';
 import { buildWikiGraph } from '../lib/wikiGraph.ts';
+import { parseWikiLog } from '../lib/wikiLog.ts';
 import { mergeWikiIndexPages, type WikiIndexItem } from '../lib/wikiIndex.ts';
 
 const locale = getLocale(Astro.url);
@@ -19,8 +20,19 @@ const metadata: WikiIndexItem[] = (await getCollection('wiki')).map((entry) => (
   ...(entry.data.description ? { description: entry.data.description } : {}),
 }));
 const catalogPages = mergeWikiIndexPages(snapshot.pages, metadata).filter((item) => item.id !== 'index' && item.status !== 'archived');
-const groupOrder = ['concepts', 'workflows', 'entities', 'facts', 'comparisons', 'prompts', 'cases', 'sources'];
-const groups = groupWikiIndexByType(catalogPages, groupOrder);
+const groupOrder = ['concepts', 'workflows', 'entities', 'facts', 'comparisons', 'prompts', 'cases'];
+const groups = groupWikiIndexByType(catalogPages, groupOrder).filter((group) => group.group !== 'sources');
+const COLLAPSE_AFTER = 8;
+const logFiles = import.meta.glob('../../wiki/log.md', { query: '?raw', import: 'default', eager: true }) as Record<string, string>;
+const latest = parseWikiLog(Object.values(logFiles)[0] ?? '', Infinity)
+  .map((entry, index) => ({ entry, index }))
+  .sort((a, b) => b.entry.date.localeCompare(a.entry.date) || b.index - a.index)
+  .slice(0, 5)
+  .map(({ entry }) => entry);
+const pageTitles = new Map(catalogPages.map((item) => [item.id, item.title]));
+const groupHints: Record<string, string> = locale === 'en'
+  ? { entities: 'Named objects: models, tools, and platforms', concepts: 'Reusable methods and mental models', facts: 'Time-sensitive numbers with scope and validity', comparisons: 'Comparisons of two or more objects or methods', workflows: 'End-to-end operating flows', prompts: 'Prompt modules ready to reuse', cases: 'Breakdowns of practical cases' }
+  : { entities: '有名字的對象：模型、工具、平台', concepts: '可跨模型適用的做法與心智模型', facts: '會過期的數字，帶口徑與有效期', comparisons: '兩個以上對象或做法的比較', workflows: '端到端操作流程', prompts: '可直接重用的提示詞模組', cases: '實戰案例拆解' };
 const groupLabelKeys = {
   concepts: 'groupConcepts', workflows: 'groupWorkflows', entities: 'groupEntities', facts: 'groupFacts',
   comparisons: 'groupComparisons', prompts: 'groupPrompts', cases: 'groupCases', sources: 'groupSources',
@@ -32,27 +44,45 @@ const pageHref = (pageId: string) => `/wiki/${pageId.split('/').map(encodeURICom
 <Layout title="Humans and Agents Together">
   <div class="home">
     <main class="home-main">
-      <section class="catalog" aria-labelledby="catalog-title">
-        <h1 id="catalog-title" class="visually-hidden">{t(locale, 'homeCatalogTitle')}</h1>
-        <div class="catalog-columns">
-          {groups.map((group) => (
-            <section class="catalog-group">
-              <h2>{groupLabel(group.group)} <span>{group.items.length}</span></h2>
-              <ul>
-                {group.items.map((item) => (
-                  <li>
-                    <a href={withLocale(pageHref(item.id), locale)}>
-                      <strong>{item.title}</strong>
-                      {item.status && item.status !== 'active' && <em class="catalog-status">{item.status}</em>}
-                      {item.description && <span>{item.description}</span>}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ))}
-        </div>
-      </section>
+      <h1 class="visually-hidden">{t(locale, 'homeCatalogTitle')}</h1>
+      {latest.length > 0 && (
+        <section class="latest" aria-labelledby="latest-title">
+          <h2 id="latest-title">{t(locale, 'homeLatestTitle')}</h2>
+          <ol>
+            {latest.map((entry) => (
+              <li>
+                <time datetime={entry.date}>{entry.date}</time>
+                <span class="latest-action">{entry.action}</span>
+                {entry.pageId && pageTitles.has(entry.pageId)
+                  ? <><a href={withLocale(pageHref(entry.pageId), locale)}>{pageTitles.get(entry.pageId)}</a><span class="latest-note">{entry.title.slice(entry.pageId.length).trim()}</span></>
+                  : <span>{entry.title}</span>}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      <div class="cards">
+        {groups.map((group) => (
+          <section class="card-group" aria-labelledby={`g-${group.group}`}>
+            <h2 id={`g-${group.group}`}>{groupLabel(group.group)} <span>{group.items.length}</span></h2>
+            {groupHints[group.group] && <p class="card-hint">{groupHints[group.group]}</p>}
+            <ul class:list={[{ collapsible: group.items.length > COLLAPSE_AFTER }]} data-collapsed={group.items.length > COLLAPSE_AFTER ? 'true' : undefined}>
+              {group.items.map((item, index) => (
+                <li class:list={[{ 'is-extra': index >= COLLAPSE_AFTER }]}>
+                  <a href={withLocale(pageHref(item.id), locale)}>
+                    {item.title}
+                    {item.status && item.status !== 'active' && <em class="card-status">{item.status}</em>}
+                  </a>
+                </li>
+              ))}
+            </ul>
+            {group.items.length > COLLAPSE_AFTER && (
+              <button type="button" class="card-toggle" data-toggle data-more={`${t(locale, 'homeShowAll')} ${group.items.length}`} data-less={t(locale, 'homeShowLess')}>{t(locale, 'homeShowAll')} {group.items.length}</button>
+            )}
+          </section>
+        ))}
+      </div>
     </main>
 
     <aside class="home-graph" aria-labelledby="loom-title">
@@ -67,20 +97,43 @@ const pageHref = (pageId: string) => `/wiki/${pageId.split('/').map(encodeURICom
   </div>
 </Layout>
 
+<script>
+  document.querySelectorAll<HTMLButtonElement>('[data-toggle]').forEach((button) => {
+    const list = button.previousElementSibling as HTMLElement | null;
+    if (!list) return;
+    button.addEventListener('click', () => {
+      const collapsed = list.dataset.collapsed === 'true';
+      list.dataset.collapsed = collapsed ? 'false' : 'true';
+      button.textContent = collapsed ? button.dataset.less ?? '' : button.dataset.more ?? '';
+      button.setAttribute('aria-expanded', String(collapsed));
+    });
+  });
+</script>
+
 <style>
   .visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
   .home { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,340px); gap:clamp(24px,4vw,48px); align-items:start; min-width:0; }
   .home-main { display:grid; gap:28px; min-width:0; }
-  .catalog-columns { columns:2 320px; column-gap:clamp(24px,4vw,48px); }
-  .catalog-group { break-inside:avoid; margin:0 0 26px; }
-  .catalog-group h2 { margin:0 0 4px; padding-bottom:6px; border-bottom:1px solid var(--line); font-size:.95rem; letter-spacing:.02em; }
-  .catalog-group h2 span { margin-left:6px; color:var(--muted); font-size:.74rem; font-weight:600; }
-  .catalog-group ul { margin:0; padding:0; list-style:none; }
-  .catalog-group a { display:block; padding:7px 0; color:var(--text); text-decoration:none; }
-  .catalog-group a:hover strong { color:var(--cobalt); }
-  .catalog-group strong { font-size:.92rem; font-weight:700; overflow-wrap:anywhere; }
-  .catalog-group a span { display:-webkit-box; margin-top:1px; overflow:hidden; color:var(--muted); font-size:.78rem; line-height:1.4; overflow-wrap:anywhere; -webkit-line-clamp:1; -webkit-box-orient:vertical; }
-  .catalog-status { margin-left:8px; color:var(--muted); font-size:.66rem; font-style:normal; letter-spacing:.06em; text-transform:uppercase; }
+  .latest h2 { margin:0 0 6px; padding-bottom:6px; border-bottom:1px solid var(--line); font-size:.95rem; }
+  .latest ol { display:grid; gap:0; margin:0; padding:0; list-style:none; }
+  .latest li { display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; padding:6px 0; font-size:.86rem; }
+  .latest time { color:var(--muted); font-size:.74rem; font-variant-numeric:tabular-nums; }
+  .latest-action { color:var(--cobalt); font-size:.7rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+  .latest a { color:var(--text); text-decoration:none; }
+  .latest-note { color:var(--muted); }
+  .latest a:hover { color:var(--cobalt); }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr)); gap:16px; align-items:start; }
+  .card-group { display:grid; gap:6px; min-width:0; padding:16px; border:1px solid var(--line); background:var(--panel); }
+  .card-group h2 { margin:0; font-size:1rem; }
+  .card-group h2 span { margin-left:6px; color:var(--muted); font-size:.74rem; font-weight:600; }
+  .card-hint { margin:0 0 6px; color:var(--muted); font-size:.76rem; line-height:1.4; }
+  .card-group ul { margin:0; padding:0; list-style:none; }
+  .card-group ul[data-collapsed="true"] .is-extra { display:none; }
+  .card-group li a { display:block; padding:6px 0; border-top:1px solid var(--line); color:var(--text); font-size:.86rem; line-height:1.4; text-decoration:none; overflow-wrap:anywhere; }
+  .card-group li a:hover { color:var(--cobalt); }
+  .card-status { margin-left:8px; color:var(--muted); font-size:.64rem; font-style:normal; letter-spacing:.06em; text-transform:uppercase; }
+  .card-toggle { justify-self:start; min-height:32px; padding:4px 10px; border:1px solid var(--line); background:transparent; color:var(--text); font:inherit; font-size:.78rem; font-weight:700; cursor:pointer; }
+  .card-toggle:hover { border-color:var(--cobalt); color:var(--cobalt); }
   .home-graph { position:sticky; top:88px; display:grid; gap:10px; min-width:0; }
   .home-graph-head h2 { margin:0; font-size:.95rem; }
   .home-graph-head p { margin:2px 0 0; color:var(--muted); font-size:.74rem; }

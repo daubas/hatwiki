@@ -44,6 +44,9 @@ export interface UiMessages {
   homeMapHint: string;
   homeCatalogTitle: string;
   homeOpenGraph: string;
+  homeLatestTitle: string;
+  homeShowAll: string;
+  homeShowLess: string;
   homeSearchHint: string;
   groupConcepts: string;
   groupWorkflows: string;
@@ -167,6 +170,9 @@ export const ui: Record<Locale, UiMessages> = {
     homeMapHint: '拖曳探索 · 點擊節點閱讀',
     homeCatalogTitle: '目錄',
     homeOpenGraph: '打開完整圖譜',
+    homeLatestTitle: '最近更新',
+    homeShowAll: '顯示全部',
+    homeShowLess: '收合',
     homeSearchHint: '在首頁直接搜尋全部頁面',
     groupConcepts: '概念與做法',
     groupWorkflows: '工作流',
@@ -288,6 +294,9 @@ export const ui: Record<Locale, UiMessages> = {
     homeMapHint: 'Drag to explore · Select a node to read',
     homeCatalogTitle: 'Contents',
     homeOpenGraph: 'Open the full graph',
+    homeLatestTitle: 'Latest updates',
+    homeShowAll: 'Show all',
+    homeShowLess: 'Show less',
     homeSearchHint: 'Search every page from here',
     groupConcepts: 'Concepts',
     groupWorkflows: 'Workflows',
