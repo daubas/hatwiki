@@ -30,78 +30,74 @@ const pageHref = (pageId: string) => `/wiki/${pageId.split('/').map(encodeURICom
 ---
 
 <Layout title="Humans and Agents Together">
-  <section class="home">
-    <form class="home-search" role="search" action={withLocale('/wiki', locale)} method="get">
-      <label for="home-q">{t(locale, 'wikiSearchLabel')}</label>
-      <input id="home-q" name="q" type="search" placeholder={t(locale, 'wikiSearchPlaceholder')} autocomplete="off" spellcheck="false" />
-      <p>{t(locale, 'homeSearchHint')}</p>
-    </form>
+  <div class="home">
+    <main class="home-main">
+      <form class="home-search" role="search" action={withLocale('/wiki', locale)} method="get">
+        <label class="visually-hidden" for="home-q">{t(locale, 'wikiSearchLabel')}</label>
+        <input id="home-q" name="q" type="search" placeholder={t(locale, 'wikiSearchPlaceholder')} autocomplete="off" spellcheck="false" />
+      </form>
 
-    <section class="loom" aria-labelledby="loom-title">
-      <div class="loom-heading">
-        <div>
-          <p class="overline">{t(locale, 'homeMapOverline')}</p>
-          <h2 id="loom-title">{t(locale, 'homeMapTitle')}</h2>
+      <section class="catalog" aria-labelledby="catalog-title">
+        <h1 id="catalog-title" class="visually-hidden">{t(locale, 'homeCatalogTitle')}</h1>
+        <div class="catalog-columns">
+          {groups.map((group) => (
+            <section class="catalog-group">
+              <h2>{groupLabel(group.group)} <span>{group.items.length}</span></h2>
+              <ul>
+                {group.items.map((item) => (
+                  <li>
+                    <a href={withLocale(pageHref(item.id), locale)}>
+                      <strong>{item.title}</strong>
+                      {item.status && item.status !== 'active' && <em class="catalog-status">{item.status}</em>}
+                      {item.description && <span>{item.description}</span>}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
         </div>
-        <div class="loom-meta">
-          <p>{graph.nodes.length}<span>{t(locale, 'publicPages')}</span></p>
-          <p>{graph.edges.length}<span>{t(locale, 'wikiLinks')}</span></p>
-        </div>
+      </section>
+    </main>
+
+    <aside class="home-graph" aria-labelledby="loom-title">
+      <div class="home-graph-head">
+        <h2 id="loom-title">{t(locale, 'homeMapTitle')}</h2>
+        <p>{graph.nodes.length} {t(locale, 'publicPages')} · {graph.edges.length} {t(locale, 'wikiLinks')}</p>
       </div>
       <GraphScope {locale} {includeSources} />
       <GraphView graph={graph} variant="loom" {locale} />
-      <p class="loom-hint">{t(locale, 'homeMapHint')}</p>
-    </section>
-
-    <section class="catalog" aria-labelledby="catalog-title">
-      <h2 id="catalog-title">{t(locale, 'homeCatalogTitle')}</h2>
-      {groups.map((group) => (
-        <section class="catalog-group">
-          <h3>{groupLabel(group.group)} <span>{group.items.length}</span></h3>
-          <ul>
-            {group.items.map((item) => (
-              <li>
-                <a href={withLocale(pageHref(item.id), locale)}>
-                  <strong>{item.title}</strong>
-                  {item.status && <em class="catalog-status">{item.status}</em>}
-                  {item.description && <span>{item.description}</span>}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
-    </section>
-  </section>
+      <p class="home-graph-foot"><a href={withLocale('/graph', locale)}>{t(locale, 'homeOpenGraph')} →</a></p>
+    </aside>
+  </div>
 </Layout>
 
 <style>
-  .home { display:grid; min-width:0; gap:clamp(28px,4vw,48px); }
-  .overline { margin:0; color:var(--cobalt); font-size:.72rem; font-weight:850; letter-spacing:.11em; text-transform:uppercase; }
-  .home-search { display:grid; gap:8px; max-width:720px; }
-  .home-search label { color:var(--muted); font-size:.78rem; font-weight:800; }
-  .home-search input { min-height:48px; padding:10px 14px; border:1px solid var(--line); background:var(--panel); color:var(--text); font:inherit; }
+  .visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+  .home { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,340px); gap:clamp(24px,4vw,48px); align-items:start; min-width:0; }
+  .home-main { display:grid; gap:28px; min-width:0; }
+  .home-search input { width:100%; min-height:46px; padding:10px 14px; border:1px solid var(--line); background:var(--panel); color:var(--text); font:inherit; }
   .home-search input:focus-visible { outline:2px solid var(--cobalt); outline-offset:2px; }
-  .home-search p { margin:0; color:var(--muted); font-size:.78rem; }
-  .loom { position:relative; display:grid; min-width:0; gap:16px; }
-  .loom-heading { display:flex; align-items:end; justify-content:space-between; gap:24px; }
-  .loom-heading h2, .catalog h2 { max-width:700px; margin:5px 0 0; font-size:clamp(1.45rem,3vw,2.3rem); letter-spacing:-.045em; line-height:1.15; }
-  .loom-meta { display:flex; gap:24px; }
-  .loom-meta p { display:grid; margin:0; color:var(--text); font-size:1.55rem; font-weight:800; line-height:1; }
-  .loom-meta span { margin-top:5px; color:var(--muted); font-size:.68rem; font-weight:600; letter-spacing:.04em; }
-  .loom-hint { justify-self:end; margin:0; color:var(--muted); font-size:.78rem; }
-  .catalog { display:grid; gap:28px; padding-top:28px; border-top:1px solid var(--line); }
-  .catalog-group h3 { margin:0 0 6px; padding-bottom:8px; border-bottom:1px solid var(--line); font-size:1.05rem; }
-  .catalog-group h3 span { margin-left:8px; color:var(--muted); font-size:.74rem; font-weight:600; }
-  .catalog-group ul { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:clamp(24px,4vw,56px); margin:0; padding:0; list-style:none; }
-  .catalog-group a { display:grid; gap:2px; min-width:0; padding:10px 0; border-bottom:1px solid var(--line); color:var(--text); text-decoration:none; }
+  .catalog-columns { columns:2 320px; column-gap:clamp(24px,4vw,48px); }
+  .catalog-group { break-inside:avoid; margin:0 0 26px; }
+  .catalog-group h2 { margin:0 0 4px; padding-bottom:6px; border-bottom:1px solid var(--line); font-size:.95rem; letter-spacing:.02em; }
+  .catalog-group h2 span { margin-left:6px; color:var(--muted); font-size:.74rem; font-weight:600; }
+  .catalog-group ul { margin:0; padding:0; list-style:none; }
+  .catalog-group a { display:block; padding:7px 0; color:var(--text); text-decoration:none; }
   .catalog-group a:hover strong { color:var(--cobalt); }
-  .catalog-group strong { font-size:.95rem; overflow-wrap:anywhere; }
-  .catalog-group span { color:var(--muted); font-size:.82rem; line-height:1.45; overflow-wrap:anywhere; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-  .catalog-status { justify-self:start; color:var(--muted); font-size:.68rem; font-style:normal; letter-spacing:.06em; text-transform:uppercase; }
-  @media (max-width:760px) {
-    .loom-heading { display:grid; gap:12px; }
-    .loom-hint { justify-self:start; }
-    .catalog-group ul { grid-template-columns:minmax(0,1fr); }
+  .catalog-group strong { font-size:.92rem; font-weight:700; overflow-wrap:anywhere; }
+  .catalog-group a span { display:-webkit-box; margin-top:1px; overflow:hidden; color:var(--muted); font-size:.78rem; line-height:1.4; overflow-wrap:anywhere; -webkit-line-clamp:1; -webkit-box-orient:vertical; }
+  .catalog-status { margin-left:8px; color:var(--muted); font-size:.66rem; font-style:normal; letter-spacing:.06em; text-transform:uppercase; }
+  .home-graph { position:sticky; top:88px; display:grid; gap:10px; min-width:0; }
+  .home-graph-head h2 { margin:0; font-size:.95rem; }
+  .home-graph-head p { margin:2px 0 0; color:var(--muted); font-size:.74rem; }
+  .home-graph :global(.graph-wrap--loom svg) { height:300px; min-height:0; }
+  .home-graph-foot { margin:0; font-size:.8rem; font-weight:800; }
+  .home-graph-foot a { color:var(--text); text-decoration:none; }
+  .home-graph-foot a:hover { color:var(--cobalt); }
+  @media (max-width:860px) {
+    .home { grid-template-columns:minmax(0,1fr); }
+    .home-graph { position:static; order:-1; }
+    .home-graph :global(.graph-wrap--loom svg) { height:260px; }
   }
 </style>
