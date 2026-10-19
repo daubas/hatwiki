@@ -1,7 +1,6 @@
 ---
 import { getCollection } from 'astro:content';
 import GraphView from '../components/GraphView.astro';
-import GraphScope from '../components/GraphScope.astro';
 import Layout from '../components/Layout.astro';
 import { groupWikiIndexByType } from '../lib/homeCatalog.ts';
 import { getLocale, t, withLocale } from '../lib/i18n.ts';
@@ -12,9 +11,8 @@ import { parseWikiLog } from '../lib/wikiLog.ts';
 import { mergeWikiIndexPages, type WikiIndexItem } from '../lib/wikiIndex.ts';
 
 const locale = getLocale(Astro.url);
-const includeSources = Astro.url.searchParams.get('sources') === '1';
 const snapshot = await getSiteSnapshot();
-const graph = buildWikiGraph(snapshot, { includeSources });
+const graph = buildWikiGraph(snapshot, { includeSources: false });
 const metadata: WikiIndexItem[] = (await getCollection('wiki')).map((entry) => ({
   id: entry.id,
   title: entry.data.title ?? entry.id,
@@ -98,7 +96,6 @@ const pageHref = (pageId: string) => `/wiki/${pageId.split('/').map(encodeURICom
         <h2 id="loom-title">{t(locale, 'homeMapTitle')}</h2>
         <p>{graph.nodes.length} {t(locale, 'publicPages')} · {graph.edges.length} {t(locale, 'wikiLinks')}</p>
       </div>
-      <GraphScope {locale} {includeSources} />
       <GraphView graph={graph} variant="loom" {locale} />
       <p class="home-graph-foot"><a href={withLocale('/graph', locale)}>{t(locale, 'homeOpenGraph')} →</a></p>
     </aside>
